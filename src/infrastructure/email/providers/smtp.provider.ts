@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import * as nodemailer from 'nodemailer';
 import type { EmailConfig } from '../config/email.config';
 
@@ -47,4 +49,4 @@ export class SmtpProvider {
       return false;
     }
   }
-} 
+}

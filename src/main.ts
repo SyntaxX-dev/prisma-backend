@@ -11,7 +11,19 @@ async function bootstrap() {
     .setTitle('Prisma API')
     .setDescription('API documentation for Prisma platform')
     .setVersion('1.0.0')
-    .addTag('Auth')
+    .addTag('Auth', 'Endpoints de autenticação e registro')
+
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);

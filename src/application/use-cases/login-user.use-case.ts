@@ -1,7 +1,12 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { USER_REPOSITORY, PASSWORD_HASHER } from '../../domain/tokens';
+import {
+  USER_REPOSITORY,
+  PASSWORD_HASHER,
+  AUTH_SERVICE,
+} from '../../domain/tokens';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { PasswordHasher } from '../../domain/services/password-hasher';
+import type { AuthService } from '../../domain/services/auth.service';
 
 export interface LoginInput {
   email: string;
@@ -9,7 +14,13 @@ export interface LoginInput {
 }
 
 export interface LoginOutput {
-  message: string;
+  accessToken: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
 }
 
 @Injectable()
@@ -17,6 +28,7 @@ export class LoginUserUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher,
+    @Inject(AUTH_SERVICE) private readonly authService: AuthService,
   ) {}
 
   async execute(input: LoginInput): Promise<LoginOutput> {
@@ -33,6 +45,22 @@ export class LoginUserUseCase {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    return { message: 'Login realizado com sucesso' };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = this.authService.generateToken(payload);
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 }

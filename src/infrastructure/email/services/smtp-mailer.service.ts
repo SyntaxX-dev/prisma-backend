@@ -26,7 +26,7 @@ export class SmtpMailerService implements MailerServicePort {
       this.smtpProvider = new SmtpProvider(config.smtp);
       this.fromName = config.from.name;
       this.fromEmail = config.from.email;
-      // Verificar conexão
+
       const isConnected = await this.smtpProvider.verifyConnection();
       if (isConnected) {
         console.log('[Email] SMTP provider initialized and connected');
@@ -41,7 +41,6 @@ export class SmtpMailerService implements MailerServicePort {
 
   async sendWelcomeEmail(toEmail: string, toName: string): Promise<void> {
     if (!this.smtpProvider) {
-      // Fallback no-op em dev
       console.log(`[Email] Bem-vindo ${toName} <${toEmail}> (simulado)`);
       return;
     }

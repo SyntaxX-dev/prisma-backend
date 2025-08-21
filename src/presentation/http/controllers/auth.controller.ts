@@ -1,15 +1,29 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Get,
+  UseGuards,
+} from '@nestjs/common';
 import { RegisterUserUseCase } from '../../../application/use-cases/register-user.use-case';
-import { LoginUserUseCase } from '../../../application/use-cases/login-user.use-case';
+import {
+  LoginUserUseCase,
+  type LoginOutput,
+} from '../../../application/use-cases/login-user.use-case';
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { LoginDto } from '../dtos/login.dto';
 import { EducationLevel } from '../../../domain/enums/education-level';
 import { UserRole } from '../../../domain/enums/user-role';
-import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { MAILER_SERVICE } from '../../../domain/tokens';
 import { Inject } from '@nestjs/common';
 import type { MailerServicePort } from '../../../domain/services/mailer';
+import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
+import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
+import type { JwtPayload } from '../../../domain/services/auth.service';
 
 const educationLevelMapPtToEn: Record<string, EducationLevel> = {
   FUNDAMENTAL: EducationLevel.ELEMENTARY,
@@ -92,13 +106,77 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 200, description: 'Login success' })
-  async login(@Body() body: LoginDto) {
-    const output = await this.loginUser.execute(body);
-    return { mensagem: 'Login realizado com sucesso' };
+  @ApiResponse({
+    status: 200,
+    description: 'Login success',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        user: {
+          id: 'uuid-do-usuario',
+          name: 'João Silva',
+          email: 'joao@exemplo.com',
+          role: 'ALUNO',
+        },
+      },
+    },
+  })
+  async login(@Body() body: LoginDto): Promise<{
+    accessToken: string;
+    user: {
+      id: string;
+      nome: string;
+      email: string;
+      perfil: string;
+    };
+  }> {
+    const output: LoginOutput = await this.loginUser.execute(body);
+    return {
+      accessToken: output.accessToken,
+      user: {
+        id: output.user.id,
+        nome: output.user.name,
+        email: output.user.email,
+        perfil: roleMapEnToPt[output.user.role as UserRole] || output.user.role,
+      },
+    };
+  }
+
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil do usuário autenticado',
+    schema: {
+      example: {
+        id: 'uuid-do-usuario',
+        email: 'joao@exemplo.com',
+        role: 'ALUNO',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token inválido ou ausente',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  getProfile(@CurrentUser() user: JwtPayload) {
+    return {
+      id: user.sub,
+      email: user.email,
+      perfil: roleMapEnToPt[user.role as UserRole] || user.role,
+    };
   }
 
   @Post('test-email')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiBody({
     schema: {
       example: {
@@ -108,6 +186,16 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 200, description: 'Test email sent successfully' })
+  @ApiResponse({
+    status: 401,
+    description: 'Token inválido ou ausente',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Unauthorized',
+      },
+    },
+  })
   async testEmail(@Body() body: { email: string; name: string }) {
     try {
       await this.mailer.sendWelcomeEmail(body.email, body.name);
