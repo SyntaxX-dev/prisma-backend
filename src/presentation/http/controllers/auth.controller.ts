@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { RegisterUserUseCase } from '../../../application/use-cases/register-user.use-case';
 import { LoginUserUseCase } from '../../../application/use-cases/login-user.use-case';
@@ -6,6 +7,9 @@ import { LoginDto } from '../dtos/login.dto';
 import { EducationLevel } from '../../../domain/enums/education-level';
 import { UserRole } from '../../../domain/enums/user-role';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { MAILER_SERVICE } from '../../../domain/tokens';
+import { Inject } from '@nestjs/common';
+import type { MailerServicePort } from '../../../domain/services/mailer';
 
 const educationLevelMapPtToEn: Record<string, EducationLevel> = {
   FUNDAMENTAL: EducationLevel.ELEMENTARY,
@@ -35,6 +39,7 @@ export class AuthController {
   constructor(
     private readonly registerUser: RegisterUserUseCase,
     private readonly loginUser: LoginUserUseCase,
+    @Inject(MAILER_SERVICE) private readonly mailer: MailerServicePort,
   ) {}
 
   @Post('register')
@@ -91,5 +96,33 @@ export class AuthController {
   async login(@Body() body: LoginDto) {
     const output = await this.loginUser.execute(body);
     return { mensagem: 'Login realizado com sucesso' };
+  }
+
+  @Post('test-email')
+  @ApiBody({
+    schema: {
+      example: {
+        email: 'teste@exemplo.com',
+        name: 'Usuário Teste',
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Test email sent successfully' })
+  async testEmail(@Body() body: { email: string; name: string }) {
+    try {
+      await this.mailer.sendWelcomeEmail(body.email, body.name);
+      return {
+        success: true,
+        message: 'Email de teste enviado com sucesso',
+        sentTo: body.email,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Erro ao enviar email de teste',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        error: error.message,
+      };
+    }
   }
 }

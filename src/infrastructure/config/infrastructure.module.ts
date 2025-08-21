@@ -3,18 +3,17 @@
 import { Module } from '@nestjs/common';
 import {
   DRIZZLE_DB,
-  MAILER_SERVICE,
   PASSWORD_HASHER,
   USER_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
 import { BcryptPasswordHasher } from '../services/bcrypt-password-hasher';
-import { NodemailerMailerService } from '../services/nodemailer-mailer.service';
+import { EmailModule } from '../email/email.module';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
-  imports: [],
+  imports: [EmailModule],
   providers: [
     DrizzleService,
     {
@@ -31,11 +30,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       provide: PASSWORD_HASHER,
       useClass: BcryptPasswordHasher,
     },
-    {
-      provide: MAILER_SERVICE,
-      useClass: NodemailerMailerService,
-    },
   ],
-  exports: [DRIZZLE_DB, USER_REPOSITORY, PASSWORD_HASHER, MAILER_SERVICE],
+  exports: [DRIZZLE_DB, USER_REPOSITORY, PASSWORD_HASHER],
 })
 export class InfrastructureModule {}
