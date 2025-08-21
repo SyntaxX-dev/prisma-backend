@@ -102,7 +102,7 @@ export class AuthController {
     schema: {
       example: {
         email: 'joao@exemplo.com',
-        password: 'minhasenha',
+        password: 'MinhaSenha123!',
       },
     },
   })
