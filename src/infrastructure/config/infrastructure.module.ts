@@ -5,11 +5,13 @@ import {
   DRIZZLE_DB,
   PASSWORD_HASHER,
   USER_REPOSITORY,
+  PASSWORD_RESET_SERVICE,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
 import { BcryptPasswordHasher } from '../services/bcrypt-password-hasher';
 import { EmailModule } from '../email/email.module';
+import { PasswordResetServiceImpl } from '../services/password-reset.service';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -30,7 +32,16 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       provide: PASSWORD_HASHER,
       useClass: BcryptPasswordHasher,
     },
+    {
+      provide: PASSWORD_RESET_SERVICE,
+      useClass: PasswordResetServiceImpl,
+    },
   ],
-  exports: [DRIZZLE_DB, USER_REPOSITORY, PASSWORD_HASHER],
+  exports: [
+    DRIZZLE_DB,
+    USER_REPOSITORY,
+    PASSWORD_HASHER,
+    PASSWORD_RESET_SERVICE,
+  ],
 })
 export class InfrastructureModule {}

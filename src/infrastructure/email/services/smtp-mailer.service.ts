@@ -62,4 +62,33 @@ export class SmtpMailerService implements MailerServicePort {
       throw error;
     }
   }
+
+  async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+    text?: string,
+  ): Promise<void> {
+    if (!this.smtpProvider) {
+      console.log(`[Email] ${subject} para ${to} (simulado)`);
+      return;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to,
+        subject,
+        html,
+        text: text || '',
+      };
+
+      await this.smtpProvider.sendMail(mailOptions);
+
+      console.log(`[Email] Email "${subject}" enviado para ${to}`);
+    } catch (error) {
+      console.error('[Email] Erro ao enviar email via SMTP:', error);
+      throw error;
+    }
+  }
 }

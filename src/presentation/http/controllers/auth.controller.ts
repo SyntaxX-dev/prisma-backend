@@ -15,12 +15,16 @@ import {
 } from '../../../application/use-cases/login-user.use-case';
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { LoginDto } from '../dtos/login.dto';
+import { RequestPasswordResetDto } from '../dtos/request-password-reset.dto';
+import { VerifyResetCodeDto } from '../dtos/verify-reset-code.dto';
+import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { EducationLevel } from '../../../domain/enums/education-level';
 import { UserRole } from '../../../domain/enums/user-role';
 import { ApiBody, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { MAILER_SERVICE } from '../../../domain/tokens';
+import { MAILER_SERVICE, PASSWORD_RESET_SERVICE } from '../../../domain/tokens';
 import { Inject } from '@nestjs/common';
 import type { MailerServicePort } from '../../../domain/services/mailer';
+import type { PasswordResetService } from '../../../domain/services/password-reset.service';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../domain/services/auth.service';
@@ -54,6 +58,8 @@ export class AuthController {
     private readonly registerUser: RegisterUserUseCase,
     private readonly loginUser: LoginUserUseCase,
     @Inject(MAILER_SERVICE) private readonly mailer: MailerServicePort,
+    @Inject(PASSWORD_RESET_SERVICE)
+    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   @Post('register')
@@ -172,6 +178,145 @@ export class AuthController {
       email: user.email,
       perfil: roleMapEnToPt[user.role as UserRole] || user.role,
     };
+  }
+
+  @Post('request-password-reset')
+  @ApiBody({
+    schema: {
+      example: {
+        email: 'usuario@exemplo.com',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Código de redefinição enviado com sucesso',
+    schema: {
+      example: {
+        message: 'Código de redefinição enviado para seu email',
+        email: 'usuario@exemplo.com',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuário não encontrado',
+    schema: {
+      example: {
+        message: 'Usuário não encontrado',
+      },
+    },
+  })
+  async requestPasswordReset(@Body() body: RequestPasswordResetDto) {
+    try {
+      await this.passwordResetService.generateResetCode(body.email);
+      return {
+        message: 'Código de redefinição enviado para seu email',
+        email: body.email,
+      };
+    } catch (error) {
+      if (error.message === 'Usuário não encontrado') {
+        return {
+          message: 'Usuário não encontrado',
+        };
+      }
+      throw error;
+    }
+  }
+
+  @Post('verify-reset-code')
+  @ApiBody({
+    schema: {
+      example: {
+        email: 'usuario@exemplo.com',
+        code: '123456',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Código verificado com sucesso',
+    schema: {
+      example: {
+        message: 'Código verificado com sucesso',
+        valid: true,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Código inválido ou expirado',
+    schema: {
+      example: {
+        message: 'Código inválido ou expirado',
+        valid: false,
+      },
+    },
+  })
+  async verifyResetCode(@Body() body: VerifyResetCodeDto) {
+    const isValid = await this.passwordResetService.verifyResetCode(
+      body.email,
+      body.code,
+    );
+
+    if (isValid) {
+      return {
+        message: 'Código verificado com sucesso',
+        valid: true,
+      };
+    } else {
+      return {
+        message: 'Código inválido ou expirado',
+        valid: false,
+      };
+    }
+  }
+
+  @Post('reset-password')
+  @ApiBody({
+    schema: {
+      example: {
+        email: 'usuario@exemplo.com',
+        code: '123456',
+        newPassword: 'MinhaSenha123!',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Senha redefinida com sucesso',
+    schema: {
+      example: {
+        message: 'Senha redefinida com sucesso',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Código inválido ou expirado',
+    schema: {
+      example: {
+        message: 'Código inválido ou expirado',
+      },
+    },
+  })
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    try {
+      await this.passwordResetService.resetPassword(
+        body.email,
+        body.newPassword,
+      );
+      return {
+        message: 'Senha redefinida com sucesso',
+      };
+    } catch (error) {
+      if (error.message.includes('Código de redefinição')) {
+        return {
+          message: 'Código inválido ou expirado',
+        };
+      }
+      throw error;
+    }
   }
 
   @Post('test-email')

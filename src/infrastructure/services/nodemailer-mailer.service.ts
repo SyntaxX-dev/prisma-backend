@@ -60,4 +60,19 @@ export class NodemailerMailerService implements MailerServicePort {
       html: `<p>Olá, <strong>${toName}</strong>! Seja bem-vindo à plataforma Prisma.</p>`,
     });
   }
+
+  async sendEmail(to: string, subject: string, html: string, text?: string): Promise<void> {
+    if (!this.transporter) {
+      console.log(`[Mailer] ${subject} para ${to} (simulado)`);
+      return;
+    }
+
+    await this.transporter.sendMail({
+      from: `${this.fromName} <${this.fromEmail}>`,
+      to,
+      subject,
+      html,
+      text: text || '',
+    });
+  }
 }
