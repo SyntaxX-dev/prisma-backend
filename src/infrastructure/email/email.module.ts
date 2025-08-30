@@ -3,6 +3,7 @@ import { MAILER_SERVICE } from '../../domain/tokens';
 import { SmtpMailerService } from './services/smtp-mailer.service';
 import { SmtpProvider } from './providers/smtp.provider';
 import { EmailConfiguration } from './config/email.config';
+import { ResendMailerService } from './services/resend-mailer.service';
 
 @Module({
   providers: [
@@ -11,9 +12,6 @@ import { EmailConfiguration } from './config/email.config';
       useFactory: () => {
         const config = EmailConfiguration.loadFromEnv();
         if (!config) {
-          console.log(
-            '[Email] Configuração SMTP não encontrada, usando fallback',
-          );
           return null;
         }
         return new SmtpProvider(config.smtp);
@@ -21,7 +19,14 @@ import { EmailConfiguration } from './config/email.config';
     },
     {
       provide: MAILER_SERVICE,
-      useClass: SmtpMailerService,
+      useFactory: () => {
+        // Preferir Resend se RESEND_API_KEY existir
+        if (process.env.RESEND_API_KEY) {
+          return new ResendMailerService();
+        }
+        // Caso contrário, usar SMTP service
+        return new SmtpMailerService();
+      },
     },
   ],
   exports: [MAILER_SERVICE],
