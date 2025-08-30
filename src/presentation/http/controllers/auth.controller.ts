@@ -7,6 +7,8 @@ import {
   Post,
   Get,
   UseGuards,
+  Req,
+  Res,
 } from '@nestjs/common';
 import { RegisterUserUseCase } from '../../../application/use-cases/register-user.use-case';
 import {
@@ -20,7 +22,7 @@ import { VerifyResetCodeDto } from '../dtos/verify-reset-code.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { EducationLevel } from '../../../domain/enums/education-level';
 import { UserRole } from '../../../domain/enums/user-role';
-import { ApiBody, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBody, ApiResponse, ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { MAILER_SERVICE, PASSWORD_RESET_SERVICE } from '../../../domain/tokens';
 import { Inject } from '@nestjs/common';
 import type { MailerServicePort } from '../../../domain/services/mailer';
@@ -28,6 +30,7 @@ import type { PasswordResetService } from '../../../domain/services/password-res
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../domain/services/auth.service';
+import { AuthGuard } from '@nestjs/passport';
 
 const educationLevelMapPtToEn: Record<string, EducationLevel> = {
   FUNDAMENTAL: EducationLevel.ELEMENTARY,
@@ -357,5 +360,26 @@ export class AuthController {
         error: error.message,
       };
     }
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Iniciar login com Google OAuth' })
+  async googleAuth() {
+    return { message: 'Redirecionando para Google...' };
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Callback do Google OAuth' })
+  async googleCallback(@Req() req: any, @Res() res: any) {
+    // req.user é retornado pelo validate da estratégia
+    const { accessToken, user } = req.user;
+    // Opcional: redirecionar com token em query param
+    const redirectUrl = process.env.GOOGLE_SUCCESS_REDIRECT ?? 'http://localhost:3000/oauth/success';
+    const url = `${redirectUrl}?token=${accessToken}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}`;
+    return res.redirect(url);
   }
 }

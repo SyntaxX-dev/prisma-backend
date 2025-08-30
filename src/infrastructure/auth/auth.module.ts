@@ -5,9 +5,12 @@ import { JwtConfiguration } from '../config/jwt.config';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthService } from '../services/jwt.service';
 import { AUTH_SERVICE } from '../../domain/tokens';
+import { GoogleStrategy } from './google.strategy';
+import { InfrastructureModule } from '../config/infrastructure.module';
 
 @Module({
   imports: [
+    InfrastructureModule,
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => {
@@ -25,6 +28,7 @@ import { AUTH_SERVICE } from '../../domain/tokens';
       useClass: JwtAuthService,
     },
     JwtStrategy,
+    GoogleStrategy,
   ],
   exports: [AUTH_SERVICE, JwtStrategy, JwtModule],
 })
