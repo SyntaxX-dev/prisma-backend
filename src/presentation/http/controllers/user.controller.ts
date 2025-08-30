@@ -9,3 +9,4 @@ import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 export class UserController {
   // Controller vazio - endpoints removidos
 }
+ 
