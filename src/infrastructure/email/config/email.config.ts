@@ -26,7 +26,7 @@ export class EmailConfiguration {
     console.log('SMTP_PASS:', process.env.SMTP_PASS ? '***' : 'undefined');
     console.log('SMTP_FROM_NAME:', process.env.SMTP_FROM_NAME);
     console.log('SMTP_FROM_EMAIL:', process.env.SMTP_FROM_EMAIL);
-    
+
     const smtpHost = process.env.SMTP_HOST;
     const smtpPort = process.env.SMTP_PORT;
     const smtpUser = process.env.SMTP_USER;
@@ -49,7 +49,7 @@ export class EmailConfiguration {
       smtp: {
         host: smtpHost,
         port: parseInt(smtpPort),
-        secure: parseInt(smtpPort) === 465,
+        secure: parseInt(smtpPort) === 587,
         auth: {
           user: smtpUser,
           pass: smtpPass,
