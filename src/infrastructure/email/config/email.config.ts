@@ -49,7 +49,7 @@ export class EmailConfiguration {
       smtp: {
         host: smtpHost,
         port: parseInt(smtpPort),
-        secure: parseInt(smtpPort) === 587,
+        secure: parseInt(smtpPort) === 465,
         auth: {
           user: smtpUser,
           pass: smtpPass,
