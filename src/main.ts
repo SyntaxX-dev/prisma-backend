@@ -12,7 +12,6 @@ async function bootstrap() {
     .setDescription('API documentation for Prisma platform')
     .setVersion('1.0.0')
     .addTag('Auth', 'Endpoints de autenticação e registro')
-
     .addBearerAuth(
       {
         type: 'http',
@@ -28,6 +27,15 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  const port = process.env.PORT || 3000;
+  console.log(`Tentando iniciar na porta: ${port}`);
+
+  await app.listen(port, '0.0.0.0');
+  console.log(`Aplicação rodando em http://0.0.0.0:${port}`);
+
+  // Log adicional para debug
+  setTimeout(() => {
+    console.log('Aplicação ainda está rodando após 10 segundos');
+  }, 10000);
 }
 void bootstrap();
