@@ -1,12 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile } from 'passport-google-oauth20';
-import { AUTH_SERVICE, USER_REPOSITORY } from '../../domain/tokens';
+import {
+  AUTH_SERVICE,
+  USER_REPOSITORY,
+  GOOGLE_CONFIG_SERVICE,
+} from '../../domain/tokens';
 import type { AuthService } from '../../domain/services/auth.service';
 import type { UserRepository } from '../../domain/repositories/user.repository';
-import { UserRole } from '../../domain/enums/user-role';
-import { EducationLevel } from '../../domain/enums/education-level';
-import { GoogleConfiguration } from '../config/google.config';
+import type { GoogleConfigService } from '../../domain/services/google-config.service';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -14,10 +16,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(
     @Inject(AUTH_SERVICE) private readonly authService: AuthService,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    @Inject(GOOGLE_CONFIG_SERVICE)
+    private readonly googleConfig: GoogleConfigService,
   ) {
-    const config = GoogleConfiguration.loadFromEnv();
-    
-    if (!config) {
+    if (!googleConfig.isConfigured()) {
       // Se não há configuração, usar valores dummy para evitar erro
       super({
         clientID: 'dummy',
@@ -28,17 +30,21 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       });
       return;
     }
-    
+
     super({
-      clientID: config.clientId,
-      clientSecret: config.clientSecret,
-      callbackURL: config.callbackUrl,
+      clientID: googleConfig.getClientId(),
+      clientSecret: googleConfig.getClientSecret(),
+      callbackURL: googleConfig.getCallbackUrl(),
       scope: ['email', 'profile'],
       passReqToCallback: false,
     });
   }
 
-  async validate(_accessToken: string, _refreshToken: string, profile: Profile) {
+  async validate(
+    _accessToken: string,
+    _refreshToken: string,
+    profile: Profile,
+  ) {
     const email = profile.emails?.[0]?.value;
     const name = profile.displayName || profile.name?.givenName || 'Usuário';
 
@@ -63,9 +69,21 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       await this.userRepository.create(user);
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role || 'STUDENT' };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role || 'STUDENT',
+    };
     const accessToken = this.authService.generateToken(payload);
 
-    return { accessToken, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
-} 
+}

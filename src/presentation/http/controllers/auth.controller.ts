@@ -22,16 +22,26 @@ import { VerifyResetCodeDto } from '../dtos/verify-reset-code.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { EducationLevel } from '../../../domain/enums/education-level';
 import { UserRole } from '../../../domain/enums/user-role';
-import { ApiBody, ApiResponse, ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { MAILER_SERVICE, PASSWORD_RESET_SERVICE } from '../../../domain/tokens';
+import {
+  ApiBody,
+  ApiResponse,
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+} from '@nestjs/swagger';
+import {
+  MAILER_SERVICE,
+  PASSWORD_RESET_SERVICE,
+  GOOGLE_CONFIG_SERVICE,
+} from '../../../domain/tokens';
 import { Inject } from '@nestjs/common';
 import type { MailerServicePort } from '../../../domain/services/mailer';
 import type { PasswordResetService } from '../../../domain/services/password-reset.service';
+import type { GoogleConfigService } from '../../../domain/services/google-config.service';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../domain/services/auth.service';
 import { AuthGuard } from '@nestjs/passport';
-import { GoogleConfiguration } from '../../../infrastructure/config/google.config';
 
 const educationLevelMapPtToEn: Record<string, EducationLevel> = {
   FUNDAMENTAL: EducationLevel.ELEMENTARY,
@@ -64,6 +74,8 @@ export class AuthController {
     @Inject(MAILER_SERVICE) private readonly mailer: MailerServicePort,
     @Inject(PASSWORD_RESET_SERVICE)
     private readonly passwordResetService: PasswordResetService,
+    @Inject(GOOGLE_CONFIG_SERVICE)
+    private readonly googleConfig: GoogleConfigService,
   ) {}
 
   @Post('register')
@@ -102,7 +114,9 @@ export class AuthController {
       nome: result.name,
       email: result.email,
       perfil: result.role ? roleMapEnToPt[result.role] : 'Não definido',
-      nivelEducacional: result.educationLevel ? educationLevelMapEnToPt[result.educationLevel] : 'Não definido',
+      nivelEducacional: result.educationLevel
+        ? educationLevelMapEnToPt[result.educationLevel]
+        : 'Não definido',
     };
   }
 
@@ -147,7 +161,9 @@ export class AuthController {
         id: output.user.id,
         nome: output.user.name,
         email: output.user.email,
-        perfil: output.user.role ? roleMapEnToPt[output.user.role as UserRole] : 'Não definido',
+        perfil: output.user.role
+          ? roleMapEnToPt[output.user.role as UserRole]
+          : 'Não definido',
       },
     };
   }
@@ -379,8 +395,7 @@ export class AuthController {
     // req.user é retornado pelo validate da estratégia
     const { accessToken, user } = req.user;
     // Opcional: redirecionar com token em query param
-    const config = GoogleConfiguration.loadFromEnv();
-    const redirectUrl = config?.successRedirectUrl || 'http://localhost:3000/oauth/success';
+    const redirectUrl = this.googleConfig.getSuccessRedirectUrl();
     const url = `${redirectUrl}?token=${accessToken}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}`;
     return res.redirect(url);
   }
