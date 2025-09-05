@@ -7,13 +7,11 @@ import {
   Param,
   HttpException,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { YouTubeService } from '../../../infrastructure/services/youtube.service';
 import {
@@ -21,12 +19,9 @@ import {
   YouTubeSearchDto,
   YouTubePlaylistDto,
 } from '../dtos/youtube-video.dto';
-import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 
 @ApiTags('YouTube')
 @Controller('youtube')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class YouTubeController {
   constructor(private readonly youtubeService: YouTubeService) {}
 
