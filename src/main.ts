@@ -6,6 +6,19 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  
+  // Configurar CORS
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'https://prisma-frontend-rose.vercel.app',
+      'https://prisma-backend-production-4c22.up.railway.app'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  });
 
   const config = new DocumentBuilder()
     .setTitle('Prisma API')
