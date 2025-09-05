@@ -6,6 +6,7 @@ import type { AuthService } from '../../domain/services/auth.service';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import { UserRole } from '../../domain/enums/user-role';
 import { EducationLevel } from '../../domain/enums/education-level';
+import { GoogleConfiguration } from '../config/google.config';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -14,10 +15,24 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     @Inject(AUTH_SERVICE) private readonly authService: AuthService,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {
+    const config = GoogleConfiguration.loadFromEnv();
+    
+    if (!config) {
+      // Se não há configuração, usar valores dummy para evitar erro
+      super({
+        clientID: 'dummy',
+        clientSecret: 'dummy',
+        callbackURL: 'http://localhost:3000/auth/google/callback',
+        scope: ['email', 'profile'],
+        passReqToCallback: false,
+      });
+      return;
+    }
+    
     super({
-      clientID: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-      callbackURL: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3000/auth/google/callback',
+      clientID: config.clientId,
+      clientSecret: config.clientSecret,
+      callbackURL: config.callbackUrl,
       scope: ['email', 'profile'],
       passReqToCallback: false,
     });

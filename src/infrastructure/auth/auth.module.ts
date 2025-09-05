@@ -30,7 +30,7 @@ import { InfrastructureModule } from '../config/infrastructure.module';
     JwtStrategy,
     GoogleStrategy,
   ],
-  exports: [AUTH_SERVICE, JwtStrategy, JwtModule],
+  exports: [AUTH_SERVICE, JwtStrategy, GoogleStrategy, JwtModule],
 })
 export class AuthModule {} 
  

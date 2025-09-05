@@ -31,6 +31,7 @@ import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../domain/services/auth.service';
 import { AuthGuard } from '@nestjs/passport';
+import { GoogleConfiguration } from '../../../infrastructure/config/google.config';
 
 const educationLevelMapPtToEn: Record<string, EducationLevel> = {
   FUNDAMENTAL: EducationLevel.ELEMENTARY,
@@ -378,7 +379,8 @@ export class AuthController {
     // req.user é retornado pelo validate da estratégia
     const { accessToken, user } = req.user;
     // Opcional: redirecionar com token em query param
-    const redirectUrl = process.env.GOOGLE_SUCCESS_REDIRECT ?? 'http://localhost:3000/oauth/success';
+    const config = GoogleConfiguration.loadFromEnv();
+    const redirectUrl = config?.successRedirectUrl || 'http://localhost:3000/oauth/success';
     const url = `${redirectUrl}?token=${accessToken}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}`;
     return res.redirect(url);
   }
