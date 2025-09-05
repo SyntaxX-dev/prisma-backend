@@ -49,21 +49,21 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     let user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      // Criar usuário mínimo (sem senha) na primeira autenticação
+      // Criar usuário mínimo (sem senha) na primeira autenticação via Google
       user = {
         id: randomUUID(),
         name,
         email,
         passwordHash: '',
-        age: 18,
-        role: UserRole.STUDENT,
-        educationLevel: EducationLevel.HIGH_SCHOOL,
+        age: null,
+        role: null,
+        educationLevel: null,
         createdAt: new Date(),
       };
       await this.userRepository.create(user);
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = { sub: user.id, email: user.email, role: user.role || 'STUDENT' };
     const accessToken = this.authService.generateToken(payload);
 
     return { accessToken, user: { id: user.id, name: user.name, email: user.email, role: user.role } };

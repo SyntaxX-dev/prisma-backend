@@ -25,8 +25,8 @@ export interface RegisterUserOutput {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
-  educationLevel: EducationLevel;
+  role: UserRole | null;
+  educationLevel: EducationLevel | null;
 }
 
 @Injectable()

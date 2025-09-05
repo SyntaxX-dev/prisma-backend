@@ -101,8 +101,8 @@ export class AuthController {
       id: result.id,
       nome: result.name,
       email: result.email,
-      perfil: roleMapEnToPt[result.role],
-      nivelEducacional: educationLevelMapEnToPt[result.educationLevel],
+      perfil: result.role ? roleMapEnToPt[result.role] : 'Não definido',
+      nivelEducacional: result.educationLevel ? educationLevelMapEnToPt[result.educationLevel] : 'Não definido',
     };
   }
 
@@ -147,7 +147,7 @@ export class AuthController {
         id: output.user.id,
         nome: output.user.name,
         email: output.user.email,
-        perfil: roleMapEnToPt[output.user.role as UserRole] || output.user.role,
+        perfil: output.user.role ? roleMapEnToPt[output.user.role as UserRole] : 'Não definido',
       },
     };
   }

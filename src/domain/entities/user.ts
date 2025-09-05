@@ -7,9 +7,9 @@ export class User {
     public name: string,
     public email: string,
     public passwordHash: string,
-    public age: number,
-    public role: UserRole,
-    public educationLevel: EducationLevel,
+    public age: number | null,
+    public role: UserRole | null,
+    public educationLevel: EducationLevel | null,
     public readonly createdAt: Date = new Date(),
   ) {}
 }

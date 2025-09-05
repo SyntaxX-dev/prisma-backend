@@ -19,7 +19,7 @@ export interface LoginOutput {
     id: string;
     name: string;
     email: string;
-    role: string;
+    role: string | null;
   };
 }
 
@@ -48,7 +48,7 @@ export class LoginUserUseCase {
     const payload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role || 'STUDENT',
     };
 
     const accessToken = this.authService.generateToken(payload);

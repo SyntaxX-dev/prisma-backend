@@ -32,8 +32,8 @@ export class UserDrizzleRepository implements UserRepository {
     const row = rows[0];
     if (!row) return null;
 
-    const role = UserRole[row.role as keyof typeof UserRole];
-    const educationLevel = EducationLevel[row.educationLevel];
+    const role = row.role ? UserRole[row.role as keyof typeof UserRole] : null;
+    const educationLevel = row.educationLevel ? EducationLevel[row.educationLevel] : null;
 
     const user: User = {
       id: row.id,

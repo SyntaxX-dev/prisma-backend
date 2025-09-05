@@ -26,9 +26,9 @@ export const users = pgTable(
     name: text('name').notNull(),
     email: text('email').notNull(),
     passwordHash: text('password_hash').notNull(),
-    age: integer('age').notNull(),
-    role: userRoleEnum('role').notNull().default('STUDENT'),
-    educationLevel: educationLevelEnum('education_level').notNull(),
+    age: integer('age'),
+    role: userRoleEnum('role'),
+    educationLevel: educationLevelEnum('education_level'),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),
