@@ -63,6 +63,7 @@ const educationLevelMapEnToPt: Record<EducationLevel, string> = {
 
 const roleMapEnToPt: Record<UserRole, string> = {
   [UserRole.STUDENT]: 'ALUNO',
+  [UserRole.ADMIN]: 'ADMINISTRADOR',
 };
 
 @ApiTags('Auth')

@@ -9,7 +9,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-export const userRoleEnum = pgEnum('user_role', ['STUDENT']);
+export const userRoleEnum = pgEnum('user_role', ['STUDENT', 'ADMIN']);
 export const educationLevelEnum = pgEnum('education_level', [
   'ELEMENTARY',
   'HIGH_SCHOOL',
@@ -36,5 +36,83 @@ export const users = pgTable(
   (table) => ({
     emailIdx: uniqueIndex('users_email_unique').on(table.email),
     createdAtIdx: index('users_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const courses = pgTable(
+  'courses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    description: text('description'),
+    imageUrl: text('image_url'),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('courses_name_unique').on(table.name),
+    createdAtIdx: index('courses_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const subCourses = pgTable(
+  'sub_courses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    order: integer('order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    courseIdIdx: index('sub_courses_course_id_idx').on(table.courseId),
+    orderIdx: index('sub_courses_order_idx').on(table.order),
+    createdAtIdx: index('sub_courses_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const videos = pgTable(
+  'videos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subCourseId: uuid('sub_course_id')
+      .notNull()
+      .references(() => subCourses.id, { onDelete: 'cascade' }),
+    videoId: text('video_id').notNull(),
+    title: text('title').notNull(),
+    description: text('description'),
+    url: text('url').notNull(),
+    thumbnailUrl: text('thumbnail_url'),
+    duration: integer('duration'),
+    channelTitle: text('channel_title'),
+    publishedAt: timestamp('published_at', { withTimezone: false }),
+    viewCount: integer('view_count'),
+    tags: text('tags').array(),
+    category: text('category'),
+    order: integer('order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    videoIdIdx: uniqueIndex('videos_video_id_unique').on(table.videoId),
+    subCourseIdIdx: index('videos_sub_course_id_idx').on(table.subCourseId),
+    orderIdx: index('videos_order_idx').on(table.order),
+    createdAtIdx: index('videos_created_at_idx').on(table.createdAt),
   }),
 );

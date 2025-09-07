@@ -25,6 +25,7 @@ async function bootstrap() {
     .setDescription('API documentation for Prisma platform')
     .setVersion('1.0.0')
     .addTag('Auth', 'Endpoints de autenticação e registro')
+    .addTag('Courses', 'Endpoints para gerenciar cursos, sub-cursos e vídeos')
     .addBearerAuth(
       {
         type: 'http',

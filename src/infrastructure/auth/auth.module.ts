@@ -8,6 +8,7 @@ import { AUTH_SERVICE, GOOGLE_CONFIG_SERVICE } from '../../domain/tokens';
 import { GoogleStrategy } from './google.strategy';
 import { InfrastructureModule } from '../config/infrastructure.module';
 import { GoogleConfigServiceImpl } from '../services/google-config.service';
+import { AuthService } from '../services/auth.service';
 
 @Module({
   imports: [
@@ -32,12 +33,14 @@ import { GoogleConfigServiceImpl } from '../services/google-config.service';
       provide: GOOGLE_CONFIG_SERVICE,
       useClass: GoogleConfigServiceImpl,
     },
+    AuthService,
     JwtStrategy,
     GoogleStrategy,
   ],
   exports: [
     AUTH_SERVICE,
     GOOGLE_CONFIG_SERVICE,
+    AuthService,
     JwtStrategy,
     GoogleStrategy,
     JwtModule,

@@ -22,6 +22,7 @@
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push",
     "migrate:prod": "node scripts/migrate-prod.js",
+    "seed:admin": "node scripts/seed-admin.js",
     "postinstall": "npm run drizzle:generate"
   },
   "dependencies": {

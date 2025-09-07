@@ -4,10 +4,12 @@ import { InfrastructureModule } from '../infrastructure/config/infrastructure.mo
 import { EmailModule } from '../infrastructure/email/email.module';
 import { AuthModule } from '../infrastructure/auth/auth.module';
 import { YouTubeModule } from '../infrastructure/youtube/youtube.module';
+import { CoursesModule } from '../application/courses/courses.module';
 import { AppController } from './http/controllers/app.controller';
 import { AuthController } from './http/controllers/auth.controller';
 import { UserController } from './http/controllers/user.controller';
 import { YouTubeController } from './http/controllers/youtube.controller';
+import { CoursesController } from './http/controllers/courses.controller';
 
 @Module({
   imports: [
@@ -16,12 +18,14 @@ import { YouTubeController } from './http/controllers/youtube.controller';
     EmailModule,
     AuthModule,
     YouTubeModule,
+    CoursesModule,
   ],
   controllers: [
     AppController,
     AuthController,
     UserController,
     YouTubeController,
+    CoursesController,
   ],
 })
 export class PresentationModule {}

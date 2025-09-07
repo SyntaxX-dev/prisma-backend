@@ -1,17 +1,21 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Module } from '@nestjs/common';
 import {
   DRIZZLE_DB,
   PASSWORD_HASHER,
   USER_REPOSITORY,
   PASSWORD_RESET_SERVICE,
+  COURSE_REPOSITORY,
+  SUB_COURSE_REPOSITORY,
+  VIDEO_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
 import { BcryptPasswordHasher } from '../services/bcrypt-password-hasher';
 import { EmailModule } from '../email/email.module';
 import { PasswordResetServiceImpl } from '../services/password-reset.service';
+import { CourseDrizzleRepository } from '../repositories/course.drizzle.repository';
+import { SubCourseDrizzleRepository } from '../repositories/sub-course.drizzle.repository';
+import { VideoDrizzleRepository } from '../repositories/video.drizzle.repository';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -36,12 +40,27 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       provide: PASSWORD_RESET_SERVICE,
       useClass: PasswordResetServiceImpl,
     },
+    {
+      provide: COURSE_REPOSITORY,
+      useClass: CourseDrizzleRepository,
+    },
+    {
+      provide: SUB_COURSE_REPOSITORY,
+      useClass: SubCourseDrizzleRepository,
+    },
+    {
+      provide: VIDEO_REPOSITORY,
+      useClass: VideoDrizzleRepository,
+    },
   ],
   exports: [
     DRIZZLE_DB,
     USER_REPOSITORY,
     PASSWORD_HASHER,
     PASSWORD_RESET_SERVICE,
+    COURSE_REPOSITORY,
+    SUB_COURSE_REPOSITORY,
+    VIDEO_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}
