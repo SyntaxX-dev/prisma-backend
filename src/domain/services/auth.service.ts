@@ -8,4 +8,5 @@ export interface AuthService {
   generateToken(payload: JwtPayload): string;
   verifyToken(token: string): JwtPayload;
   decodeToken(token: string): JwtPayload | null;
+  isAdmin(payload: JwtPayload): boolean;
 } 

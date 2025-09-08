@@ -30,10 +30,14 @@ export class JwtAuthService implements AuthService {
 
   decodeToken(token: string): JwtPayload | null {
     try {
-      const decoded = this.jwtService.decode(token);
-      return decoded as JwtPayload | null;
+      const decoded = this.jwtService.decode(token) as JwtPayload | null;
+      return decoded;
     } catch {
       return null;
     }
+  }
+
+  isAdmin(payload: JwtPayload): boolean {
+    return payload.role === 'ADMIN';
   }
 }

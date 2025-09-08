@@ -9,6 +9,7 @@ import { GoogleStrategy } from './google.strategy';
 import { InfrastructureModule } from '../config/infrastructure.module';
 import { GoogleConfigServiceImpl } from '../services/google-config.service';
 import { AuthService } from '../services/auth.service';
+import { AdminGuard } from '../guards/admin.guard';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AuthService } from '../services/auth.service';
     AuthService,
     JwtStrategy,
     GoogleStrategy,
+    AdminGuard,
   ],
   exports: [
     AUTH_SERVICE,
@@ -43,6 +45,7 @@ import { AuthService } from '../services/auth.service';
     AuthService,
     JwtStrategy,
     GoogleStrategy,
+    AdminGuard,
     JwtModule,
   ],
 })
