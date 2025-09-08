@@ -29,7 +29,7 @@ import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 
 @ApiTags('Courses')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('courses')
 @UseGuards(JwtAuthGuard)
 export class CoursesController {
