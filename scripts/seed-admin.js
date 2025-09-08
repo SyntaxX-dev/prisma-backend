@@ -21,8 +21,8 @@ async function createAdminUser() {
 
         const adminData = {
             name: 'Administrador',
-            email: 'admin@prisma-back.com',
-            password: 'admin123456',
+            email: 'admin@admin.com',
+            password: 'Admin123!@#',
             role: 'ADMIN',
             educationLevel: 'POSTGRADUATE'
         };

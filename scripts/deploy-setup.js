@@ -21,8 +21,8 @@ async function setupProduction() {
 
         const adminData = {
             name: 'Administrador',
-            email: process.env.ADMIN_EMAIL || 'admin@prisma-back.com',
-            password: process.env.ADMIN_PASSWORD || 'admin123456',
+            email: process.env.ADMIN_EMAIL || 'admin@admin.com',
+            password: process.env.ADMIN_PASSWORD || 'Admin123!@#',
             role: 'ADMIN',
             educationLevel: 'POSTGRADUATE'
         };
