@@ -1,0 +1,6 @@
+export enum UserFocus {
+  ENEM = 'ENEM',
+  CONCURSO = 'CONCURSO',
+  ENSINO_MEDIO = 'ENSINO_MEDIO',
+  FACULDADE = 'FACULDADE',
+}

@@ -7,6 +7,7 @@ import {
   COURSE_REPOSITORY,
   SUB_COURSE_REPOSITORY,
   VIDEO_REPOSITORY,
+  NOTIFICATION_SERVICE,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -16,6 +17,7 @@ import { PasswordResetServiceImpl } from '../services/password-reset.service';
 import { CourseDrizzleRepository } from '../repositories/course.drizzle.repository';
 import { SubCourseDrizzleRepository } from '../repositories/sub-course.drizzle.repository';
 import { VideoDrizzleRepository } from '../repositories/video.drizzle.repository';
+import { NotificationServiceImpl } from '../services/notification.service';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -52,6 +54,10 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       provide: VIDEO_REPOSITORY,
       useClass: VideoDrizzleRepository,
     },
+    {
+      provide: NOTIFICATION_SERVICE,
+      useClass: NotificationServiceImpl,
+    },
   ],
   exports: [
     DRIZZLE_DB,
@@ -61,6 +67,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     COURSE_REPOSITORY,
     SUB_COURSE_REPOSITORY,
     VIDEO_REPOSITORY,
+    NOTIFICATION_SERVICE,
   ],
 })
 export class InfrastructureModule {}

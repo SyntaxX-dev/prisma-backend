@@ -29,6 +29,13 @@
       "when": 1757228581690,
       "tag": "0003_nosy_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1757727947477,
+      "tag": "0004_faulty_sentinel",
+      "breakpoints": true
     }
   ]
 }

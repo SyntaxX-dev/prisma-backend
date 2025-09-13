@@ -5,6 +5,9 @@ import type { User } from '../../domain/entities/user';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { UserRole } from '../../domain/enums/user-role';
 import { EducationLevel } from '../../domain/enums/education-level';
+import { UserFocus } from '../../domain/enums/user-focus';
+import { ContestType } from '../../domain/enums/contest-type';
+import { CollegeCourse } from '../../domain/enums/college-course';
 
 export class UserDrizzleRepository implements UserRepository {
   constructor(private readonly db: NodePgDatabase) {}
@@ -18,6 +21,11 @@ export class UserDrizzleRepository implements UserRepository {
       age: user.age,
       role: user.role,
       educationLevel: user.educationLevel,
+      userFocus: user.userFocus,
+      contestType: user.contestType,
+      collegeCourse: user.collegeCourse,
+      badge: user.badge,
+      isProfileComplete: user.isProfileComplete.toString(),
       createdAt: user.createdAt,
     });
     return user;
@@ -34,6 +42,9 @@ export class UserDrizzleRepository implements UserRepository {
 
     const role = row.role ? UserRole[row.role as keyof typeof UserRole] : null;
     const educationLevel = row.educationLevel ? EducationLevel[row.educationLevel] : null;
+    const userFocus = row.userFocus ? UserFocus[row.userFocus as keyof typeof UserFocus] : null;
+    const contestType = row.contestType ? ContestType[row.contestType as keyof typeof ContestType] : null;
+    const collegeCourse = row.collegeCourse ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse] : null;
 
     const user: User = {
       id: row.id,
@@ -43,6 +54,11 @@ export class UserDrizzleRepository implements UserRepository {
       age: row.age,
       role,
       educationLevel,
+      userFocus,
+      contestType,
+      collegeCourse,
+      badge: row.badge,
+      isProfileComplete: row.isProfileComplete === 'true',
       createdAt: row.createdAt,
     };
     return user;
@@ -53,5 +69,55 @@ export class UserDrizzleRepository implements UserRepository {
       .update(users)
       .set({ passwordHash: hashedPassword })
       .where(eq(users.id, userId));
+  }
+
+  async updateProfile(userId: string, profileData: Partial<User>): Promise<void> {
+    await this.db
+      .update(users)
+      .set({
+        name: profileData.name,
+        age: profileData.age,
+        role: profileData.role,
+        educationLevel: profileData.educationLevel,
+        userFocus: profileData.userFocus,
+        contestType: profileData.contestType,
+        collegeCourse: profileData.collegeCourse,
+        badge: profileData.badge,
+        isProfileComplete: profileData.isProfileComplete?.toString(),
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async findById(userId: string): Promise<User | null> {
+    const rows = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+
+    const role = row.role ? UserRole[row.role as keyof typeof UserRole] : null;
+    const educationLevel = row.educationLevel ? EducationLevel[row.educationLevel] : null;
+    const userFocus = row.userFocus ? UserFocus[row.userFocus as keyof typeof UserFocus] : null;
+    const contestType = row.contestType ? ContestType[row.contestType as keyof typeof ContestType] : null;
+    const collegeCourse = row.collegeCourse ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse] : null;
+
+    const user: User = {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      passwordHash: row.passwordHash,
+      age: row.age,
+      role,
+      educationLevel,
+      userFocus,
+      contestType,
+      collegeCourse,
+      badge: row.badge,
+      isProfileComplete: row.isProfileComplete === 'true',
+      createdAt: row.createdAt,
+    };
+    return user;
   }
 }

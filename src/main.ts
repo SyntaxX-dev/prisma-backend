@@ -11,7 +11,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'http://localhost:3001', 
+      'http://localhost:3001',
       'https://prisma-frontend-rose.vercel.app',
       'https://prisma-backend-production-4c22.up.railway.app',
       'https://prisma-admin-git-main-breno-lima-66c5fadc.vercel.app',

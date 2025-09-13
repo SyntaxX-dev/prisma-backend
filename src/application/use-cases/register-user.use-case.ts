@@ -60,6 +60,11 @@ export class RegisterUserUseCase {
       age,
       UserRole.STUDENT,
       educationLevel,
+      null, // userFocus
+      null, // contestType
+      null, // collegeCourse
+      null, // badge
+      false, // isProfileComplete
     );
 
     await this.userRepository.create(user);

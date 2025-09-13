@@ -10,6 +10,7 @@ import type { AuthService } from '../../domain/services/auth.service';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { GoogleConfigService } from '../../domain/services/google-config.service';
 import { randomUUID } from 'crypto';
+import { User } from '../../domain/entities/user';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -56,16 +57,21 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
     if (!user) {
       // Criar usuário mínimo (sem senha) na primeira autenticação via Google
-      user = {
-        id: randomUUID(),
+      user = new User(
+        randomUUID(),
         name,
         email,
-        passwordHash: '',
-        age: null,
-        role: null,
-        educationLevel: null,
-        createdAt: new Date(),
-      };
+        '',
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        false,
+        new Date(),
+      );
       await this.userRepository.create(user);
     }
 

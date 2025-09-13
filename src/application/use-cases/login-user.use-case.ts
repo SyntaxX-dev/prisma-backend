@@ -3,10 +3,12 @@ import {
   USER_REPOSITORY,
   PASSWORD_HASHER,
   AUTH_SERVICE,
+  NOTIFICATION_SERVICE,
 } from '../../domain/tokens';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { PasswordHasher } from '../../domain/services/password-hasher';
 import type { AuthService } from '../../domain/services/auth.service';
+import type { NotificationService } from '../../domain/services/notification.service';
 
 export interface LoginInput {
   email: string;
@@ -21,6 +23,12 @@ export interface LoginOutput {
     email: string;
     role: string | null;
   };
+  notification: {
+    hasNotification: boolean;
+    missingFields: string[];
+    message: string;
+    badge?: string;
+  };
 }
 
 @Injectable()
@@ -29,6 +37,8 @@ export class LoginUserUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher,
     @Inject(AUTH_SERVICE) private readonly authService: AuthService,
+    @Inject(NOTIFICATION_SERVICE)
+    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(input: LoginInput): Promise<LoginOutput> {
@@ -53,6 +63,10 @@ export class LoginUserUseCase {
 
     const accessToken = this.authService.generateToken(payload);
 
+    // Verificar notificações do usuário
+    const notificationInfo =
+      this.notificationService.checkUserNotifications(user);
+
     return {
       accessToken,
       user: {
@@ -60,6 +74,12 @@ export class LoginUserUseCase {
         name: user.name,
         email: user.email,
         role: user.role,
+      },
+      notification: {
+        hasNotification: notificationInfo.hasNotification,
+        missingFields: notificationInfo.missingFields,
+        message: notificationInfo.message,
+        badge: user.badge || undefined,
       },
     };
   }

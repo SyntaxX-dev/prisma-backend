@@ -10,6 +10,8 @@ import { AuthController } from './http/controllers/auth.controller';
 import { UserController } from './http/controllers/user.controller';
 import { YouTubeController } from './http/controllers/youtube.controller';
 import { CoursesController } from './http/controllers/courses.controller';
+import { ProfileController } from './http/controllers/profile.controller';
+import { OptionsController } from './http/controllers/options.controller';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { CoursesController } from './http/controllers/courses.controller';
     UserController,
     YouTubeController,
     CoursesController,
+    ProfileController,
+    OptionsController,
   ],
 })
 export class PresentationModule {}

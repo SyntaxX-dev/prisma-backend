@@ -2,8 +2,6 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
 
   <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
     <p align="center">
@@ -23,12 +21,35 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**Prisma Backend** - Plataforma de educação online com sistema de notificações e badges personalizados.
+
+Esta é uma API RESTful construída com NestJS que oferece:
+
+- 🎓 **Sistema de Cursos**: Gerenciamento de cursos, sub-cursos e vídeos
+- 👤 **Autenticação**: Login/registro com JWT e Google OAuth
+- 🔔 **Sistema de Notificações**: Alertas para perfil incompleto
+- 🏆 **Sistema de Badges**: Insígnias baseadas no foco de estudo do usuário
+- 📚 **Focos de Estudo**: ENEM, Concursos, Ensino Médio, Faculdade
+- 🎯 **Personalização**: Badges específicos por concurso ou curso
+
+### Funcionalidades Principais
+
+- **Notificações Inteligentes**: Sistema que verifica automaticamente se o usuário precisa completar informações do perfil
+- **Badges Personalizados**: Usuários recebem badges baseados em seu foco de estudo
+- **Múltiplos Focos**: Suporte para ENEM, concursos públicos, ensino médio e faculdade
+- **API Completa**: Endpoints para gerenciar perfil, verificar notificações e listar opções
+
+### Documentação
+
+- 📖 [Sistema de Notificações e Badges](NOTIFICATION_SYSTEM_README.md)
+- 🔐 [Autenticação JWT](JWT_AUTH_README.md)
+- 🚀 [Deploy no Railway](RAILWAY_DEPLOY.md)
+- 📺 [Integração YouTube](YOUTUBE_INTEGRATION.md)
 
 ## Project setup
 
 ```bash
-$ npm install
+npm install
 ```
 
 ## Compile and run the project
@@ -64,8 +85,8 @@ When you're ready to deploy your NestJS application to production, there are som
 If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install -g @nestjs/mau
+mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
