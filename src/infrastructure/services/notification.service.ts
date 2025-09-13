@@ -28,8 +28,10 @@ export class NotificationServiceImpl implements NotificationService {
       if (missingFields.length === 1) {
         message = `Complete seu perfil adicionando sua ${missingFields[0]}.`;
       } else {
-        const lastField = missingFields.pop();
-        const otherFields = missingFields.join(', ');
+        // Criar uma cópia do array para não modificar o original
+        const fieldsCopy = [...missingFields];
+        const lastField = fieldsCopy.pop();
+        const otherFields = fieldsCopy.join(', ');
         message = `Complete seu perfil adicionando suas informações: ${otherFields} e ${lastField}.`;
       }
     }
