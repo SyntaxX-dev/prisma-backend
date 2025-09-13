@@ -15,6 +15,7 @@ import {
   LoginUserUseCase,
   type LoginOutput,
 } from '../../../application/use-cases/login-user.use-case';
+import { CheckUserNotificationsUseCase } from '../../../application/use-cases/check-user-notifications.use-case';
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { LoginDto } from '../dtos/login.dto';
 import { RequestPasswordResetDto } from '../dtos/request-password-reset.dto';
@@ -72,6 +73,7 @@ export class AuthController {
   constructor(
     private readonly registerUser: RegisterUserUseCase,
     private readonly loginUser: LoginUserUseCase,
+    private readonly checkUserNotifications: CheckUserNotificationsUseCase,
     @Inject(MAILER_SERVICE) private readonly mailer: MailerServicePort,
     @Inject(PASSWORD_RESET_SERVICE)
     private readonly passwordResetService: PasswordResetService,
@@ -174,12 +176,19 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
-    description: 'Perfil do usuário autenticado',
+    description: 'Perfil do usuário autenticado com notificações',
     schema: {
       example: {
         id: 'uuid-do-usuario',
         email: 'joao@exemplo.com',
-        role: 'ALUNO',
+        perfil: 'ALUNO',
+        notification: {
+          hasNotification: true,
+          missingFields: ['idade', 'foco de estudo'],
+          message:
+            'Complete seu perfil adicionando sua idade e foco de estudo.',
+          badge: null,
+        },
       },
     },
   })
@@ -193,11 +202,22 @@ export class AuthController {
       },
     },
   })
-  getProfile(@CurrentUser() user: JwtPayload) {
+  async getProfile(@CurrentUser() user: JwtPayload) {
+    // Buscar informações de notificação do usuário
+    const notificationInfo = await this.checkUserNotifications.execute({
+      userId: user.sub,
+    });
+
     return {
       id: user.sub,
       email: user.email,
       perfil: roleMapEnToPt[user.role as UserRole] || user.role,
+      notification: {
+        hasNotification: notificationInfo.hasNotification,
+        missingFields: notificationInfo.missingFields,
+        message: notificationInfo.message,
+        badge: notificationInfo.badge,
+      },
     };
   }
 
