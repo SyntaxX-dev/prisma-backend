@@ -68,6 +68,8 @@ export class CreateVideosUseCase {
         video.thumbnailUrl,
         video.duration,
         video.channelTitle,
+        undefined, // channelId
+        undefined, // channelThumbnailUrl
         video.publishedAt,
         video.viewCount,
         video.tags,
