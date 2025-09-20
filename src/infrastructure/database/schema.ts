@@ -153,6 +153,8 @@ export const videos = pgTable(
     thumbnailUrl: text('thumbnail_url'),
     duration: integer('duration'),
     channelTitle: text('channel_title'),
+    channelId: text('channel_id'),
+    channelThumbnailUrl: text('channel_thumbnail_url'),
     publishedAt: timestamp('published_at', { withTimezone: false }),
     viewCount: integer('view_count'),
     tags: text('tags').array(),
