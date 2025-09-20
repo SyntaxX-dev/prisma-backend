@@ -2,13 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google, youtube_v3 } from 'googleapis';
 import { YouTubeVideoDto, YouTubeSearchDto, YouTubePlaylistDto } from '../../presentation/http/dtos/youtube-video.dto';
+import { YouTubeChannelService, ChannelInfo } from './youtube-channel.service';
 
 @Injectable()
 export class YouTubeService {
   private readonly logger = new Logger(YouTubeService.name);
   private youtube: youtube_v3.Youtube;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private channelService: YouTubeChannelService,
+  ) {
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
     
     if (!apiKey) {
@@ -66,7 +70,10 @@ export class YouTubeService {
         return [];
       }
 
-      return response.data.items.map(video => this.mapVideoToDto(video));
+      const videos = await Promise.all(
+        response.data.items.map(video => this.mapVideoToDto(video))
+      );
+      return videos;
     } catch (error) {
       this.logger.error('Erro ao obter detalhes dos vídeos:', error);
       throw new Error('Falha ao obter detalhes dos vídeos');
@@ -159,10 +166,16 @@ export class YouTubeService {
   /**
    * Mapeia dados do YouTube para DTO
    */
-  private mapVideoToDto(video: youtube_v3.Schema$Video): YouTubeVideoDto {
+  private async mapVideoToDto(video: youtube_v3.Schema$Video): Promise<YouTubeVideoDto> {
     const snippet = video.snippet!;
     const statistics = video.statistics!;
     const contentDetails = video.contentDetails!;
+
+    // Buscar informações do canal
+    let channelInfo: ChannelInfo | null = null;
+    if (snippet.channelId) {
+      channelInfo = await this.channelService.getChannelInfo(snippet.channelId);
+    }
 
     return {
       videoId: video.id!,
@@ -172,6 +185,8 @@ export class YouTubeService {
       thumbnailUrl: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || '',
       duration: this.parseDuration(contentDetails.duration || 'PT0S'),
       channelTitle: snippet.channelTitle || '',
+      channelId: snippet.channelId || undefined,
+      channelThumbnailUrl: channelInfo?.thumbnailUrl || undefined,
       publishedAt: snippet.publishedAt || '',
       viewCount: parseInt(statistics.viewCount || '0'),
       tags: snippet.tags || undefined,

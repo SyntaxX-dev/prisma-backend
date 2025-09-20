@@ -31,6 +31,16 @@ export class YouTubeVideoDto {
   @IsString()
   channelTitle: string;
 
+  @ApiProperty({ description: 'ID do canal' })
+  @IsString()
+  @IsOptional()
+  channelId?: string;
+
+  @ApiProperty({ description: 'URL da thumbnail do canal' })
+  @IsString()
+  @IsOptional()
+  channelThumbnailUrl?: string;
+
   @ApiProperty({ description: 'Data de publicação' })
   @IsString()
   publishedAt: string;

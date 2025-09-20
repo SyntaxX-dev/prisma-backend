@@ -6,8 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  
-  // Configurar CORS
+
   app.enableCors({
     origin: [
       'http://localhost:3000',
@@ -48,7 +47,6 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
   console.log(`Aplicação rodando em http://0.0.0.0:${port}`);
 
-  // Log adicional para debug
   setTimeout(() => {
     console.log('Aplicação ainda está rodando após 10 segundos');
   }, 10000);
