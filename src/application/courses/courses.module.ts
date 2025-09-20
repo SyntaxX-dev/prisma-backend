@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { InfrastructureModule } from '../../infrastructure/config/infrastructure.module';
+import { YouTubeModule } from '../../infrastructure/youtube/youtube.module';
 import { CreateCourseUseCase } from './use-cases/create-course.use-case';
 import { CreateSubCourseUseCase } from './use-cases/create-sub-course.use-case';
 import { CreateVideosUseCase } from './use-cases/create-videos.use-case';
@@ -7,9 +8,10 @@ import { ListCoursesUseCase } from './use-cases/list-courses.use-case';
 import { ListSubCoursesUseCase } from './use-cases/list-sub-courses.use-case';
 import { ListVideosUseCase } from './use-cases/list-videos.use-case';
 import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, VIDEO_REPOSITORY } from '../../domain/tokens';
+import { YouTubeService } from '../../infrastructure/services/youtube.service';
 
 @Module({
-  imports: [InfrastructureModule],
+  imports: [InfrastructureModule, YouTubeModule],
   providers: [
     {
       provide: CreateCourseUseCase,
@@ -41,9 +43,9 @@ import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, VIDEO_REPOSITORY } from '../.
     },
     {
       provide: ListVideosUseCase,
-      useFactory: (subCourseRepository, videoRepository) =>
-        new ListVideosUseCase(subCourseRepository, videoRepository),
-      inject: [SUB_COURSE_REPOSITORY, VIDEO_REPOSITORY],
+      useFactory: (subCourseRepository, videoRepository, youtubeService) =>
+        new ListVideosUseCase(subCourseRepository, videoRepository, youtubeService),
+      inject: [SUB_COURSE_REPOSITORY, VIDEO_REPOSITORY, YouTubeService],
     },
   ],
   exports: [
