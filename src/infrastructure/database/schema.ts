@@ -174,3 +174,37 @@ export const videos = pgTable(
     createdAtIdx: index('videos_created_at_idx').on(table.createdAt),
   }),
 );
+
+export const videoProgress = pgTable(
+  'video_progress',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    subCourseId: uuid('sub_course_id')
+      .notNull()
+      .references(() => subCourses.id, { onDelete: 'cascade' }),
+    isCompleted: text('is_completed').notNull().default('false'),
+    completedAt: timestamp('completed_at', { withTimezone: false }),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userVideoIdx: uniqueIndex('video_progress_user_video_unique').on(
+      table.userId,
+      table.videoId,
+    ),
+    userIdIdx: index('video_progress_user_id_idx').on(table.userId),
+    videoIdIdx: index('video_progress_video_id_idx').on(table.videoId),
+    subCourseIdIdx: index('video_progress_sub_course_id_idx').on(table.subCourseId),
+    createdAtIdx: index('video_progress_created_at_idx').on(table.createdAt),
+  }),
+);

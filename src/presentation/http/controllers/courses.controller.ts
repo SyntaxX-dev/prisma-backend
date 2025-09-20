@@ -27,6 +27,8 @@ import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
+import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
+import type { JwtPayload } from '../../../infrastructure/auth/jwt.strategy';
 
 @ApiTags('Courses')
 @ApiBearerAuth('JWT-auth')
@@ -389,12 +391,19 @@ export class CoursesController {
       },
     },
   })
-  async listVideos(@Param('subCourseId') subCourseId: string) {
+  async listVideos(
+    @CurrentUser() user: JwtPayload,
+    @Param('subCourseId') subCourseId: string,
+  ) {
     try {
-      const result = await this.listVideosUseCase.execute({ subCourseId });
+      const result = await this.listVideosUseCase.execute({ 
+        subCourseId,
+        userId: user.sub,
+      });
       return {
         success: true,
         data: result.videos,
+        courseProgress: result.courseProgress,
       };
     } catch (error) {
       throw new HttpException(
