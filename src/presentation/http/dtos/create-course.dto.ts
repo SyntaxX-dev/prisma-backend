@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsNotEmpty, IsUrl } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  IsUrl,
+  IsBoolean,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCourseDto {
@@ -29,4 +35,14 @@ export class CreateCourseDto {
   @IsUrl()
   @IsOptional()
   imageUrl?: string;
+
+  @ApiProperty({
+    description: 'Indica se o curso é pago (para assinantes)',
+    example: false,
+    required: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isPaid?: boolean;
 }

@@ -18,6 +18,7 @@ export class CourseDrizzleRepository implements CourseRepository {
         name: course.name,
         description: course.description,
         imageUrl: course.imageUrl,
+        isPaid: course.isPaid ? 'true' : 'false',
       })
       .returning();
 
@@ -26,6 +27,7 @@ export class CourseDrizzleRepository implements CourseRepository {
       created.name,
       created.description,
       created.imageUrl,
+      created.isPaid === 'true',
       created.createdAt,
       created.updatedAt,
     );
@@ -44,6 +46,7 @@ export class CourseDrizzleRepository implements CourseRepository {
       course.name,
       course.description,
       course.imageUrl,
+      course.isPaid === 'true',
       course.createdAt,
       course.updatedAt,
     );
@@ -62,6 +65,7 @@ export class CourseDrizzleRepository implements CourseRepository {
       course.name,
       course.description,
       course.imageUrl,
+      course.isPaid === 'true',
       course.createdAt,
       course.updatedAt,
     );
@@ -80,6 +84,7 @@ export class CourseDrizzleRepository implements CourseRepository {
           course.name,
           course.description,
           course.imageUrl,
+          course.isPaid === 'true',
           course.createdAt,
           course.updatedAt,
         ),
@@ -96,6 +101,7 @@ export class CourseDrizzleRepository implements CourseRepository {
         name: course.name,
         description: course.description,
         imageUrl: course.imageUrl,
+        isPaid: course.isPaid ? 'true' : 'false',
         updatedAt: new Date(),
       })
       .where(eq(courses.id, id))
@@ -106,6 +112,7 @@ export class CourseDrizzleRepository implements CourseRepository {
       updated.name,
       updated.description,
       updated.imageUrl,
+      updated.isPaid === 'true',
       updated.createdAt,
       updated.updatedAt,
     );

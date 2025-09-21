@@ -50,6 +50,13 @@
       "when": 1758339660912,
       "tag": "0006_wooden_inertia",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1758428086921,
+      "tag": "0007_fantastic_the_hood",
+      "breakpoints": true
     }
   ]
 }

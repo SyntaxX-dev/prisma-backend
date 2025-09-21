@@ -102,6 +102,7 @@ export const courses = pgTable(
     name: text('name').notNull(),
     description: text('description'),
     imageUrl: text('image_url'),
+    isPaid: text('is_paid').notNull().default('false'),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),

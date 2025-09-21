@@ -22,9 +22,11 @@ import { CreateVideosUseCase } from '../../../application/courses/use-cases/crea
 import { ListCoursesUseCase } from '../../../application/courses/use-cases/list-courses.use-case';
 import { ListSubCoursesUseCase } from '../../../application/courses/use-cases/list-sub-courses.use-case';
 import { ListVideosUseCase } from '../../../application/courses/use-cases/list-videos.use-case';
+import { UpdateCourseSubscriptionUseCase } from '../../../application/courses/use-cases/update-course-subscription.use-case';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
+import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
@@ -42,6 +44,7 @@ export class CoursesController {
     private readonly listCoursesUseCase: ListCoursesUseCase,
     private readonly listSubCoursesUseCase: ListSubCoursesUseCase,
     private readonly listVideosUseCase: ListVideosUseCase,
+    private readonly updateCourseSubscriptionUseCase: UpdateCourseSubscriptionUseCase,
   ) {}
 
   @Post()
@@ -68,6 +71,7 @@ export class CoursesController {
               type: 'string',
               example: 'https://exemplo.com/prf-logo.png',
             },
+            isPaid: { type: 'boolean', example: false },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -131,6 +135,7 @@ export class CoursesController {
                 type: 'string',
                 example: 'https://exemplo.com/prf-logo.png',
               },
+              isPaid: { type: 'boolean', example: false },
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
             },
@@ -404,6 +409,83 @@ export class CoursesController {
         success: true,
         data: result.videos,
         courseProgress: result.courseProgress,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post(':courseId/subscription')
+  @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'Atualizar status de assinatura do curso (Apenas Admin)',
+  })
+  @ApiParam({
+    name: 'courseId',
+    description: 'ID do curso',
+    example: 'uuid-do-curso',
+  })
+  @ApiBody({ type: UpdateCourseSubscriptionDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Status de assinatura atualizado com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-do-curso' },
+            name: { type: 'string', example: 'PRF' },
+            description: {
+              type: 'string',
+              example: 'Polícia Rodoviária Federal',
+            },
+            imageUrl: {
+              type: 'string',
+              example: 'https://exemplo.com/prf-logo.png',
+            },
+            isPaid: { type: 'boolean', example: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Erro na validação dos dados',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: {
+          type: 'string',
+          example: 'Curso com ID "uuid-do-curso" não encontrado',
+        },
+      },
+    },
+  })
+  async updateCourseSubscription(
+    @Param('courseId') courseId: string,
+    @Body() updateCourseSubscriptionDto: UpdateCourseSubscriptionDto,
+  ) {
+    try {
+      const result = await this.updateCourseSubscriptionUseCase.execute({
+        courseId,
+        isPaid: updateCourseSubscriptionDto.isPaid,
+      });
+      return {
+        success: true,
+        data: result.course,
       };
     } catch (error) {
       throw new HttpException(

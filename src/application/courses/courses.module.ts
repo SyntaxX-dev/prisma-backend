@@ -7,6 +7,7 @@ import { CreateVideosUseCase } from './use-cases/create-videos.use-case';
 import { ListCoursesUseCase } from './use-cases/list-courses.use-case';
 import { ListSubCoursesUseCase } from './use-cases/list-sub-courses.use-case';
 import { ListVideosUseCase } from './use-cases/list-videos.use-case';
+import { UpdateCourseSubscriptionUseCase } from './use-cases/update-course-subscription.use-case';
 import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
 
@@ -47,6 +48,11 @@ import { YouTubeService } from '../../infrastructure/services/youtube.service';
         new ListVideosUseCase(subCourseRepository, videoRepository, videoProgressRepository, youtubeService),
       inject: [SUB_COURSE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, YouTubeService],
     },
+    {
+      provide: UpdateCourseSubscriptionUseCase,
+      useFactory: (courseRepository) => new UpdateCourseSubscriptionUseCase(courseRepository),
+      inject: [COURSE_REPOSITORY],
+    },
   ],
   exports: [
     CreateCourseUseCase,
@@ -55,6 +61,7 @@ import { YouTubeService } from '../../infrastructure/services/youtube.service';
     ListCoursesUseCase,
     ListSubCoursesUseCase,
     ListVideosUseCase,
+    UpdateCourseSubscriptionUseCase,
   ],
 })
 export class CoursesModule {}
