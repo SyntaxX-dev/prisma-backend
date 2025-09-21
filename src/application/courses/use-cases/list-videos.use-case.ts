@@ -83,6 +83,7 @@ export class ListVideosUseCase {
               // Criar um novo vídeo com as informações enriquecidas
               const enrichedVideo = new Video(
                 video.id,
+                video.moduleId,
                 video.subCourseId,
                 video.videoId,
                 video.title,

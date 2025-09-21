@@ -140,10 +140,38 @@ export const subCourses = pgTable(
   }),
 );
 
+export const modules = pgTable(
+  'modules',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subCourseId: uuid('sub_course_id')
+      .notNull()
+      .references(() => subCourses.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    order: integer('order').notNull().default(0),
+    videoCount: integer('video_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    subCourseIdIdx: index('modules_sub_course_id_idx').on(table.subCourseId),
+    orderIdx: index('modules_order_idx').on(table.order),
+    createdAtIdx: index('modules_created_at_idx').on(table.createdAt),
+  }),
+);
+
 export const videos = pgTable(
   'videos',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    moduleId: uuid('module_id')
+      .notNull()
+      .references(() => modules.id, { onDelete: 'cascade' }),
     subCourseId: uuid('sub_course_id')
       .notNull()
       .references(() => subCourses.id, { onDelete: 'cascade' }),
@@ -170,6 +198,7 @@ export const videos = pgTable(
   },
   (table) => ({
     videoIdIdx: uniqueIndex('videos_video_id_unique').on(table.videoId),
+    moduleIdIdx: index('videos_module_id_idx').on(table.moduleId),
     subCourseIdIdx: index('videos_sub_course_id_idx').on(table.subCourseId),
     orderIdx: index('videos_order_idx').on(table.order),
     createdAtIdx: index('videos_created_at_idx').on(table.createdAt),

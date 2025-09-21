@@ -4,6 +4,7 @@ export interface VideoRepository {
   create(video: Omit<Video, 'id' | 'createdAt' | 'updatedAt'>): Promise<Video>;
   findById(id: string): Promise<Video | null>;
   findByVideoId(videoId: string): Promise<Video | null>;
+  findByModuleId(moduleId: string): Promise<Video[]>;
   findBySubCourseId(subCourseId: string): Promise<Video[]>;
   findAll(): Promise<Video[]>;
   update(

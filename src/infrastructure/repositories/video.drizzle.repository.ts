@@ -15,6 +15,7 @@ export class VideoDrizzleRepository implements VideoRepository {
     const [created] = await this.drizzleService.db
       .insert(videos)
       .values({
+        moduleId: video.moduleId,
         subCourseId: video.subCourseId,
         videoId: video.videoId,
         title: video.title,
@@ -35,6 +36,7 @@ export class VideoDrizzleRepository implements VideoRepository {
 
     return new Video(
       created.id,
+      created.moduleId,
       created.subCourseId,
       created.videoId,
       created.title,
@@ -65,6 +67,7 @@ export class VideoDrizzleRepository implements VideoRepository {
 
     return new Video(
       video.id,
+      video.moduleId,
       video.subCourseId,
       video.videoId,
       video.title,
@@ -95,6 +98,7 @@ export class VideoDrizzleRepository implements VideoRepository {
 
     return new Video(
       video.id,
+      video.moduleId,
       video.subCourseId,
       video.videoId,
       video.title,
@@ -115,6 +119,39 @@ export class VideoDrizzleRepository implements VideoRepository {
     );
   }
 
+  async findByModuleId(moduleId: string): Promise<Video[]> {
+    const videosList = await this.drizzleService.db
+      .select()
+      .from(videos)
+      .where(eq(videos.moduleId, moduleId))
+      .orderBy(videos.order, videos.createdAt);
+
+    return videosList.map(
+      (video) =>
+        new Video(
+          video.id,
+          video.moduleId,
+          video.subCourseId,
+          video.videoId,
+          video.title,
+          video.description,
+          video.url,
+          video.thumbnailUrl,
+          video.duration,
+          video.channelTitle,
+          video.channelId,
+          video.channelThumbnailUrl,
+          video.publishedAt,
+          video.viewCount,
+          video.tags,
+          video.category,
+          video.order,
+          video.createdAt,
+          video.updatedAt,
+        ),
+    );
+  }
+
   async findBySubCourseId(subCourseId: string): Promise<Video[]> {
     const videosList = await this.drizzleService.db
       .select()
@@ -126,6 +163,7 @@ export class VideoDrizzleRepository implements VideoRepository {
       (video) =>
         new Video(
           video.id,
+          video.moduleId,
           video.subCourseId,
           video.videoId,
           video.title,
@@ -157,6 +195,7 @@ export class VideoDrizzleRepository implements VideoRepository {
       (video) =>
         new Video(
           video.id,
+          video.moduleId,
           video.subCourseId,
           video.videoId,
           video.title,
@@ -185,6 +224,7 @@ export class VideoDrizzleRepository implements VideoRepository {
     const [updated] = await this.drizzleService.db
       .update(videos)
       .set({
+        moduleId: video.moduleId,
         subCourseId: video.subCourseId,
         videoId: video.videoId,
         title: video.title,
@@ -207,6 +247,7 @@ export class VideoDrizzleRepository implements VideoRepository {
 
     return new Video(
       updated.id,
+      updated.moduleId,
       updated.subCourseId,
       updated.videoId,
       updated.title,
@@ -238,6 +279,7 @@ export class VideoDrizzleRepository implements VideoRepository {
       .insert(videos)
       .values(
         videosList.map((video) => ({
+          moduleId: video.moduleId,
           subCourseId: video.subCourseId,
           videoId: video.videoId,
           title: video.title,
@@ -261,6 +303,7 @@ export class VideoDrizzleRepository implements VideoRepository {
       (video) =>
         new Video(
           video.id,
+          video.moduleId,
           video.subCourseId,
           video.videoId,
           video.title,

@@ -1,6 +1,7 @@
 export class Video {
   constructor(
     public readonly id: string,
+    public readonly moduleId: string,
     public readonly subCourseId: string,
     public readonly videoId: string,
     public readonly title: string,
@@ -21,6 +22,7 @@ export class Video {
   ) {}
 
   static create(
+    moduleId: string,
     subCourseId: string,
     videoId: string,
     title: string,
@@ -38,6 +40,7 @@ export class Video {
     order?: number,
   ): Omit<Video, 'id' | 'createdAt' | 'updatedAt'> {
     return {
+      moduleId,
       subCourseId,
       videoId,
       title,

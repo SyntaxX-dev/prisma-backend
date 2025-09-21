@@ -60,6 +60,7 @@ export class CreateVideosUseCase {
     // Criar os vídeos
     const videosData = input.videos.map((video) =>
       Video.create(
+        '', // moduleId - será preenchido pelo repositório
         input.subCourseId,
         video.videoId,
         video.title,

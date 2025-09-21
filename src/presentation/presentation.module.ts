@@ -11,6 +11,7 @@ import { AuthController } from './http/controllers/auth.controller';
 import { UserController } from './http/controllers/user.controller';
 import { YouTubeController } from './http/controllers/youtube.controller';
 import { CoursesController } from './http/controllers/courses.controller';
+import { ModulesController } from './http/controllers/modules.controller';
 import { ProfileController } from './http/controllers/profile.controller';
 import { OptionsController } from './http/controllers/options.controller';
 import { ProgressController } from './http/controllers/progress.controller';
@@ -31,6 +32,7 @@ import { ProgressController } from './http/controllers/progress.controller';
     UserController,
     YouTubeController,
     CoursesController,
+    ModulesController,
     ProfileController,
     OptionsController,
     ProgressController,
