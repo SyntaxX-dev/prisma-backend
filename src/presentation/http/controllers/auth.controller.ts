@@ -176,18 +176,35 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
-    description: 'Perfil do usuário autenticado com notificações',
+    description: 'Perfil completo do usuário com notificações e porcentagem',
     schema: {
       example: {
         id: 'uuid-do-usuario',
+        name: 'João Silva',
         email: 'joao@exemplo.com',
         perfil: 'ALUNO',
+        age: 25,
+        educationLevel: 'HIGH_SCHOOL',
+        profileImage: 'https://exemplo.com/foto.jpg',
+        linkedin: 'https://linkedin.com/in/joao',
+        github: 'https://github.com/joao',
+        portfolio: 'https://joao.dev',
+        aboutYou: 'Desenvolvedor apaixonado por tecnologia',
+        habilities: 'JavaScript, React, Node.js',
+        momentCareer: 'Iniciando carreira em desenvolvimento',
+        location: 'São Paulo, SP',
+        userFocus: 'ENEM',
+        contestType: null,
+        collegeCourse: null,
+        badge: 'ENEM_BADGE',
+        isProfileComplete: false,
         notification: {
           hasNotification: true,
           missingFields: ['idade', 'foco de estudo'],
-          message:
-            'Complete seu perfil adicionando sua idade e foco de estudo.',
-          badge: null,
+          message: 'Complete seu perfil adicionando sua idade e foco de estudo.',
+          badge: 'ENEM_BADGE',
+          profileCompletionPercentage: 75,
+          completedFields: ['nome', 'email', 'foto do perfil', 'LinkedIn', 'GitHub']
         },
       },
     },
@@ -203,20 +220,46 @@ export class AuthController {
     },
   })
   async getProfile(@CurrentUser() user: JwtPayload) {
-    // Buscar informações de notificação do usuário
+    // Buscar informações completas do usuário
     const notificationInfo = await this.checkUserNotifications.execute({
       userId: user.sub,
     });
 
+    // Buscar dados completos do usuário do banco
+    const userRepository = this.checkUserNotifications['userRepository'];
+    const fullUser = await userRepository.findById(user.sub);
+
     return {
       id: user.sub,
+      name: fullUser?.name || '',
       email: user.email,
       perfil: roleMapEnToPt[user.role as UserRole] || user.role,
+      // Informações básicas
+      age: fullUser?.age || null,
+      educationLevel: fullUser?.educationLevel || null,
+      // Novos campos do perfil
+      profileImage: fullUser?.profileImage || null,
+      linkedin: fullUser?.linkedin || null,
+      github: fullUser?.github || null,
+      portfolio: fullUser?.portfolio || null,
+      aboutYou: fullUser?.aboutYou || null,
+      habilities: fullUser?.habilities || null,
+      momentCareer: fullUser?.momentCareer || null,
+      location: fullUser?.location || null,
+      // Foco de estudo
+      userFocus: fullUser?.userFocus || null,
+      contestType: fullUser?.contestType || null,
+      collegeCourse: fullUser?.collegeCourse || null,
+      badge: fullUser?.badge || null,
+      isProfileComplete: fullUser?.isProfileComplete || false,
+      // Notificações e porcentagem
       notification: {
         hasNotification: notificationInfo.hasNotification,
         missingFields: notificationInfo.missingFields,
         message: notificationInfo.message,
         badge: notificationInfo.badge,
+        profileCompletionPercentage: notificationInfo.profileCompletionPercentage,
+        completedFields: notificationInfo.completedFields,
       },
     };
   }
