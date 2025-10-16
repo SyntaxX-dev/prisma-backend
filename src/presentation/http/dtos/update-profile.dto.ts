@@ -30,4 +30,37 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsEnum(CollegeCourse)
   collegeCourse?: CollegeCourse;
+
+  // Novos campos do perfil
+  @IsOptional()
+  @IsString()
+  profileImage?: string;
+
+  @IsOptional()
+  @IsString()
+  linkedin?: string;
+
+  @IsOptional()
+  @IsString()
+  github?: string;
+
+  @IsOptional()
+  @IsString()
+  portfolio?: string;
+
+  @IsOptional()
+  @IsString()
+  aboutYou?: string;
+
+  @IsOptional()
+  @IsString()
+  habilities?: string;
+
+  @IsOptional()
+  @IsString()
+  momentCareer?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
 }

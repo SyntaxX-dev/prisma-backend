@@ -6,21 +6,61 @@ import { User } from '../../domain/entities/user';
 export class NotificationServiceImpl implements NotificationService {
   checkUserNotifications(user: User): NotificationInfo {
     const missingFields: string[] = [];
+    const completedFields: string[] = [];
     
-    // Verificar campos obrigatórios para perfil completo
-    if (!user.age) missingFields.push('idade');
-    if (!user.educationLevel) missingFields.push('nível de educação');
-    if (!user.userFocus) missingFields.push('foco de estudo');
-    
+    // Definir todos os campos do perfil com seus pesos
+    const profileFields = [
+      { key: 'name', label: 'nome', weight: 10, required: true },
+      { key: 'email', label: 'email', weight: 10, required: true },
+      { key: 'age', label: 'idade', weight: 10, required: true },
+      { key: 'profileImage', label: 'foto do perfil', weight: 10, required: false },
+      { key: 'linkedin', label: 'LinkedIn', weight: 5, required: false },
+      { key: 'github', label: 'GitHub', weight: 5, required: false },
+      { key: 'portfolio', label: 'portfólio', weight: 5, required: false },
+      { key: 'aboutYou', label: 'sobre você', weight: 15, required: false },
+      { key: 'habilities', label: 'habilidades', weight: 15, required: false },
+      { key: 'momentCareer', label: 'momento de carreira', weight: 10, required: false },
+      { key: 'location', label: 'localização', weight: 5, required: false },
+      { key: 'userFocus', label: 'foco de estudo', weight: 10, required: true },
+      { key: 'educationLevel', label: 'nível de educação', weight: 10, required: true },
+    ];
+
+    let totalWeight = 0;
+    let completedWeight = 0;
+
+    // Verificar cada campo
+    for (const field of profileFields) {
+      const value = user[field.key as keyof User];
+      const isCompleted = value !== null && value !== undefined && value !== '';
+      
+      if (isCompleted) {
+        completedFields.push(field.label);
+        completedWeight += field.weight;
+      } else if (field.required) {
+        missingFields.push(field.label);
+      }
+      
+      totalWeight += field.weight;
+    }
+
     // Verificar campos específicos baseados no foco
     if (user.userFocus === 'CONCURSO' && !user.contestType) {
       missingFields.push('tipo de concurso');
+    } else if (user.userFocus === 'CONCURSO' && user.contestType) {
+      completedFields.push('tipo de concurso');
+      completedWeight += 5;
+      totalWeight += 5;
     }
     
     if (user.userFocus === 'FACULDADE' && !user.collegeCourse) {
       missingFields.push('curso de faculdade');
+    } else if (user.userFocus === 'FACULDADE' && user.collegeCourse) {
+      completedFields.push('curso de faculdade');
+      completedWeight += 5;
+      totalWeight += 5;
     }
-    
+
+    const profileCompletionPercentage = Math.round((completedWeight / totalWeight) * 100);
     const hasNotification = missingFields.length > 0;
     
     let message = '';
@@ -34,12 +74,16 @@ export class NotificationServiceImpl implements NotificationService {
         const otherFields = fieldsCopy.join(', ');
         message = `Complete seu perfil adicionando suas informações: ${otherFields} e ${lastField}.`;
       }
+    } else {
+      message = `Perfil ${profileCompletionPercentage}% completo!`;
     }
     
     return {
       hasNotification,
       missingFields,
       message,
+      profileCompletionPercentage,
+      completedFields,
     };
   }
 }

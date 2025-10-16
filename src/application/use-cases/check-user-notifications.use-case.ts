@@ -12,6 +12,8 @@ export interface CheckNotificationsOutput {
   missingFields: string[];
   message: string;
   badge?: string;
+  profileCompletionPercentage: number;
+  completedFields: string[];
 }
 
 @Injectable()
@@ -34,6 +36,8 @@ export class CheckUserNotificationsUseCase {
       missingFields: notificationInfo.missingFields,
       message: notificationInfo.message,
       badge: user.badge || undefined,
+      profileCompletionPercentage: notificationInfo.profileCompletionPercentage,
+      completedFields: notificationInfo.completedFields,
     };
   }
 }

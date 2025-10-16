@@ -65,6 +65,15 @@ export class RegisterUserUseCase {
       null, // collegeCourse
       null, // badge
       false, // isProfileComplete
+      // Novos campos do perfil
+      null, // profileImage
+      null, // linkedin
+      null, // github
+      null, // portfolio
+      null, // aboutYou
+      null, // habilities
+      null, // momentCareer
+      null, // location
     );
 
     await this.userRepository.create(user);

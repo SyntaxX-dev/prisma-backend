@@ -26,6 +26,15 @@ export class UserDrizzleRepository implements UserRepository {
       collegeCourse: user.collegeCourse,
       badge: user.badge,
       isProfileComplete: user.isProfileComplete.toString(),
+      // Novos campos do perfil
+      profileImage: user.profileImage,
+      linkedin: user.linkedin,
+      github: user.github,
+      portfolio: user.portfolio,
+      aboutYou: user.aboutYou,
+      habilities: user.habilities,
+      momentCareer: user.momentCareer,
+      location: user.location,
       createdAt: user.createdAt,
     });
     return user;
@@ -59,6 +68,15 @@ export class UserDrizzleRepository implements UserRepository {
       collegeCourse,
       badge: row.badge,
       isProfileComplete: row.isProfileComplete === 'true',
+      // Novos campos do perfil
+      profileImage: row.profileImage,
+      linkedin: row.linkedin,
+      github: row.github,
+      portfolio: row.portfolio,
+      aboutYou: row.aboutYou,
+      habilities: row.habilities,
+      momentCareer: row.momentCareer,
+      location: row.location,
       createdAt: row.createdAt,
     };
     return user;
@@ -84,6 +102,15 @@ export class UserDrizzleRepository implements UserRepository {
         collegeCourse: profileData.collegeCourse,
         badge: profileData.badge,
         isProfileComplete: profileData.isProfileComplete?.toString(),
+        // Novos campos do perfil
+        profileImage: profileData.profileImage,
+        linkedin: profileData.linkedin,
+        github: profileData.github,
+        portfolio: profileData.portfolio,
+        aboutYou: profileData.aboutYou,
+        habilities: profileData.habilities,
+        momentCareer: profileData.momentCareer,
+        location: profileData.location,
       })
       .where(eq(users.id, userId));
   }
@@ -116,6 +143,15 @@ export class UserDrizzleRepository implements UserRepository {
       collegeCourse,
       badge: row.badge,
       isProfileComplete: row.isProfileComplete === 'true',
+      // Novos campos do perfil
+      profileImage: row.profileImage,
+      linkedin: row.linkedin,
+      github: row.github,
+      portfolio: row.portfolio,
+      aboutYou: row.aboutYou,
+      habilities: row.habilities,
+      momentCareer: row.momentCareer,
+      location: row.location,
       createdAt: row.createdAt,
     };
     return user;

@@ -3,4 +3,6 @@ export class NotificationResponseDto {
   missingFields: string[];
   message: string;
   badge?: string;
+  profileCompletionPercentage: number;
+  completedFields: string[];
 }

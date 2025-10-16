@@ -10,9 +10,9 @@ export class JwtAuthService implements AuthService {
   generateToken(payload: JwtPayload): string {
     const config = JwtConfiguration.loadFromEnv();
 
-    return this.jwtService.sign(payload, {
+    return this.jwtService.sign(payload as any, {
       secret: config.secret,
-      expiresIn: config.expiresIn,
+      expiresIn: config.expiresIn as any,
     });
   }
 

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtConfiguration } from '../config/jwt.config';
 import { JwtStrategy } from './jwt.strategy';
@@ -16,11 +16,13 @@ import { AdminGuard } from '../guards/admin.guard';
     InfrastructureModule,
     PassportModule,
     JwtModule.registerAsync({
-      useFactory: () => {
+      useFactory: (): JwtModuleOptions => {
         const config = JwtConfiguration.loadFromEnv();
         return {
           secret: config.secret,
-          signOptions: { expiresIn: config.expiresIn },
+          signOptions: { 
+            expiresIn: config.expiresIn as any
+          },
         };
       },
     }),

@@ -18,6 +18,15 @@ export class User {
     public collegeCourse: CollegeCourse | null,
     public badge: string | null,
     public isProfileComplete: boolean,
+    // Novos campos do perfil
+    public profileImage: string | null,
+    public linkedin: string | null,
+    public github: string | null,
+    public portfolio: string | null,
+    public aboutYou: string | null,
+    public habilities: string | null,
+    public momentCareer: string | null,
+    public location: string | null,
     public readonly createdAt: Date = new Date(),
   ) {}
 }

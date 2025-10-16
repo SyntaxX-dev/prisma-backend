@@ -85,6 +85,15 @@ export const users = pgTable(
     collegeCourse: collegeCourseEnum('college_course'),
     badge: text('badge'),
     isProfileComplete: text('is_profile_complete').notNull().default('false'),
+    // Novos campos do perfil
+    profileImage: text('profile_image'),
+    linkedin: text('linkedin'),
+    github: text('github'),
+    portfolio: text('portfolio'),
+    aboutYou: text('about_you'),
+    habilities: text('habilities'),
+    momentCareer: text('moment_career'),
+    location: text('location'),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),

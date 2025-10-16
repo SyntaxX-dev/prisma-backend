@@ -14,6 +14,15 @@ export interface UpdateProfileInput {
   userFocus?: UserFocus;
   contestType?: ContestType;
   collegeCourse?: CollegeCourse;
+  // Novos campos do perfil
+  profileImage?: string;
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+  aboutYou?: string;
+  habilities?: string;
+  momentCareer?: string;
+  location?: string;
 }
 
 export interface UpdateProfileOutput {
@@ -22,6 +31,8 @@ export interface UpdateProfileOutput {
   badge?: string;
   hasNotification: boolean;
   missingFields: string[];
+  profileCompletionPercentage: number;
+  completedFields: string[];
 }
 
 @Injectable()
@@ -59,6 +70,15 @@ export class UpdateUserProfileUseCase {
       contestType: input.contestType ?? user.contestType,
       collegeCourse: input.collegeCourse ?? user.collegeCourse,
       badge: badge ?? user.badge,
+      // Novos campos do perfil
+      profileImage: input.profileImage ?? user.profileImage,
+      linkedin: input.linkedin ?? user.linkedin,
+      github: input.github ?? user.github,
+      portfolio: input.portfolio ?? user.portfolio,
+      aboutYou: input.aboutYou ?? user.aboutYou,
+      habilities: input.habilities ?? user.habilities,
+      momentCareer: input.momentCareer ?? user.momentCareer,
+      location: input.location ?? user.location,
     };
 
     // Verificar se o perfil está completo
@@ -73,6 +93,8 @@ export class UpdateUserProfileUseCase {
       badge: updatedUser.badge || undefined,
       hasNotification: notificationInfo.hasNotification,
       missingFields: notificationInfo.missingFields,
+      profileCompletionPercentage: notificationInfo.profileCompletionPercentage,
+      completedFields: notificationInfo.completedFields,
     };
   }
 }
