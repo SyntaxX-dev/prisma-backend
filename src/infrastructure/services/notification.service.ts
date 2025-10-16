@@ -36,27 +36,26 @@ export class NotificationServiceImpl implements NotificationService {
       if (isCompleted) {
         completedFields.push(field.label);
         completedWeight += field.weight;
-      } else if (field.required) {
+      } else {
+        // Adicionar TODOS os campos vazios ao missingFields
         missingFields.push(field.label);
       }
       
       totalWeight += field.weight;
     }
 
-    // Verificar campos específicos baseados no foco
-    if (user.userFocus === 'CONCURSO' && !user.contestType) {
-      missingFields.push('tipo de concurso');
-    } else if (user.userFocus === 'CONCURSO' && user.contestType) {
-      completedFields.push('tipo de concurso');
+    // Verificar campos específicos baseados no foco (apenas para adicionar peso)
+    if (user.userFocus === 'CONCURSO' && user.contestType) {
       completedWeight += 5;
+      totalWeight += 5;
+    } else if (user.userFocus === 'CONCURSO') {
       totalWeight += 5;
     }
     
-    if (user.userFocus === 'FACULDADE' && !user.collegeCourse) {
-      missingFields.push('curso de faculdade');
-    } else if (user.userFocus === 'FACULDADE' && user.collegeCourse) {
-      completedFields.push('curso de faculdade');
+    if (user.userFocus === 'FACULDADE' && user.collegeCourse) {
       completedWeight += 5;
+      totalWeight += 5;
+    } else if (user.userFocus === 'FACULDADE') {
       totalWeight += 5;
     }
 
