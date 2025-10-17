@@ -19,6 +19,9 @@ import { UpdateAgeDto } from '../dtos/update-age.dto';
 import { UpdateProfileImageDto } from '../dtos/update-profile-image.dto';
 import { UpdateLinksDto } from '../dtos/update-links.dto';
 import { UpdateAboutDto } from '../dtos/update-about.dto';
+import { UpdateAboutYouDto } from '../dtos/update-about-you.dto';
+import { UpdateHabilitiesDto } from '../dtos/update-habilities.dto';
+import { UpdateMomentCareerDto } from '../dtos/update-moment-career.dto';
 
 @ApiTags('User Profile')
 @Controller('user-profile')
@@ -255,6 +258,126 @@ export class UserProfileController {
         habilities: habilities || null,
         momentCareer: momentCareer || null,
         location: location || null
+      }
+    };
+  }
+
+  @Put('about-you')
+  @ApiOperation({ summary: 'Atualizar texto sobre você' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Texto sobre você atualizado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Texto sobre você atualizado com sucesso',
+        data: {
+          aboutYou: 'Desenvolvedor apaixonado por tecnologia e inovação'
+        }
+      }
+    }
+  })
+  async updateAboutYou(
+    @Request() req: any,
+    @Body() updateAboutYouDto: UpdateAboutYouDto,
+  ) {
+    const userId = req.user.sub;
+    const { aboutYou } = updateAboutYouDto;
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    // Atualizar apenas o texto sobre você
+    await this.userRepository.updateProfile(userId, { aboutYou });
+
+    return {
+      success: true,
+      message: 'Texto sobre você atualizado com sucesso',
+      data: {
+        aboutYou: aboutYou
+      }
+    };
+  }
+
+  @Put('habilities')
+  @ApiOperation({ summary: 'Atualizar habilidades do usuário (array de strings)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Habilidades atualizadas com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Habilidades atualizadas com sucesso',
+        data: {
+          habilities: ["JavaScript", "React", "Node.js", "TypeScript", "Python"]
+        }
+      }
+    }
+  })
+  async updateHabilities(
+    @Request() req: any,
+    @Body() updateHabilitiesDto: UpdateHabilitiesDto,
+  ) {
+    const userId = req.user.sub;
+    const { habilities } = updateHabilitiesDto;
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    // Converter array para string separada por vírgulas
+    const habilitiesString = habilities.join(', ');
+
+    // Atualizar apenas as habilidades
+    await this.userRepository.updateProfile(userId, { habilities: habilitiesString });
+
+    return {
+      success: true,
+      message: 'Habilidades atualizadas com sucesso',
+      data: {
+        habilities: habilities
+      }
+    };
+  }
+
+  @Put('moment-career')
+  @ApiOperation({ summary: 'Atualizar momento de carreira do usuário' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Momento de carreira atualizado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Momento de carreira atualizado com sucesso',
+        data: {
+          momentCareer: 'Iniciando carreira em desenvolvimento web'
+        }
+      }
+    }
+  })
+  async updateMomentCareer(
+    @Request() req: any,
+    @Body() updateMomentCareerDto: UpdateMomentCareerDto,
+  ) {
+    const userId = req.user.sub;
+    const { momentCareer } = updateMomentCareerDto;
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    // Atualizar apenas o momento de carreira
+    await this.userRepository.updateProfile(userId, { momentCareer });
+
+    return {
+      success: true,
+      message: 'Momento de carreira atualizado com sucesso',
+      data: {
+        momentCareer: momentCareer
       }
     };
   }
