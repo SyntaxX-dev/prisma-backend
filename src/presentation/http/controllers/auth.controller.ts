@@ -232,7 +232,11 @@ export class AuthController {
     return {
       id: user.sub,
       name: fullUser?.name || '',
-      email: user.email,
+      email: {
+        value: user.email,
+        readonly: true,
+        tag: 'READONLY_FIELD'
+      },
       perfil: roleMapEnToPt[user.role as UserRole] || user.role,
       // Informações básicas
       age: fullUser?.age || null,

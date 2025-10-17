@@ -156,4 +156,46 @@ export class UserDrizzleRepository implements UserRepository {
     };
     return user;
   }
+
+  async findByName(name: string): Promise<User | null> {
+    const rows = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.name, name))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+
+    const role = row.role ? UserRole[row.role as keyof typeof UserRole] : null;
+    const educationLevel = row.educationLevel ? EducationLevel[row.educationLevel] : null;
+    const userFocus = row.userFocus ? UserFocus[row.userFocus as keyof typeof UserFocus] : null;
+    const contestType = row.contestType ? ContestType[row.contestType as keyof typeof ContestType] : null;
+    const collegeCourse = row.collegeCourse ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse] : null;
+
+    const user: User = {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      passwordHash: row.passwordHash,
+      age: row.age,
+      role,
+      educationLevel,
+      userFocus,
+      contestType,
+      collegeCourse,
+      badge: row.badge,
+      isProfileComplete: row.isProfileComplete === 'true',
+      // Novos campos do perfil
+      profileImage: row.profileImage,
+      linkedin: row.linkedin,
+      github: row.github,
+      portfolio: row.portfolio,
+      aboutYou: row.aboutYou,
+      habilities: row.habilities,
+      momentCareer: row.momentCareer,
+      location: row.location,
+      createdAt: row.createdAt,
+    };
+    return user;
+  }
 }
