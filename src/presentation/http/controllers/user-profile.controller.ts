@@ -263,7 +263,7 @@ export class UserProfileController {
   }
 
   @Put('about-you')
-  @ApiOperation({ summary: 'Atualizar texto sobre você' })
+  @ApiOperation({ summary: 'Atualizar texto sobre você (opcional)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Texto sobre você atualizado com sucesso',
