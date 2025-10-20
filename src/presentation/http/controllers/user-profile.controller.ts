@@ -344,7 +344,7 @@ export class UserProfileController {
   }
 
   @Put('moment-career')
-  @ApiOperation({ summary: 'Atualizar momento de carreira do usuário' })
+  @ApiOperation({ summary: 'Atualizar momento de carreira do usuário (opcional)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Momento de carreira atualizado com sucesso',
@@ -371,13 +371,13 @@ export class UserProfileController {
     }
 
     // Atualizar apenas o momento de carreira
-    await this.userRepository.updateProfile(userId, { momentCareer });
+    await this.userRepository.updateProfile(userId, { momentCareer: momentCareer || null });
 
     return {
       success: true,
       message: 'Momento de carreira atualizado com sucesso',
       data: {
-        momentCareer: momentCareer
+        momentCareer: momentCareer || null
       }
     };
   }
