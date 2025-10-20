@@ -22,6 +22,7 @@ import { UpdateAboutDto } from '../dtos/update-about.dto';
 import { UpdateAboutYouDto } from '../dtos/update-about-you.dto';
 import { UpdateHabilitiesDto } from '../dtos/update-habilities.dto';
 import { UpdateMomentCareerDto } from '../dtos/update-moment-career.dto';
+import { UpdateLocationDto } from '../dtos/update-location.dto';
 
 @ApiTags('User Profile')
 @Controller('user-profile')
@@ -378,6 +379,45 @@ export class UserProfileController {
       message: 'Momento de carreira atualizado com sucesso',
       data: {
         momentCareer: momentCareer || null
+      }
+    };
+  }
+
+  @Put('location')
+  @ApiOperation({ summary: 'Atualizar localização do usuário (opcional)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Localização atualizada com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Localização atualizada com sucesso',
+        data: {
+          location: 'São Paulo, SP, Brasil'
+        }
+      }
+    }
+  })
+  async updateLocation(
+    @Request() req: any,
+    @Body() updateLocationDto: UpdateLocationDto,
+  ) {
+    const userId = req.user.sub;
+    const { location } = updateLocationDto;
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    // Atualizar apenas a localização
+    await this.userRepository.updateProfile(userId, { location: location || null });
+
+    return {
+      success: true,
+      message: 'Localização atualizada com sucesso',
+      data: {
+        location: location || null
       }
     };
   }
