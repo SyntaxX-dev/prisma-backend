@@ -302,7 +302,7 @@ export class UserProfileController {
   }
 
   @Put('habilities')
-  @ApiOperation({ summary: 'Atualizar habilidades do usuário (array de strings)' })
+  @ApiOperation({ summary: 'Atualizar habilidades do usuário (array de strings opcional)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Habilidades atualizadas com sucesso',
@@ -328,8 +328,8 @@ export class UserProfileController {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    // Converter array para string separada por vírgulas
-    const habilitiesString = habilities.join(', ');
+    // Converter array para string separada por vírgulas ou null se não fornecido
+    const habilitiesString = habilities ? habilities.join(', ') : null;
 
     // Atualizar apenas as habilidades
     await this.userRepository.updateProfile(userId, { habilities: habilitiesString });
@@ -338,7 +338,7 @@ export class UserProfileController {
       success: true,
       message: 'Habilidades atualizadas com sucesso',
       data: {
-        habilities: habilities
+        habilities: habilities || null
       }
     };
   }
