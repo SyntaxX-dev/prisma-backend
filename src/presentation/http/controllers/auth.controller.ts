@@ -256,6 +256,8 @@ export class AuthController {
       collegeCourse: fullUser?.collegeCourse || null,
       badge: fullUser?.badge || null,
       isProfileComplete: fullUser?.isProfileComplete || false,
+      // Data de criação
+      createdAt: fullUser?.createdAt || null,
       // Notificações e porcentagem
       notification: {
         hasNotification: notificationInfo.hasNotification,
