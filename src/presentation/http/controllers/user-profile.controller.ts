@@ -1,14 +1,18 @@
 import { 
   Controller, 
   Put, 
+  Post,
   Body, 
   UseGuards, 
   Request, 
   HttpException, 
   HttpStatus,
   ConflictException,
-  BadRequestException
+  BadRequestException,
+  UseInterceptors,
+  UploadedFile
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { USER_REPOSITORY } from '../../../domain/tokens';
@@ -23,6 +27,8 @@ import { UpdateAboutYouDto } from '../dtos/update-about-you.dto';
 import { UpdateHabilitiesDto } from '../dtos/update-habilities.dto';
 import { UpdateMomentCareerDto } from '../dtos/update-moment-career.dto';
 import { UpdateLocationDto } from '../dtos/update-location.dto';
+import { UploadProfileImageDto } from '../dtos/upload-profile-image.dto';
+import { CloudinaryService } from '../../../infrastructure/services/cloudinary.service';
 
 @ApiTags('User Profile')
 @Controller('user-profile')
@@ -31,6 +37,7 @@ import { UpdateLocationDto } from '../dtos/update-location.dto';
 export class UserProfileController {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Put('name')
@@ -164,6 +171,81 @@ export class UserProfileController {
         profileImage: profileImage
       }
     };
+  }
+
+  @Post('profile-image/upload')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiOperation({ summary: 'Upload de foto do perfil' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Foto do perfil enviada com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Foto do perfil enviada com sucesso',
+        data: {
+          profileImage: 'https://res.cloudinary.com/dgdefptw3/image/upload/v1234567890/profile-images/abc123.jpg'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Erro no upload da imagem',
+    schema: {
+      example: {
+        success: false,
+        message: 'Erro ao fazer upload da imagem: Invalid file format'
+      }
+    }
+  })
+  async uploadProfileImage(
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
+  ) {
+    const userId = req.user.sub;
+
+    if (!file) {
+      throw new HttpException('Nenhum arquivo foi enviado', HttpStatus.BAD_REQUEST);
+    }
+
+    // Validar tipo de arquivo
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new HttpException('Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP', HttpStatus.BAD_REQUEST);
+    }
+
+    // Validar tamanho do arquivo (máximo 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new HttpException('Arquivo muito grande. Tamanho máximo: 5MB', HttpStatus.BAD_REQUEST);
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    try {
+      // Fazer upload para o Cloudinary
+      const imageUrl = await this.cloudinaryService.uploadProfileImage(file);
+
+      // Atualizar no banco de dados
+      await this.userRepository.updateProfile(userId, { profileImage: imageUrl });
+
+      return {
+        success: true,
+        message: 'Foto do perfil enviada com sucesso',
+        data: {
+          profileImage: imageUrl
+        }
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Erro ao fazer upload da imagem: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   @Put('links')

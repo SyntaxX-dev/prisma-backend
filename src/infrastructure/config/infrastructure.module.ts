@@ -22,6 +22,7 @@ import { ModuleDrizzleRepository } from '../repositories/module.drizzle.reposito
 import { VideoDrizzleRepository } from '../repositories/video.drizzle.repository';
 import { VideoProgressDrizzleRepository } from '../repositories/video-progress.drizzle.repository';
 import { NotificationServiceImpl } from '../services/notification.service';
+import { CloudinaryService } from '../services/cloudinary.service';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -70,6 +71,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       provide: NOTIFICATION_SERVICE,
       useClass: NotificationServiceImpl,
     },
+    CloudinaryService,
   ],
   exports: [
     DRIZZLE_DB,
@@ -82,6 +84,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     VIDEO_REPOSITORY,
     VIDEO_PROGRESS_REPOSITORY,
     NOTIFICATION_SERVICE,
+    CloudinaryService,
   ],
 })
 export class InfrastructureModule {}
