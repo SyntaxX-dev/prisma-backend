@@ -252,6 +252,7 @@ export class AuthController {
       location: fullUser?.location || null,
       instagram: fullUser?.instagram || null,
       twitter: fullUser?.twitter || null,
+      socialLinksOrder: fullUser?.socialLinksOrder ? JSON.parse(fullUser.socialLinksOrder) : ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'],
       // Foco de estudo
       userFocus: fullUser?.userFocus || null,
       contestType: fullUser?.contestType || null,

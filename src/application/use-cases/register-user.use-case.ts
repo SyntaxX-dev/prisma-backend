@@ -76,6 +76,7 @@ export class RegisterUserUseCase {
       null, // location
       null, // instagram
       null, // twitter
+      null, // socialLinksOrder
     );
 
     await this.userRepository.create(user);

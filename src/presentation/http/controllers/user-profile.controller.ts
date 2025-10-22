@@ -30,6 +30,7 @@ import { UpdateMomentCareerDto } from '../dtos/update-moment-career.dto';
 import { UpdateLocationDto } from '../dtos/update-location.dto';
 import { UpdateInstagramDto } from '../dtos/update-instagram.dto';
 import { UpdateTwitterDto } from '../dtos/update-twitter.dto';
+import { UpdateSocialLinksOrderDto } from '../dtos/update-social-links-order.dto';
 import { UploadProfileImageDto } from '../dtos/upload-profile-image.dto';
 import { CloudinaryService } from '../../../infrastructure/services/cloudinary.service';
 
@@ -673,6 +674,72 @@ export class UserProfileController {
       message: 'Twitter atualizado com sucesso',
       data: {
         twitter: updateTwitterDto.twitter
+      }
+    };
+  }
+
+  @Put('social-links-order')
+  @ApiOperation({ summary: 'Atualizar ordem dos links sociais' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Ordem dos links atualizada com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Ordem dos links atualizada com sucesso',
+        data: {
+          socialLinksOrder: ['linkedin', 'github', 'portfolio', 'instagram', 'twitter']
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Dados inválidos',
+    schema: {
+      example: {
+        success: false,
+        message: 'Deve conter exatamente 5 links'
+      }
+    }
+  })
+  async updateSocialLinksOrder(
+    @Request() req: any,
+    @Body() updateSocialLinksOrderDto: UpdateSocialLinksOrderDto,
+  ) {
+    const userId = req.user.sub;
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    // Validar se todos os links válidos estão presentes
+    const validLinks = ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'];
+    const providedLinks = updateSocialLinksOrderDto.socialLinksOrder;
+    
+    const hasAllValidLinks = validLinks.every(link => providedLinks.includes(link));
+    const hasOnlyValidLinks = providedLinks.every(link => validLinks.includes(link));
+    
+    if (!hasAllValidLinks || !hasOnlyValidLinks) {
+      throw new HttpException(
+        'A ordem deve conter exatamente os links: linkedin, github, portfolio, instagram, twitter',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    // Converter array para JSON string
+    const socialLinksOrderJson = JSON.stringify(updateSocialLinksOrderDto.socialLinksOrder);
+
+    await this.userRepository.updateProfile(userId, { 
+      socialLinksOrder: socialLinksOrderJson
+    });
+
+    return {
+      success: true,
+      message: 'Ordem dos links atualizada com sucesso',
+      data: {
+        socialLinksOrder: updateSocialLinksOrderDto.socialLinksOrder
       }
     };
   }

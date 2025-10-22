@@ -37,6 +37,7 @@ export class UserDrizzleRepository implements UserRepository {
       location: user.location,
       instagram: user.instagram,
       twitter: user.twitter,
+      socialLinksOrder: user.socialLinksOrder,
       createdAt: user.createdAt,
     });
     return user;
@@ -81,6 +82,7 @@ export class UserDrizzleRepository implements UserRepository {
       location: row.location,
       instagram: row.instagram,
       twitter: row.twitter,
+      socialLinksOrder: row.socialLinksOrder,
       createdAt: row.createdAt,
     };
     return user;
@@ -117,6 +119,7 @@ export class UserDrizzleRepository implements UserRepository {
         location: profileData.location,
         instagram: profileData.instagram,
         twitter: profileData.twitter,
+        socialLinksOrder: profileData.socialLinksOrder,
       })
       .where(eq(users.id, userId));
   }
@@ -160,6 +163,7 @@ export class UserDrizzleRepository implements UserRepository {
       location: row.location,
       instagram: row.instagram,
       twitter: row.twitter,
+      socialLinksOrder: row.socialLinksOrder,
       createdAt: row.createdAt,
     };
     return user;
@@ -204,6 +208,7 @@ export class UserDrizzleRepository implements UserRepository {
       location: row.location,
       instagram: row.instagram,
       twitter: row.twitter,
+      socialLinksOrder: row.socialLinksOrder,
       createdAt: row.createdAt,
     };
     return user;

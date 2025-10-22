@@ -96,6 +96,7 @@ export const users = pgTable(
     location: text('location'),
     instagram: text('instagram'),
     twitter: text('twitter'),
+    socialLinksOrder: text('social_links_order'),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),

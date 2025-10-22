@@ -29,6 +29,7 @@ export class User {
     public location: string | null,
     public instagram: string | null,
     public twitter: string | null,
+    public socialLinksOrder: string | null,
     public readonly createdAt: Date = new Date(),
   ) {}
 }
