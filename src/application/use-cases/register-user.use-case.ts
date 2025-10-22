@@ -74,6 +74,8 @@ export class RegisterUserUseCase {
       null, // habilities
       null, // momentCareer
       null, // location
+      null, // instagram
+      null, // twitter
     );
 
     await this.userRepository.create(user);

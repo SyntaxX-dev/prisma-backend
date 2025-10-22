@@ -94,6 +94,8 @@ export const users = pgTable(
     habilities: text('habilities'),
     momentCareer: text('moment_career'),
     location: text('location'),
+    instagram: text('instagram'),
+    twitter: text('twitter'),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),

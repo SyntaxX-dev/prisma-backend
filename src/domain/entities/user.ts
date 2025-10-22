@@ -27,6 +27,8 @@ export class User {
     public habilities: string | null,
     public momentCareer: string | null,
     public location: string | null,
+    public instagram: string | null,
+    public twitter: string | null,
     public readonly createdAt: Date = new Date(),
   ) {}
 }

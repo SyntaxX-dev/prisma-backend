@@ -28,6 +28,8 @@ import { UpdateAboutYouDto } from '../dtos/update-about-you.dto';
 import { UpdateHabilitiesDto } from '../dtos/update-habilities.dto';
 import { UpdateMomentCareerDto } from '../dtos/update-moment-career.dto';
 import { UpdateLocationDto } from '../dtos/update-location.dto';
+import { UpdateInstagramDto } from '../dtos/update-instagram.dto';
+import { UpdateTwitterDto } from '../dtos/update-twitter.dto';
 import { UploadProfileImageDto } from '../dtos/upload-profile-image.dto';
 import { CloudinaryService } from '../../../infrastructure/services/cloudinary.service';
 
@@ -573,6 +575,104 @@ export class UserProfileController {
       message: 'Localização atualizada com sucesso',
       data: {
         location: location || null
+      }
+    };
+  }
+
+  @Put('instagram')
+  @ApiOperation({ summary: 'Atualizar Instagram do usuário' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Instagram atualizado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Instagram atualizado com sucesso',
+        data: {
+          instagram: 'https://www.instagram.com/usuario'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Dados inválidos',
+    schema: {
+      example: {
+        success: false,
+        message: 'Instagram deve ser uma URL válida'
+      }
+    }
+  })
+  async updateInstagram(
+    @Request() req: any,
+    @Body() updateInstagramDto: UpdateInstagramDto,
+  ) {
+    const userId = req.user.sub;
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    await this.userRepository.updateProfile(userId, { 
+      instagram: updateInstagramDto.instagram 
+    });
+
+    return {
+      success: true,
+      message: 'Instagram atualizado com sucesso',
+      data: {
+        instagram: updateInstagramDto.instagram
+      }
+    };
+  }
+
+  @Put('twitter')
+  @ApiOperation({ summary: 'Atualizar Twitter/X do usuário' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Twitter atualizado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Twitter atualizado com sucesso',
+        data: {
+          twitter: 'https://twitter.com/usuario'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Dados inválidos',
+    schema: {
+      example: {
+        success: false,
+        message: 'Twitter deve ser uma URL válida'
+      }
+    }
+  })
+  async updateTwitter(
+    @Request() req: any,
+    @Body() updateTwitterDto: UpdateTwitterDto,
+  ) {
+    const userId = req.user.sub;
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    await this.userRepository.updateProfile(userId, { 
+      twitter: updateTwitterDto.twitter 
+    });
+
+    return {
+      success: true,
+      message: 'Twitter atualizado com sucesso',
+      data: {
+        twitter: updateTwitterDto.twitter
       }
     };
   }

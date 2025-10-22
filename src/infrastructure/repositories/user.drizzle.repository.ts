@@ -35,6 +35,8 @@ export class UserDrizzleRepository implements UserRepository {
       habilities: user.habilities,
       momentCareer: user.momentCareer,
       location: user.location,
+      instagram: user.instagram,
+      twitter: user.twitter,
       createdAt: user.createdAt,
     });
     return user;
@@ -77,6 +79,8 @@ export class UserDrizzleRepository implements UserRepository {
       habilities: row.habilities,
       momentCareer: row.momentCareer,
       location: row.location,
+      instagram: row.instagram,
+      twitter: row.twitter,
       createdAt: row.createdAt,
     };
     return user;
@@ -111,6 +115,8 @@ export class UserDrizzleRepository implements UserRepository {
         habilities: profileData.habilities,
         momentCareer: profileData.momentCareer,
         location: profileData.location,
+        instagram: profileData.instagram,
+        twitter: profileData.twitter,
       })
       .where(eq(users.id, userId));
   }
@@ -152,6 +158,8 @@ export class UserDrizzleRepository implements UserRepository {
       habilities: row.habilities,
       momentCareer: row.momentCareer,
       location: row.location,
+      instagram: row.instagram,
+      twitter: row.twitter,
       createdAt: row.createdAt,
     };
     return user;
@@ -194,6 +202,8 @@ export class UserDrizzleRepository implements UserRepository {
       habilities: row.habilities,
       momentCareer: row.momentCareer,
       location: row.location,
+      instagram: row.instagram,
+      twitter: row.twitter,
       createdAt: row.createdAt,
     };
     return user;

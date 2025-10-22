@@ -79,6 +79,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         null, // habilities
         null, // momentCareer
         null, // location
+        null, // instagram
+        null, // twitter
         new Date(),
       );
       await this.userRepository.create(user);

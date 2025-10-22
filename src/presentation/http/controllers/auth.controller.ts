@@ -250,6 +250,8 @@ export class AuthController {
       habilities: fullUser?.habilities || null,
       momentCareer: fullUser?.momentCareer || null,
       location: fullUser?.location || null,
+      instagram: fullUser?.instagram || null,
+      twitter: fullUser?.twitter || null,
       // Foco de estudo
       userFocus: fullUser?.userFocus || null,
       contestType: fullUser?.contestType || null,
