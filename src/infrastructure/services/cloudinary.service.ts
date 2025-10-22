@@ -5,21 +5,25 @@ import { cloudinary } from '../config/cloudinary.config';
 export class CloudinaryService {
   async uploadProfileImage(file: Express.Multer.File): Promise<string> {
     try {
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: 'profile-images',
-        transformation: [
-          { 
-            width: 400, 
-            height: 400, 
-            crop: 'fill', 
-            gravity: 'face',
-            quality: 'auto',
-            format: 'auto'
-          }
-        ],
-        resource_type: 'image',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
-      });
+      // Usar buffer em vez de file.path para compatibilidade com multer em memória
+      const result = await cloudinary.uploader.upload(
+        `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+        {
+          folder: 'profile-images',
+          transformation: [
+            { 
+              width: 400, 
+              height: 400, 
+              crop: 'fill', 
+              gravity: 'face',
+              quality: 'auto',
+              format: 'auto'
+            }
+          ],
+          resource_type: 'image',
+          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        }
+      );
       
       return result.secure_url;
     } catch (error) {
