@@ -2,6 +2,7 @@ import {
   Controller, 
   Put, 
   Post,
+  Delete,
   Body, 
   UseGuards, 
   Request, 
@@ -243,6 +244,78 @@ export class UserProfileController {
     } catch (error) {
       throw new HttpException(
         `Erro ao fazer upload da imagem: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Delete('profile-image')
+  @ApiOperation({ summary: 'Remover foto do perfil' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Foto do perfil removida com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Foto do perfil removida com sucesso'
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Usuário não encontrado',
+    schema: {
+      example: {
+        success: false,
+        message: 'Usuário não encontrado'
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Erro ao remover a imagem',
+    schema: {
+      example: {
+        success: false,
+        message: 'Erro ao remover a imagem: Erro interno do servidor'
+      }
+    }
+  })
+  async removeProfileImage(@Request() req: any) {
+    const userId = req.user.sub;
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    // Se o usuário não tem foto de perfil, retorna sucesso
+    if (!user.profileImage) {
+      return {
+        success: true,
+        message: 'Usuário não possui foto de perfil para remover'
+      };
+    }
+
+    try {
+      // Extrair o public ID da URL do Cloudinary
+      const publicId = this.cloudinaryService.extractPublicIdFromUrl(user.profileImage);
+      
+      // Se conseguiu extrair o public ID, deletar a imagem do Cloudinary
+      if (publicId) {
+        await this.cloudinaryService.deleteImage(publicId);
+      }
+
+      // Remover a URL da imagem do banco de dados
+      await this.userRepository.updateProfile(userId, { profileImage: null });
+
+      return {
+        success: true,
+        message: 'Foto do perfil removida com sucesso'
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Erro ao remover a imagem: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
