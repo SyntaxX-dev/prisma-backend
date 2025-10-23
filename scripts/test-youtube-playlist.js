@@ -5,6 +5,7 @@ const testData = {
   courseId: "seu-course-id-aqui", // Substitua pelo ID de um curso existente
   subCourseName: "Curso React Completo",
   subCourseDescription: "Curso completo de React do zero ao avançado com todos os conceitos fundamentais",
+  aiPrompt: "Organize os vídeos em módulos lógicos baseado no conteúdo. Agrupe vídeos relacionados em módulos de 5-8 vídeos cada. Crie módulos como: 'Fundamentos', 'Conceitos Avançados', 'Projeto Prático', etc. Foque em agrupar por tópicos similares e mantenha a sequência lógica de aprendizado.",
   videos: [
     {
       "videoId": "FXqX7oof0I4",

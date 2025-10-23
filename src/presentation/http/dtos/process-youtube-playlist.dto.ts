@@ -72,6 +72,14 @@ export class ProcessYouTubePlaylistDto {
   @IsString()
   subCourseDescription?: string;
 
+  @ApiProperty({ 
+    description: 'Prompt personalizado para a IA organizar os vídeos em módulos',
+    required: false,
+    example: 'Organize os vídeos em módulos lógicos baseado no conteúdo. Agrupe vídeos relacionados em módulos de 5-10 vídeos cada. Crie módulos como: "Fundamentos", "Conceitos Avançados", "Projeto Prático", etc.'
+  })
+  @IsString()
+  aiPrompt?: string;
+
   @ApiProperty({ description: 'Lista de vídeos da playlist do YouTube', type: [YouTubeVideoDto] })
   @IsArray()
   @ValidateNested({ each: true })

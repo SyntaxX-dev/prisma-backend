@@ -3,11 +3,13 @@ import type { CourseRepository } from '../../../domain/repositories/course.repos
 import type { SubCourseRepository } from '../../../domain/repositories/sub-course.repository';
 import type { ModuleRepository } from '../../../domain/repositories/module.repository';
 import type { VideoRepository } from '../../../domain/repositories/video.repository';
+import { GeminiService } from '../../../infrastructure/services/gemini.service';
 
 export interface ProcessYouTubePlaylistInput {
   courseId: string;
   subCourseName: string;
   subCourseDescription?: string;
+  aiPrompt?: string;
   videos: Array<{
     videoId: string;
     title: string;
@@ -57,6 +59,7 @@ export class ProcessYouTubePlaylistUseCase {
     private readonly subCourseRepository: SubCourseRepository,
     private readonly moduleRepository: ModuleRepository,
     private readonly videoRepository: VideoRepository,
+    private readonly geminiService: GeminiService,
   ) {}
 
   async execute(input: ProcessYouTubePlaylistInput): Promise<ProcessYouTubePlaylistOutput> {
@@ -74,8 +77,17 @@ export class ProcessYouTubePlaylistUseCase {
       order: 0, // Será calculado automaticamente
     });
 
-    // Organizar vídeos em módulos baseado na sequência e títulos
-    const modules = this.organizeVideosIntoModules(input.videos);
+    // Organizar vídeos em módulos usando IA (Gemini)
+    const moduleSuggestions = await this.geminiService.organizeVideosIntoModules(
+      input.videos.map(video => ({
+        videoId: video.videoId,
+        title: video.title,
+        description: video.description,
+        duration: video.duration,
+        tags: video.tags,
+      })),
+      input.aiPrompt
+    );
 
     const createdModules: Array<{
       id: string;
@@ -92,12 +104,12 @@ export class ProcessYouTubePlaylistUseCase {
     }> = [];
     let moduleOrder = 0;
 
-    for (const moduleData of modules) {
+    for (const moduleSuggestion of moduleSuggestions) {
       // Criar módulo
       const module = await this.moduleRepository.create({
         subCourseId: subCourse.id,
-        name: moduleData.name,
-        description: moduleData.description,
+        name: moduleSuggestion.name,
+        description: moduleSuggestion.description,
         order: moduleOrder++,
       });
 
@@ -110,7 +122,8 @@ export class ProcessYouTubePlaylistUseCase {
       }> = [];
       let videoOrder = 0;
 
-      for (const videoData of moduleData.videos) {
+      for (const videoIndex of moduleSuggestion.videoIndices) {
+        const videoData = input.videos[videoIndex];
         const video = await this.videoRepository.create({
           moduleId: module.id,
           subCourseId: subCourse.id,

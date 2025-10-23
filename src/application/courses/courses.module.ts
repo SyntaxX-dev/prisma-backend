@@ -18,6 +18,7 @@ import { ListModuleVideosUseCase } from './use-cases/list-module-videos.use-case
 import { ProcessYouTubePlaylistUseCase } from './use-cases/process-youtube-playlist.use-case';
 import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
+import { GeminiService } from '../../infrastructure/services/gemini.service';
 
 @Module({
   imports: [InfrastructureModule, YouTubeModule],
@@ -103,10 +104,11 @@ import { YouTubeService } from '../../infrastructure/services/youtube.service';
     },
     {
       provide: ProcessYouTubePlaylistUseCase,
-      useFactory: (courseRepository, subCourseRepository, moduleRepository, videoRepository) =>
-        new ProcessYouTubePlaylistUseCase(courseRepository, subCourseRepository, moduleRepository, videoRepository),
-      inject: [COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY],
+      useFactory: (courseRepository, subCourseRepository, moduleRepository, videoRepository, geminiService) =>
+        new ProcessYouTubePlaylistUseCase(courseRepository, subCourseRepository, moduleRepository, videoRepository, geminiService),
+      inject: [COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, GeminiService],
     },
+    GeminiService,
   ],
   exports: [
     CreateCourseUseCase,

@@ -571,6 +571,7 @@ export class CoursesController {
         courseId: processYouTubePlaylistDto.courseId,
         subCourseName: processYouTubePlaylistDto.subCourseName,
         subCourseDescription: processYouTubePlaylistDto.subCourseDescription,
+        aiPrompt: processYouTubePlaylistDto.aiPrompt,
         videos: processYouTubePlaylistDto.videos,
       });
       return result;
