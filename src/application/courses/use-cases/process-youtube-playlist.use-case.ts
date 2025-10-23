@@ -132,12 +132,12 @@ export class ProcessYouTubePlaylistUseCase {
           description: videoData.description || null,
           url: videoData.url,
           thumbnailUrl: videoData.thumbnailUrl || null,
-          duration: videoData.duration && videoData.duration > 0 ? Number(videoData.duration) : null,
+          duration: this.parseNumericValue(videoData.duration),
           channelTitle: videoData.channelTitle || null,
           channelId: videoData.channelId || null,
           channelThumbnailUrl: videoData.channelThumbnailUrl || null,
           publishedAt: videoData.publishedAt ? new Date(videoData.publishedAt) : null,
-          viewCount: videoData.viewCount && videoData.viewCount > 0 ? Number(videoData.viewCount) : null,
+          viewCount: this.parseNumericValue(videoData.viewCount),
           tags: videoData.tags || null,
           category: videoData.category || null,
           order: videoOrder++,
@@ -337,5 +337,18 @@ export class ProcessYouTubePlaylistUseCase {
     // Se não conseguir extrair, usar parte do título
     const cleanTitle = title.replace(/#\d+/g, '').replace(/^[^a-zA-Z]*/, '').trim();
     return cleanTitle.length > 50 ? cleanTitle.substring(0, 50) + '...' : cleanTitle;
+  }
+
+  private parseNumericValue(value: any): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    
+    const num = Number(value);
+    if (isNaN(num) || num <= 0) {
+      return null;
+    }
+    
+    return num;
   }
 }
