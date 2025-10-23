@@ -1,9 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CourseRepository } from '../../../domain/repositories/course.repository';
-import { SubCourseRepository } from '../../../domain/repositories/sub-course.repository';
-import { ModuleRepository } from '../../../domain/repositories/module.repository';
-import { VideoRepository } from '../../../domain/repositories/video.repository';
-import { ProcessYouTubePlaylistDto } from '../../presentation/http/dtos/process-youtube-playlist.dto';
+import type { CourseRepository } from '../../../domain/repositories/course.repository';
+import type { SubCourseRepository } from '../../../domain/repositories/sub-course.repository';
+import type { ModuleRepository } from '../../../domain/repositories/module.repository';
+import type { VideoRepository } from '../../../domain/repositories/video.repository';
 
 export interface ProcessYouTubePlaylistInput {
   courseId: string;
@@ -71,14 +70,26 @@ export class ProcessYouTubePlaylistUseCase {
     const subCourse = await this.subCourseRepository.create({
       courseId: input.courseId,
       name: input.subCourseName,
-      description: input.subCourseDescription,
+      description: input.subCourseDescription || null,
       order: 0, // Será calculado automaticamente
     });
 
     // Organizar vídeos em módulos baseado na sequência e títulos
     const modules = this.organizeVideosIntoModules(input.videos);
 
-    const createdModules = [];
+    const createdModules: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      order: number;
+      videoCount: number;
+      videos: Array<{
+        id: string;
+        videoId: string;
+        title: string;
+        order: number;
+      }>;
+    }> = [];
     let moduleOrder = 0;
 
     for (const moduleData of modules) {
@@ -91,7 +102,12 @@ export class ProcessYouTubePlaylistUseCase {
       });
 
       // Criar vídeos do módulo
-      const createdVideos = [];
+      const createdVideos: Array<{
+        id: string;
+        videoId: string;
+        title: string;
+        order: number;
+      }> = [];
       let videoOrder = 0;
 
       for (const videoData of moduleData.videos) {
@@ -100,17 +116,17 @@ export class ProcessYouTubePlaylistUseCase {
           subCourseId: subCourse.id,
           videoId: videoData.videoId,
           title: videoData.title,
-          description: videoData.description,
+          description: videoData.description || null,
           url: videoData.url,
-          thumbnailUrl: videoData.thumbnailUrl,
-          duration: videoData.duration,
-          channelTitle: videoData.channelTitle,
-          channelId: videoData.channelId,
-          channelThumbnailUrl: videoData.channelThumbnailUrl,
-          publishedAt: videoData.publishedAt ? new Date(videoData.publishedAt) : undefined,
-          viewCount: videoData.viewCount,
-          tags: videoData.tags,
-          category: videoData.category,
+          thumbnailUrl: videoData.thumbnailUrl || null,
+          duration: videoData.duration || null,
+          channelTitle: videoData.channelTitle || null,
+          channelId: videoData.channelId || null,
+          channelThumbnailUrl: videoData.channelThumbnailUrl || null,
+          publishedAt: videoData.publishedAt ? new Date(videoData.publishedAt) : null,
+          viewCount: videoData.viewCount || null,
+          tags: videoData.tags || null,
+          category: videoData.category || null,
           order: videoOrder++,
         });
 
@@ -128,7 +144,7 @@ export class ProcessYouTubePlaylistUseCase {
       createdModules.push({
         id: module.id,
         name: module.name,
-        description: module.description,
+        description: module.description || undefined,
         order: module.order,
         videoCount: createdVideos.length,
         videos: createdVideos,
@@ -142,7 +158,7 @@ export class ProcessYouTubePlaylistUseCase {
         subCourse: {
           id: subCourse.id,
           name: subCourse.name,
-          description: subCourse.description,
+          description: subCourse.description || undefined,
         },
         modules: createdModules,
       },
@@ -150,9 +166,13 @@ export class ProcessYouTubePlaylistUseCase {
   }
 
   private organizeVideosIntoModules(videos: ProcessYouTubePlaylistInput['videos']) {
-    const modules = [];
-    let currentModule = null;
-    let currentModuleVideos = [];
+    const modules: Array<{
+      name: string;
+      description: string;
+      videos: ProcessYouTubePlaylistInput['videos'];
+    }> = [];
+    let currentModule: string | null = null;
+    let currentModuleVideos: ProcessYouTubePlaylistInput['videos'] = [];
     let moduleCounter = 1;
 
     for (let i = 0; i < videos.length; i++) {
@@ -195,7 +215,7 @@ export class ProcessYouTubePlaylistUseCase {
     return modules;
   }
 
-  private detectNewModule(currentVideo: any, nextVideo: any, index: number): boolean {
+  private detectNewModule(currentVideo: ProcessYouTubePlaylistInput['videos'][0], nextVideo: ProcessYouTubePlaylistInput['videos'][0] | undefined, index: number): boolean {
     // Se é o primeiro vídeo, não é novo módulo
     if (index === 0) return false;
 
