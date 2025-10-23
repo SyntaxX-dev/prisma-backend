@@ -124,16 +124,6 @@ export class ProcessYouTubePlaylistUseCase {
 
       for (const videoIndex of moduleSuggestion.videoIndices) {
         const videoData = input.videos[videoIndex];
-        
-        // Debug log
-        console.log('Creating video:', {
-          title: videoData.title,
-          duration: videoData.duration,
-          viewCount: videoData.viewCount,
-          tags: videoData.tags,
-          category: videoData.category
-        });
-        
         const video = await this.videoRepository.create({
           moduleId: module.id,
           subCourseId: subCourse.id,
