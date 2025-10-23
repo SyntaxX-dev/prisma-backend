@@ -81,7 +81,7 @@ Responda APENAS com um JSON no seguinte formato:
 
   private async callGeminiAPI(prompt: string): Promise<string> {
     const response = await fetch(
-      `${this.baseUrl}/models/gemini-1.5-pro:generateContent?key=${this.apiKey}`,
+      `${this.baseUrl}/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
       {
         method: 'POST',
         headers: {
