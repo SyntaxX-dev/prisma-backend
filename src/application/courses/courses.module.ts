@@ -15,6 +15,7 @@ import { DeleteModuleUseCase } from './use-cases/delete-module.use-case';
 import { AddVideosToModuleUseCase } from './use-cases/add-videos-to-module.use-case';
 import { RemoveVideoFromModuleUseCase } from './use-cases/remove-video-from-module.use-case';
 import { ListModuleVideosUseCase } from './use-cases/list-module-videos.use-case';
+import { ProcessYouTubePlaylistUseCase } from './use-cases/process-youtube-playlist.use-case';
 import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
 
@@ -100,6 +101,12 @@ import { YouTubeService } from '../../infrastructure/services/youtube.service';
         new ListModuleVideosUseCase(moduleRepository, videoRepository, videoProgressRepository, youtubeService),
       inject: [MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, YouTubeService],
     },
+    {
+      provide: ProcessYouTubePlaylistUseCase,
+      useFactory: (courseRepository, subCourseRepository, moduleRepository, videoRepository) =>
+        new ProcessYouTubePlaylistUseCase(courseRepository, subCourseRepository, moduleRepository, videoRepository),
+      inject: [COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY],
+    },
   ],
   exports: [
     CreateCourseUseCase,
@@ -116,6 +123,7 @@ import { YouTubeService } from '../../infrastructure/services/youtube.service';
     AddVideosToModuleUseCase,
     RemoveVideoFromModuleUseCase,
     ListModuleVideosUseCase,
+    ProcessYouTubePlaylistUseCase,
   ],
 })
 export class CoursesModule {}

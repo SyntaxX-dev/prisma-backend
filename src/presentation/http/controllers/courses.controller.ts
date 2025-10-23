@@ -23,10 +23,12 @@ import { ListCoursesUseCase } from '../../../application/courses/use-cases/list-
 import { ListSubCoursesUseCase } from '../../../application/courses/use-cases/list-sub-courses.use-case';
 import { ListVideosUseCase } from '../../../application/courses/use-cases/list-videos.use-case';
 import { UpdateCourseSubscriptionUseCase } from '../../../application/courses/use-cases/update-course-subscription.use-case';
+import { ProcessYouTubePlaylistUseCase } from '../../../application/courses/use-cases/process-youtube-playlist.use-case';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
 import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
+import { ProcessYouTubePlaylistDto } from '../dtos/process-youtube-playlist.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
@@ -45,6 +47,7 @@ export class CoursesController {
     private readonly listSubCoursesUseCase: ListSubCoursesUseCase,
     private readonly listVideosUseCase: ListVideosUseCase,
     private readonly updateCourseSubscriptionUseCase: UpdateCourseSubscriptionUseCase,
+    private readonly processYouTubePlaylistUseCase: ProcessYouTubePlaylistUseCase,
   ) {}
 
   @Post()
@@ -487,6 +490,90 @@ export class CoursesController {
         success: true,
         data: result.course,
       };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('process-youtube-playlist')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: 'Processar playlist do YouTube e organizar em módulos (Apenas Admin)' })
+  @ApiBody({ type: ProcessYouTubePlaylistDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Playlist processada com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Playlist processada com sucesso! Criados 3 módulos com 15 vídeos.' },
+        data: {
+          type: 'object',
+          properties: {
+            subCourse: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: 'uuid-do-subcurso' },
+                name: { type: 'string', example: 'Curso React Completo' },
+                description: { type: 'string', example: 'Curso completo de React do zero ao avançado' },
+              },
+            },
+            modules: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', example: 'uuid-do-modulo' },
+                  name: { type: 'string', example: 'Introdução ao React' },
+                  description: { type: 'string', example: 'Conteúdo do Introdução ao React' },
+                  order: { type: 'number', example: 0 },
+                  videoCount: { type: 'number', example: 5 },
+                  videos: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', example: 'uuid-do-video' },
+                        videoId: { type: 'string', example: 'FXqX7oof0I4' },
+                        title: { type: 'string', example: 'Curso React: Introdução - #01' },
+                        order: { type: 'number', example: 0 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Erro na validação dos dados',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: 'Curso não encontrado' },
+      },
+    },
+  })
+  async processYouTubePlaylist(@Body() processYouTubePlaylistDto: ProcessYouTubePlaylistDto) {
+    try {
+      const result = await this.processYouTubePlaylistUseCase.execute({
+        courseId: processYouTubePlaylistDto.courseId,
+        subCourseName: processYouTubePlaylistDto.subCourseName,
+        subCourseDescription: processYouTubePlaylistDto.subCourseDescription,
+        videos: processYouTubePlaylistDto.videos,
+      });
+      return result;
     } catch (error) {
       throw new HttpException(
         {
