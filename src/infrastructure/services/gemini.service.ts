@@ -108,6 +108,16 @@ Responda APENAS com um JSON no seguinte formato:
     }
 
     const data = await response.json();
+    console.log('Resposta bruta da API Gemini:', JSON.stringify(data, null, 2));
+    
+    if (!data.candidates || data.candidates.length === 0) {
+      throw new Error('Nenhum candidato encontrado na resposta da API');
+    }
+    
+    if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+      throw new Error('Estrutura de resposta inválida da API');
+    }
+    
     return data.candidates[0].content.parts[0].text;
   }
 
@@ -120,9 +130,11 @@ Responda APENAS com um JSON no seguinte formato:
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
+      console.log('Resposta parseada do Gemini:', JSON.stringify(parsed, null, 2));
       return parsed.modules || [];
     } catch (error) {
       console.error('Erro ao parsear resposta do Gemini:', error);
+      console.error('Resposta original:', response);
       throw error;
     }
   }
