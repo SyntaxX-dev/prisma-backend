@@ -59,9 +59,9 @@ INSTRUÇÕES:
 
 ${customPrompt ? `PROMPT PERSONALIZADO: ${customPrompt}` : ''}
 
-VÍDEOS PARA ORGANIZAR:
+VÍDEOS PARA ORGANIZAR (apenas títulos):
 ${videos.map((video, index) => 
-  `${index}: "${video.title}" (${video.duration ? Math.round(video.duration/60) + 'min' : 'duração desconhecida'})`
+  `${index}: "${video.title}"`
 ).join('\n')}
 
 Responda APENAS com um JSON no seguinte formato:
@@ -97,7 +97,7 @@ Responda APENAS com um JSON no seguinte formato:
             temperature: 0.3,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 8192,
           }
         })
       }
@@ -112,6 +112,11 @@ Responda APENAS com um JSON no seguinte formato:
     
     if (!data.candidates || data.candidates.length === 0) {
       throw new Error('Nenhum candidato encontrado na resposta da API');
+    }
+    
+    // Verificar se a resposta foi cortada por limite de tokens
+    if (data.candidates[0].finishReason === 'MAX_TOKENS') {
+      throw new Error('Resposta cortada por limite de tokens - use fallback');
     }
     
     if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
