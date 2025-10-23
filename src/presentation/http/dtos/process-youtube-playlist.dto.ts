@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString, IsNotEmpty, ValidateNested } from 'class-validator';
+import { IsArray, IsString, IsNotEmpty, ValidateNested, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class YouTubeVideoDto {
@@ -48,8 +48,9 @@ export class YouTubeVideoDto {
   @ApiProperty({ description: 'Número de visualizações' })
   viewCount?: number;
 
-  @ApiProperty({ description: 'Tags do vídeo', type: [String] })
+  @ApiProperty({ description: 'Tags do vídeo', type: [String], required: false })
   @IsArray()
+  @IsOptional()
   tags?: string[];
 
   @ApiProperty({ description: 'Categoria do vídeo' })
