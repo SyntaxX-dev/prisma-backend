@@ -17,6 +17,13 @@ import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
 import { BcryptPasswordHasher } from '../services/bcrypt-password-hasher';
 import { EmailModule } from '../email/email.module';
+console.log('Tentando importar password-reset.service...');
+try {
+  const { PasswordResetServiceImpl } = require('../services/password-reset.service');
+  console.log('PasswordResetServiceImpl importado com sucesso:', PasswordResetServiceImpl);
+} catch (error) {
+  console.error('Erro ao importar password-reset.service:', error);
+}
 import { PasswordResetServiceImpl } from '../services/password-reset.service';
 import { CourseDrizzleRepository } from '../repositories/course.drizzle.repository';
 import { SubCourseDrizzleRepository } from '../repositories/sub-course.drizzle.repository';
