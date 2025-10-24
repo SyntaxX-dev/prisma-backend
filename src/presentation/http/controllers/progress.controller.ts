@@ -16,7 +16,7 @@ import {
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { ToggleVideoProgressUseCase } from '../../../application/progress/use-cases/toggle-video-progress.use-case';
+import { ToggleVideoProgressUseCase } from '../../../application/use-cases/toggle-video-progress.use-case';
 import { GetCourseProgressUseCase } from '../../../application/progress/use-cases/get-course-progress.use-case';
 import { ToggleVideoProgressDto } from '../dtos/toggle-video-progress.dto';
 import { CourseProgressResponseDto } from '../dtos/course-progress-response.dto';

@@ -134,4 +134,5 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
       // throw error; // Descomente em produção para falhar se email não funcionar
     }
   }
-}
+} 
+ 

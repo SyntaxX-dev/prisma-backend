@@ -9,6 +9,7 @@ import { GetUserOffensivesUseCase } from './use-cases/get-user-offensives.use-ca
 import { InfrastructureModule } from '../infrastructure/config/infrastructure.module';
 import { EmailModule } from '../infrastructure/email/email.module';
 import { AuthModule } from '../infrastructure/auth/auth.module';
+import { OFFENSIVE_SERVICE } from '../domain/tokens';
 
 @Module({
   imports: [InfrastructureModule, EmailModule, AuthModule],
@@ -19,7 +20,11 @@ import { AuthModule } from '../infrastructure/auth/auth.module';
     CheckUserNotificationsUseCase,
     ListContestsUseCase,
     ListCollegeCoursesUseCase,
-    GetUserOffensivesUseCase,
+    {
+      provide: GetUserOffensivesUseCase,
+      useFactory: (offensiveService) => new GetUserOffensivesUseCase(offensiveService),
+      inject: [OFFENSIVE_SERVICE],
+    },
   ],
   exports: [
     RegisterUserUseCase, 
