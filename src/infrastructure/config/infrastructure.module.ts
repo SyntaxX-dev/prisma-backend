@@ -10,6 +10,8 @@ import {
   VIDEO_REPOSITORY,
   VIDEO_PROGRESS_REPOSITORY,
   NOTIFICATION_SERVICE,
+  OFFENSIVE_REPOSITORY,
+  OFFENSIVE_SERVICE,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -21,7 +23,9 @@ import { SubCourseDrizzleRepository } from '../repositories/sub-course.drizzle.r
 import { ModuleDrizzleRepository } from '../repositories/module.drizzle.repository';
 import { VideoDrizzleRepository } from '../repositories/video.drizzle.repository';
 import { VideoProgressDrizzleRepository } from '../repositories/video-progress.drizzle.repository';
+import { OffensiveRepository } from '../repositories/offensive.repository';
 import { NotificationServiceImpl } from '../services/notification.service';
+import { OffensiveService } from '../../domain/services/offensive.service';
 import { CloudinaryService } from '../services/cloudinary.service';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
@@ -71,6 +75,16 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       provide: NOTIFICATION_SERVICE,
       useClass: NotificationServiceImpl,
     },
+    {
+      provide: OFFENSIVE_REPOSITORY,
+      useClass: OffensiveRepository,
+    },
+    {
+      provide: OFFENSIVE_SERVICE,
+      useFactory: (offensiveRepository, videoProgressRepository) =>
+        new OffensiveService(offensiveRepository, videoProgressRepository),
+      inject: [OFFENSIVE_REPOSITORY, VIDEO_PROGRESS_REPOSITORY],
+    },
     CloudinaryService,
   ],
   exports: [
@@ -84,6 +98,8 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     VIDEO_REPOSITORY,
     VIDEO_PROGRESS_REPOSITORY,
     NOTIFICATION_SERVICE,
+    OFFENSIVE_REPOSITORY,
+    OFFENSIVE_SERVICE,
     CloudinaryService,
   ],
 })

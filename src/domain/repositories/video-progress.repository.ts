@@ -11,4 +11,5 @@ export interface VideoProgressRepository {
     completedVideos: number;
     progressPercentage: number;
   }>;
+  findCompletionsByDateRange(userId: string, startDate: Date, endDate: Date): Promise<VideoProgress[]>;
 }

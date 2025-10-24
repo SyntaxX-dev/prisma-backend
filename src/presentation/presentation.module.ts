@@ -16,6 +16,7 @@ import { ProfileController } from './http/controllers/profile.controller';
 import { UserProfileController } from './http/controllers/user-profile.controller';
 import { OptionsController } from './http/controllers/options.controller';
 import { ProgressController } from './http/controllers/progress.controller';
+import { OffensivesController } from './http/offensives.controller';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ProgressController } from './http/controllers/progress.controller';
     UserProfileController,
     OptionsController,
     ProgressController,
+    OffensivesController,
   ],
 })
 export class PresentationModule {}

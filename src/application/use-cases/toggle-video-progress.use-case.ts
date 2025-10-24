@@ -3,6 +3,7 @@ import { v4 as randomUUID } from 'uuid';
 import type { VideoProgressRepository } from '../../domain/repositories/video-progress.repository';
 import type { VideoRepository } from '../../domain/repositories/video.repository';
 import { VideoProgress } from '../../domain/entities/video-progress';
+import { OffensiveService } from '../../domain/services/offensive.service';
 
 export interface ToggleVideoProgressInput {
   userId: string;
@@ -17,6 +18,12 @@ export interface ToggleVideoProgressOutput {
     completedVideos: number;
     progressPercentage: number;
   };
+  offensiveResult?: {
+    offensive: any;
+    isNewOffensive: boolean;
+    isStreakBroken: boolean;
+    message: string;
+  };
 }
 
 @Injectable()
@@ -24,6 +31,7 @@ export class ToggleVideoProgressUseCase {
   constructor(
     private readonly videoProgressRepository: VideoProgressRepository,
     private readonly videoRepository: VideoRepository,
+    private readonly offensiveService: OffensiveService,
   ) {}
 
   async execute(input: ToggleVideoProgressInput): Promise<ToggleVideoProgressOutput> {
@@ -75,9 +83,19 @@ export class ToggleVideoProgressUseCase {
       video.subCourseId,
     );
 
+    // Processar ofensiva se o vídeo foi marcado como concluído
+    let offensiveResult;
+    if (input.isCompleted && progress.isCompleted) {
+      offensiveResult = await this.offensiveService.processVideoCompletion(
+        input.userId,
+        progress.completedAt!,
+      );
+    }
+
     return {
       progress,
       courseProgress,
+      offensiveResult,
     };
   }
 }

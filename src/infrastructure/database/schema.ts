@@ -69,6 +69,13 @@ export const collegeCourseEnum = pgEnum('college_course', [
   'RELACOES_INTERNACIONAIS',
   'OUTROS',
 ]);
+export const offensiveTypeEnum = pgEnum('offensive_type', [
+  'NORMAL',
+  'SUPER',
+  'ULTRA',
+  'KING',
+  'INFINITY',
+]);
 
 export const users = pgTable(
   'users',
@@ -248,5 +255,36 @@ export const videoProgress = pgTable(
     videoIdIdx: index('video_progress_video_id_idx').on(table.videoId),
     subCourseIdIdx: index('video_progress_sub_course_id_idx').on(table.subCourseId),
     createdAtIdx: index('video_progress_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const offensives = pgTable(
+  'offensives',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: offensiveTypeEnum('type').notNull().default('NORMAL'),
+    consecutiveDays: integer('consecutive_days').notNull().default(0),
+    lastVideoCompletedAt: timestamp('last_video_completed_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    streakStartDate: timestamp('streak_start_date', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    totalOffensives: integer('total_offensives').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: uniqueIndex('offensives_user_id_unique').on(table.userId),
+    typeIdx: index('offensives_type_idx').on(table.type),
+    consecutiveDaysIdx: index('offensives_consecutive_days_idx').on(table.consecutiveDays),
+    createdAtIdx: index('offensives_created_at_idx').on(table.createdAt),
   }),
 );

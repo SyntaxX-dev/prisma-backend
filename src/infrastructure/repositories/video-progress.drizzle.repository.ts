@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, gte, lt } from 'drizzle-orm';
 import { VideoProgress } from '../../domain/entities/video-progress';
 import { VideoProgressRepository } from '../../domain/repositories/video-progress.repository';
 import { videoProgress, videos } from '../database/schema';
@@ -133,5 +133,33 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
       completedVideos,
       progressPercentage,
     };
+  }
+
+  async findCompletionsByDateRange(userId: string, startDate: Date, endDate: Date): Promise<VideoProgress[]> {
+    const results = await this.db
+      .select()
+      .from(videoProgress)
+      .where(
+        and(
+          eq(videoProgress.userId, userId),
+          eq(videoProgress.isCompleted, 'true'),
+          gte(videoProgress.completedAt, startDate),
+          lt(videoProgress.completedAt, endDate),
+        ),
+      );
+
+    return results.map(
+      (result) =>
+        new VideoProgress(
+          result.id,
+          result.userId,
+          result.videoId,
+          result.subCourseId,
+          result.isCompleted === 'true',
+          result.completedAt,
+          result.createdAt,
+          result.updatedAt,
+        ),
+    );
   }
 }
