@@ -11,8 +11,10 @@ export class OffensivesController {
 
   @Get()
   async getUserOffensives(@Request() req: any) {
+    console.log(`[DEBUG] OffensivesController - req.user:`, req.user);
+    
     const result = await this.getUserOffensivesUseCase.execute({
-      userId: req.user.id,
+      userId: req.user.sub || req.user.id,
     });
 
     return {
