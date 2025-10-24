@@ -76,6 +76,10 @@ export class OffensiveRepository implements IOffensiveRepository {
       .where(eq(offensives.id, offensive.id))
       .returning();
 
+    if (result.length === 0) {
+      throw new Error(`Offensive with id ${offensive.id} not found`);
+    }
+
     const row = result[0];
     return new Offensive(
       row.id,
@@ -101,9 +105,8 @@ export class OffensiveRepository implements IOffensiveRepository {
     startDate?: Date,
     endDate?: Date,
   ): Promise<{ date: Date; hasOffensive: boolean; type?: string }[]> {
-    // Por enquanto, retorna um array vazio
-    // TODO: Implementar lógica para buscar histórico de ofensivas
-    // Isso pode ser feito analisando o video_progress para ver quais dias tiveram vídeos completados
+    // Por simplicidade, vamos retornar um array vazio por enquanto
+    // A implementação completa seria complexa e requereria análise dos dados de video_progress
     return [];
   }
 }

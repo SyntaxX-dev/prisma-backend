@@ -65,14 +65,6 @@ export class OffensiveService {
         // Sequência mantida
         const newConsecutiveDays = offensive.consecutiveDays + 1;
         offensive = offensive.updateStreak(newConsecutiveDays, videoCompletedAt);
-      } else if (lastCompletionDate.getTime() === today.getTime()) {
-        // Já completou hoje, não deve processar novamente
-        return {
-          offensive,
-          isNewOffensive: false,
-          isStreakBroken: false,
-          message: 'Você já ganhou uma ofensiva hoje!',
-        };
       } else {
         // Sequência quebrada - resetar
         offensive = offensive.resetStreak();
