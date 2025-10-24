@@ -1,4 +1,3 @@
-console.log('Carregando password-reset.service.ts...');
 import { Injectable } from '@nestjs/common';
 import { PASSWORD_RESET_SERVICE, USER_REPOSITORY, PASSWORD_HASHER, MAILER_SERVICE } from '../../domain/tokens';
 import type { PasswordResetService as PasswordResetServicePort } from '../../domain/services/password-reset.service';
@@ -135,5 +134,4 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
       // throw error; // Descomente em produção para falhar se email não funcionar
     }
   }
-} 
- 
+}
