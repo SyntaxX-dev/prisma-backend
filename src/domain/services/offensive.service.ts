@@ -120,7 +120,18 @@ export class OffensiveService {
       currentType: OffensiveType;
     };
   }> {
+    console.log(`[DEBUG] getUserOffensiveInfo - userId: ${userId}`);
+    
     const currentOffensive = await this.offensiveRepository.findByUserId(userId);
+    console.log(`[DEBUG] currentOffensive found: ${currentOffensive ? 'YES' : 'NO'}`);
+    if (currentOffensive) {
+      console.log(`[DEBUG] currentOffensive details:`, {
+        id: currentOffensive.id,
+        type: currentOffensive.type,
+        consecutiveDays: currentOffensive.consecutiveDays,
+        totalOffensives: currentOffensive.totalOffensives
+      });
+    }
     
     // Buscar histórico dos últimos 30 dias
     const endDate = new Date();
@@ -135,6 +146,8 @@ export class OffensiveService {
       longestStreak: currentOffensive?.consecutiveDays || 0, // TODO: implementar busca da maior sequência
       currentType: currentOffensive?.type || OffensiveType.NORMAL,
     };
+
+    console.log(`[DEBUG] stats:`, stats);
 
     return {
       currentOffensive,

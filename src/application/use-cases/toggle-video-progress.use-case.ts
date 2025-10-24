@@ -35,6 +35,8 @@ export class ToggleVideoProgressUseCase {
   ) {}
 
   async execute(input: ToggleVideoProgressInput): Promise<ToggleVideoProgressOutput> {
+    console.log(`[DEBUG] ToggleVideoProgressUseCase - userId: ${input.userId}, videoId: ${input.videoId}, isCompleted: ${input.isCompleted}`);
+    
     // Verificar se o vídeo existe
     const video = await this.videoRepository.findByVideoId(input.videoId);
     if (!video) {
@@ -85,11 +87,16 @@ export class ToggleVideoProgressUseCase {
 
     // Processar ofensiva se o vídeo foi marcado como concluído
     let offensiveResult;
+    console.log(`[DEBUG] Processing offensive - input.isCompleted: ${input.isCompleted}, progress.isCompleted: ${progress.isCompleted}`);
+    
     if (input.isCompleted && progress.isCompleted) {
+      console.log(`[DEBUG] Calling offensiveService.processVideoCompletion`);
       offensiveResult = await this.offensiveService.processVideoCompletion(
         input.userId,
         progress.completedAt!,
       );
+    } else {
+      console.log(`[DEBUG] Not processing offensive - conditions not met`);
     }
 
     return {
