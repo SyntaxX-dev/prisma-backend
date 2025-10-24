@@ -25,16 +25,26 @@ export class OffensiveService {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
+    console.log(`[DEBUG] processVideoCompletion - userId: ${userId}, videoCompletedAt: ${videoCompletedAt.toISOString()}`);
+
     // Verificar se o usuário já completou um vídeo hoje
     const hasCompletedToday = await this.hasCompletedVideoToday(userId, today);
+    console.log(`[DEBUG] hasCompletedToday: ${hasCompletedToday}`);
+    
     if (hasCompletedToday) {
       const existingOffensive = await this.offensiveRepository.findByUserId(userId);
-      return {
-        offensive: existingOffensive || this.createDefaultOffensive(userId),
-        isNewOffensive: false,
-        isStreakBroken: false,
-        message: 'Você já ganhou uma ofensiva hoje!',
-      };
+      console.log(`[DEBUG] existingOffensive: ${existingOffensive ? 'found' : 'not found'}`);
+      
+      if (existingOffensive) {
+        return {
+          offensive: existingOffensive,
+          isNewOffensive: false,
+          isStreakBroken: false,
+          message: 'Você já ganhou uma ofensiva hoje!',
+        };
+      }
+      // Se não existe ofensiva mas já completou vídeo hoje, 
+      // significa que é a primeira vez - vamos processar normalmente
     }
 
     // Buscar ofensiva existente
@@ -143,6 +153,8 @@ export class OffensiveService {
       today,
       tomorrow,
     );
+    
+    console.log(`[DEBUG] hasCompletedVideoToday - userId: ${userId}, today: ${today.toISOString()}, completions: ${todayCompletions.length}`);
     
     return todayCompletions.length > 0;
   }
