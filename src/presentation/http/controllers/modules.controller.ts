@@ -25,9 +25,11 @@ import { DeleteModuleUseCase } from '../../../application/courses/use-cases/dele
 import { AddVideosToModuleUseCase } from '../../../application/courses/use-cases/add-videos-to-module.use-case';
 import { RemoveVideoFromModuleUseCase } from '../../../application/courses/use-cases/remove-video-from-module.use-case';
 import { ListModuleVideosUseCase } from '../../../application/courses/use-cases/list-module-videos.use-case';
+import { ListModulesWithVideosUseCase } from '../../../application/courses/use-cases/list-modules-with-videos.use-case';
 import { CreateModuleDto } from '../dtos/create-module.dto';
 import { UpdateModuleDto } from '../dtos/update-module.dto';
 import { AddVideoToModuleDto } from '../dtos/add-video-to-module.dto';
+import { ModuleWithVideosDto } from '../dtos/module-with-videos.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
@@ -46,6 +48,7 @@ export class ModulesController {
     private readonly addVideosToModuleUseCase: AddVideosToModuleUseCase,
     private readonly removeVideoFromModuleUseCase: RemoveVideoFromModuleUseCase,
     private readonly listModuleVideosUseCase: ListModuleVideosUseCase,
+    private readonly listModulesWithVideosUseCase: ListModulesWithVideosUseCase,
   ) {}
 
   @Post('sub-course/:subCourseId')
@@ -143,6 +146,56 @@ export class ModulesController {
       return {
         success: true,
         data: result.modules,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('sub-course/:subCourseId/with-videos')
+  @ApiOperation({ summary: 'Listar módulos com vídeos de um sub-curso (Otimizado)' })
+  @ApiParam({
+    name: 'subCourseId',
+    description: 'ID do sub-curso',
+    example: 'uuid-do-sub-curso',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de módulos com vídeos retornada com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            modules: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/ModuleWithVideosDto' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async listModulesWithVideos(
+    @CurrentUser() user: JwtPayload,
+    @Param('subCourseId') subCourseId: string,
+  ) {
+    try {
+      const result = await this.listModulesWithVideosUseCase.execute({ 
+        subCourseId,
+        userId: user.sub,
+      });
+      return {
+        success: true,
+        data: result,
       };
     } catch (error) {
       throw new HttpException(
