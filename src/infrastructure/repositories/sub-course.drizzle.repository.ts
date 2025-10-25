@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { SubCourseRepository } from '../../domain/repositories/sub-course.repository';
 import { SubCourse } from '../../domain/entities/sub-course';
 import { DrizzleService } from '../config/providers/drizzle.service';
-import { subCourses } from '../database/schema';
+import { subCourses, videos } from '../database/schema';
 
 @Injectable()
 export class SubCourseDrizzleRepository implements SubCourseRepository {
@@ -71,6 +71,41 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
           subCourse.updatedAt,
         ),
     );
+  }
+
+  async findByCourseIdWithChannelInfo(courseId: string): Promise<SubCourse[]> {
+    const subCoursesList = await this.drizzleService.db
+      .select()
+      .from(subCourses)
+      .where(eq(subCourses.courseId, courseId))
+      .orderBy(subCourses.order, subCourses.createdAt);
+
+    // Para cada sub-course, buscar o primeiro vídeo para obter informações do canal
+    const subCoursesWithChannelInfo = await Promise.all(
+      subCoursesList.map(async (subCourse) => {
+        // Buscar o primeiro vídeo do sub-course para obter informações do canal
+        const [firstVideo] = await this.drizzleService.db
+          .select({
+            channelThumbnailUrl: videos.channelThumbnailUrl,
+          })
+          .from(videos)
+          .where(eq(videos.subCourseId, subCourse.id))
+          .limit(1);
+
+        return new SubCourse(
+          subCourse.id,
+          subCourse.courseId,
+          subCourse.name,
+          subCourse.description,
+          subCourse.order,
+          subCourse.createdAt,
+          subCourse.updatedAt,
+          firstVideo?.channelThumbnailUrl || null,
+        );
+      })
+    );
+
+    return subCoursesWithChannelInfo;
   }
 
   async findAll(): Promise<SubCourse[]> {

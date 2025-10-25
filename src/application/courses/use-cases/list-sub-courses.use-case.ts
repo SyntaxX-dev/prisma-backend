@@ -25,7 +25,7 @@ export class ListSubCoursesUseCase {
       throw new Error(`Curso com ID "${input.courseId}" não encontrado`);
     }
 
-    const subCourses = await this.subCourseRepository.findByCourseId(input.courseId);
+    const subCourses = await this.subCourseRepository.findByCourseIdWithChannelInfo(input.courseId);
     return { subCourses };
   }
 }

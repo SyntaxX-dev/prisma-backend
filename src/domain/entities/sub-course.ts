@@ -7,6 +7,7 @@ export class SubCourse {
     public readonly order: number,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
+    public readonly channelThumbnailUrl?: string | null,
   ) {}
 
   static create(
@@ -14,12 +15,14 @@ export class SubCourse {
     name: string,
     description?: string,
     order?: number,
+    channelThumbnailUrl?: string,
   ): Omit<SubCourse, 'id' | 'createdAt' | 'updatedAt'> {
     return {
       courseId,
       name,
       description: description || null,
       order: order || 0,
+      channelThumbnailUrl: channelThumbnailUrl || null,
     };
   }
 }

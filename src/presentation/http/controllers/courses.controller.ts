@@ -250,6 +250,11 @@ export class CoursesController {
                 example: 'Aulas de português para PRF',
               },
               order: { type: 'number', example: 1 },
+              channelThumbnailUrl: { 
+                type: 'string', 
+                example: 'https://yt3.ggpht.com/...',
+                description: 'URL da imagem do canal do YouTube'
+              },
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
             },
