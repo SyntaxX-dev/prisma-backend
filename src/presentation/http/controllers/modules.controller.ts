@@ -24,7 +24,6 @@ import { UpdateModuleUseCase } from '../../../application/courses/use-cases/upda
 import { DeleteModuleUseCase } from '../../../application/courses/use-cases/delete-module.use-case';
 import { AddVideosToModuleUseCase } from '../../../application/courses/use-cases/add-videos-to-module.use-case';
 import { RemoveVideoFromModuleUseCase } from '../../../application/courses/use-cases/remove-video-from-module.use-case';
-import { ListModuleVideosUseCase } from '../../../application/courses/use-cases/list-module-videos.use-case';
 import { ListModulesWithVideosUseCase } from '../../../application/courses/use-cases/list-modules-with-videos.use-case';
 import { CreateModuleDto } from '../dtos/create-module.dto';
 import { UpdateModuleDto } from '../dtos/update-module.dto';
@@ -47,7 +46,6 @@ export class ModulesController {
     private readonly deleteModuleUseCase: DeleteModuleUseCase,
     private readonly addVideosToModuleUseCase: AddVideosToModuleUseCase,
     private readonly removeVideoFromModuleUseCase: RemoveVideoFromModuleUseCase,
-    private readonly listModuleVideosUseCase: ListModuleVideosUseCase,
     private readonly listModulesWithVideosUseCase: ListModulesWithVideosUseCase,
   ) {}
 
@@ -439,79 +437,4 @@ export class ModulesController {
     }
   }
 
-  @Get(':moduleId/videos')
-  @ApiOperation({ summary: 'Listar vídeos de um módulo' })
-  @ApiParam({
-    name: 'moduleId',
-    description: 'ID do módulo',
-    example: 'uuid-do-modulo',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de vídeos retornada com sucesso',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        data: {
-          type: 'object',
-          properties: {
-            videos: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string', example: 'uuid-do-video' },
-                  moduleId: { type: 'string', example: 'uuid-do-modulo' },
-                  subCourseId: { type: 'string', example: 'uuid-do-sub-curso' },
-                  videoId: { type: 'string', example: 'DsAJ18o6sco' },
-                  title: { type: 'string', example: 'Aula 1: Introdução' },
-                  url: { type: 'string', example: 'https://www.youtube.com/watch?v=DsAJ18o6sco' },
-                  progress: {
-                    type: 'object',
-                    properties: {
-                      isCompleted: { type: 'boolean', example: false },
-                      completedAt: { type: 'string', format: 'date-time', nullable: true },
-                    },
-                  },
-                  order: { type: 'number', example: 1 },
-                },
-              },
-            },
-            moduleProgress: {
-              type: 'object',
-              properties: {
-                totalVideos: { type: 'number', example: 5 },
-                completedVideos: { type: 'number', example: 2 },
-                progressPercentage: { type: 'number', example: 40 },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
-  async listModuleVideos(
-    @CurrentUser() user: JwtPayload,
-    @Param('moduleId') moduleId: string,
-  ) {
-    try {
-      const result = await this.listModuleVideosUseCase.execute({
-        moduleId,
-        userId: user.sub,
-      });
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: error.message,
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
 }

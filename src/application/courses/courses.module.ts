@@ -14,7 +14,6 @@ import { UpdateModuleUseCase } from './use-cases/update-module.use-case';
 import { DeleteModuleUseCase } from './use-cases/delete-module.use-case';
 import { AddVideosToModuleUseCase } from './use-cases/add-videos-to-module.use-case';
 import { RemoveVideoFromModuleUseCase } from './use-cases/remove-video-from-module.use-case';
-import { ListModuleVideosUseCase } from './use-cases/list-module-videos.use-case';
 import { ListModulesWithVideosUseCase } from './use-cases/list-modules-with-videos.use-case';
 import { ProcessYouTubePlaylistUseCase } from './use-cases/process-youtube-playlist.use-case';
 import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '../../domain/tokens';
@@ -98,12 +97,6 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
       inject: [MODULE_REPOSITORY, VIDEO_REPOSITORY],
     },
     {
-      provide: ListModuleVideosUseCase,
-      useFactory: (moduleRepository, videoRepository, videoProgressRepository, youtubeService) =>
-        new ListModuleVideosUseCase(moduleRepository, videoRepository, videoProgressRepository, youtubeService),
-      inject: [MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, YouTubeService],
-    },
-    {
       provide: ListModulesWithVideosUseCase,
       useFactory: (moduleRepository, videoRepository, videoProgressRepository, subCourseRepository, youtubeService) =>
         new ListModulesWithVideosUseCase(moduleRepository, videoRepository, videoProgressRepository, subCourseRepository, youtubeService),
@@ -131,7 +124,6 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     DeleteModuleUseCase,
     AddVideosToModuleUseCase,
     RemoveVideoFromModuleUseCase,
-    ListModuleVideosUseCase,
     ListModulesWithVideosUseCase,
     ProcessYouTubePlaylistUseCase,
   ],
