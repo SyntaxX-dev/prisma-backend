@@ -24,11 +24,13 @@ import { ListSubCoursesUseCase } from '../../../application/courses/use-cases/li
 import { ListVideosUseCase } from '../../../application/courses/use-cases/list-videos.use-case';
 import { UpdateCourseSubscriptionUseCase } from '../../../application/courses/use-cases/update-course-subscription.use-case';
 import { ProcessYouTubePlaylistUseCase } from '../../../application/courses/use-cases/process-youtube-playlist.use-case';
+import { BulkProcessPlaylistsUseCase } from '../../../application/courses/use-cases/bulk-process-playlists.use-case';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
 import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
 import { ProcessYouTubePlaylistDto } from '../dtos/process-youtube-playlist.dto';
+import { BulkProcessPlaylistsDto } from '../dtos/bulk-process-playlists.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
@@ -48,6 +50,7 @@ export class CoursesController {
     private readonly listVideosUseCase: ListVideosUseCase,
     private readonly updateCourseSubscriptionUseCase: UpdateCourseSubscriptionUseCase,
     private readonly processYouTubePlaylistUseCase: ProcessYouTubePlaylistUseCase,
+    private readonly bulkProcessPlaylistsUseCase: BulkProcessPlaylistsUseCase,
   ) {}
 
   @Post()
@@ -585,6 +588,98 @@ export class CoursesController {
         {
           success: false,
           message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('bulk-process-playlists')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ 
+    summary: 'Processar múltiplas playlists do YouTube e criar cursos, subcursos, módulos e vídeos automaticamente (Apenas Admin)' 
+  })
+  @ApiBody({ type: BulkProcessPlaylistsDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Playlists processadas com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { 
+          type: 'string', 
+          example: 'Processamento concluído! Criados 3 curso(s), 5 subcurso(s), 15 módulo(s) e 120 vídeo(s).' 
+        },
+        data: {
+          type: 'object',
+          properties: {
+            coursesCreated: { type: 'number', example: 3 },
+            subCoursesCreated: { type: 'number', example: 5 },
+            modulesCreated: { type: 'number', example: 15 },
+            videosCreated: { type: 'number', example: 120 },
+            courses: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  courseId: { type: 'string', example: 'uuid-do-curso' },
+                  courseName: { type: 'string', example: 'Biologia' },
+                  subCourses: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        subCourseId: { type: 'string', example: 'uuid-do-subcurso' },
+                        subCourseName: { type: 'string', example: 'Biomas do Brasil - Jubilut' },
+                        modules: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              moduleId: { type: 'string', example: 'uuid-do-modulo' },
+                              moduleName: { type: 'string', example: 'Introdução aos Biomas' },
+                              videoCount: { type: 'number', example: 8 },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  playlistId: { type: 'string', example: 'PLxxxxx' },
+                  error: { type: 'string', example: 'Playlist não encontrada' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Erro na validação dos dados',
+  })
+  async bulkProcessPlaylists(@Body() bulkProcessPlaylistsDto: BulkProcessPlaylistsDto) {
+    try {
+      const result = await this.bulkProcessPlaylistsUseCase.execute({
+        playlistIds: bulkProcessPlaylistsDto.playlistIds,
+        aiPrompt: bulkProcessPlaylistsDto.aiPrompt,
+      });
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error instanceof Error ? error.message : 'Erro ao processar playlists',
         },
         HttpStatus.BAD_REQUEST,
       );
