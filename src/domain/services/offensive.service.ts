@@ -133,6 +133,44 @@ export class OffensiveService {
       });
     }
     
+    // Verificar se a sequência ainda está ativa (último vídeo completado hoje ou ontem)
+    let activeStreak = 0;
+    let currentType = OffensiveType.NORMAL;
+    
+    if (currentOffensive) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const lastCompletionDate = new Date(currentOffensive.lastVideoCompletedAt);
+      lastCompletionDate.setHours(0, 0, 0, 0);
+      
+      // Verificar se completou vídeo hoje
+      const hasCompletedToday = await this.hasCompletedVideoToday(userId, today);
+      const lastCompletionWasToday = lastCompletionDate.getTime() === today.getTime();
+      const lastCompletionWasYesterday = lastCompletionDate.getTime() === yesterday.getTime();
+      
+      // Sequência está ativa se:
+      // 1. Completou vídeo hoje, OU
+      // 2. Último vídeo foi completado ontem (usuário ainda tem até 00:00 do próximo dia para completar hoje)
+      // Sequência está quebrada APENAS se o último vídeo foi completado há 2 dias ou mais
+      if (hasCompletedToday || lastCompletionWasToday || lastCompletionWasYesterday) {
+        // Sequência ativa - usuário completou vídeo hoje ou ontem (ainda pode completar hoje)
+        activeStreak = currentOffensive.consecutiveDays;
+        currentType = currentOffensive.type;
+      } else {
+        // Sequência quebrada (último vídeo foi há 2 dias ou mais) - resetar no banco de dados
+        const daysSinceLastCompletion = Math.floor((today.getTime() - lastCompletionDate.getTime()) / (1000 * 60 * 60 * 24));
+        console.log(`[DEBUG] Streak broken - last completion was ${daysSinceLastCompletion} days ago. Resetting...`);
+        const resetOffensive = currentOffensive.resetStreak();
+        await this.offensiveRepository.update(resetOffensive);
+        activeStreak = 0;
+        currentType = OffensiveType.NORMAL;
+      }
+    }
+    
     // Buscar histórico dos últimos 30 dias
     const endDate = new Date();
     const startDate = new Date();
@@ -142,15 +180,15 @@ export class OffensiveService {
 
     const stats = {
       totalOffensives: currentOffensive?.totalOffensives || 0,
-      currentStreak: currentOffensive?.consecutiveDays || 0,
+      currentStreak: activeStreak,
       longestStreak: currentOffensive?.consecutiveDays || 0, // TODO: implementar busca da maior sequência
-      currentType: currentOffensive?.type || OffensiveType.NORMAL,
+      currentType,
     };
 
     console.log(`[DEBUG] stats:`, stats);
 
     return {
-      currentOffensive,
+      currentOffensive: activeStreak > 0 ? currentOffensive : null,
       history,
       stats,
     };
