@@ -65,6 +65,7 @@ export class ToggleVideoProgressUseCase {
           newProgress.subCourseId,
           newProgress.isCompleted,
           newProgress.completedAt,
+          newProgress.currentTimestamp,
           new Date(),
           new Date(),
         ),

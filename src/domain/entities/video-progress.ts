@@ -6,6 +6,7 @@ export class VideoProgress {
     public readonly subCourseId: string,
     public readonly isCompleted: boolean,
     public readonly completedAt: Date | null,
+    public readonly currentTimestamp: number | null, // Posição atual em segundos
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
   ) {}
@@ -15,6 +16,7 @@ export class VideoProgress {
     videoId: string,
     subCourseId: string,
     isCompleted: boolean = false,
+    currentTimestamp: number | null = null,
   ): Omit<VideoProgress, 'id' | 'createdAt' | 'updatedAt'> {
     const instance = new VideoProgress(
       '', // id será gerado pelo repositório
@@ -23,6 +25,7 @@ export class VideoProgress {
       subCourseId,
       isCompleted,
       isCompleted ? new Date() : null,
+      currentTimestamp,
       new Date(), // createdAt
       new Date(), // updatedAt
     );
@@ -33,8 +36,10 @@ export class VideoProgress {
       subCourseId: instance.subCourseId,
       isCompleted: instance.isCompleted,
       completedAt: instance.completedAt,
+      currentTimestamp: instance.currentTimestamp,
       markAsCompleted: instance.markAsCompleted.bind(instance),
       markAsIncomplete: instance.markAsIncomplete.bind(instance),
+      updateTimestamp: instance.updateTimestamp.bind(instance),
     };
   }
 
@@ -46,6 +51,7 @@ export class VideoProgress {
       this.subCourseId,
       true,
       new Date(),
+      this.currentTimestamp,
       this.createdAt,
       new Date(),
     );
@@ -59,6 +65,21 @@ export class VideoProgress {
       this.subCourseId,
       false,
       null,
+      this.currentTimestamp,
+      this.createdAt,
+      new Date(),
+    );
+  }
+
+  updateTimestamp(timestamp: number): VideoProgress {
+    return new VideoProgress(
+      this.id,
+      this.userId,
+      this.videoId,
+      this.subCourseId,
+      this.isCompleted,
+      this.completedAt,
+      timestamp,
       this.createdAt,
       new Date(),
     );

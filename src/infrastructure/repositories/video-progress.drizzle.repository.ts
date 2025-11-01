@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { eq, and, sql, gte, lt } from 'drizzle-orm';
+import { eq, and, sql, gte, lt, isNotNull, desc } from 'drizzle-orm';
 import { VideoProgress } from '../../domain/entities/video-progress';
 import { VideoProgressRepository } from '../../domain/repositories/video-progress.repository';
 import { videoProgress, videos } from '../database/schema';
@@ -26,6 +26,7 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
         subCourseId: progress.subCourseId,
         isCompleted: progress.isCompleted.toString(),
         completedAt: progress.completedAt,
+        currentTimestamp: progress.currentTimestamp,
         createdAt: progress.createdAt,
         updatedAt: progress.updatedAt,
       })
@@ -38,6 +39,7 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
       created.subCourseId,
       created.isCompleted === 'true',
       created.completedAt,
+      created.currentTimestamp,
       created.createdAt,
       created.updatedAt,
     );
@@ -59,6 +61,7 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
       result.subCourseId,
       result.isCompleted === 'true',
       result.completedAt,
+      result.currentTimestamp,
       result.createdAt,
       result.updatedAt,
     );
@@ -79,6 +82,7 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
           result.subCourseId,
           result.isCompleted === 'true',
           result.completedAt,
+          result.currentTimestamp,
           result.createdAt,
           result.updatedAt,
         ),
@@ -91,6 +95,7 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
       .set({
         isCompleted: progress.isCompleted.toString(),
         completedAt: progress.completedAt,
+        currentTimestamp: progress.currentTimestamp,
         updatedAt: progress.updatedAt,
       })
       .where(eq(videoProgress.id, progress.id));
@@ -157,6 +162,37 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
           result.subCourseId,
           result.isCompleted === 'true',
           result.completedAt,
+          result.currentTimestamp,
+          result.createdAt,
+          result.updatedAt,
+        ),
+    );
+  }
+
+  async findInProgressVideos(userId: string): Promise<VideoProgress[]> {
+    // Buscar vídeos que não estão completos e têm timestamp (vídeos em progresso)
+    const results = await this.db
+      .select()
+      .from(videoProgress)
+      .where(
+        and(
+          eq(videoProgress.userId, userId),
+          eq(videoProgress.isCompleted, 'false'),
+          isNotNull(videoProgress.currentTimestamp),
+        ),
+      )
+      .orderBy(desc(videoProgress.updatedAt)); // Mais recentes primeiro
+
+    return results.map(
+      (result) =>
+        new VideoProgress(
+          result.id,
+          result.userId,
+          result.videoId,
+          result.subCourseId,
+          result.isCompleted === 'true',
+          result.completedAt,
+          result.currentTimestamp,
           result.createdAt,
           result.updatedAt,
         ),

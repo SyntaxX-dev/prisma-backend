@@ -239,6 +239,7 @@ export const videoProgress = pgTable(
       .references(() => subCourses.id, { onDelete: 'cascade' }),
     isCompleted: text('is_completed').notNull().default('false'),
     completedAt: timestamp('completed_at', { withTimezone: false }),
+    currentTimestamp: integer('current_timestamp'), // Posição atual em segundos
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),

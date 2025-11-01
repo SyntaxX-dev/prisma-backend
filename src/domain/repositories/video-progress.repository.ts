@@ -12,4 +12,5 @@ export interface VideoProgressRepository {
     progressPercentage: number;
   }>;
   findCompletionsByDateRange(userId: string, startDate: Date, endDate: Date): Promise<VideoProgress[]>;
+  findInProgressVideos(userId: string): Promise<VideoProgress[]>; // Vídeos não completos com timestamp
 }

@@ -18,8 +18,12 @@ import {
 } from '@nestjs/swagger';
 import { ToggleVideoProgressUseCase } from '../../../application/use-cases/toggle-video-progress.use-case';
 import { GetCourseProgressUseCase } from '../../../application/progress/use-cases/get-course-progress.use-case';
+import { UpdateVideoTimestampUseCase } from '../../../application/use-cases/update-video-timestamp.use-case';
+import { GetInProgressVideosUseCase } from '../../../application/use-cases/get-in-progress-videos.use-case';
 import { ToggleVideoProgressDto } from '../dtos/toggle-video-progress.dto';
 import { CourseProgressResponseDto } from '../dtos/course-progress-response.dto';
+import { UpdateVideoTimestampDto } from '../dtos/update-video-timestamp.dto';
+import { InProgressVideoDto } from '../dtos/in-progress-video.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../infrastructure/auth/jwt.strategy';
@@ -32,6 +36,8 @@ export class ProgressController {
   constructor(
     private readonly toggleVideoProgressUseCase: ToggleVideoProgressUseCase,
     private readonly getCourseProgressUseCase: GetCourseProgressUseCase,
+    private readonly updateVideoTimestampUseCase: UpdateVideoTimestampUseCase,
+    private readonly getInProgressVideosUseCase: GetInProgressVideosUseCase,
   ) {}
 
   @Post('video')
@@ -141,6 +147,108 @@ export class ProgressController {
       const result = await this.getCourseProgressUseCase.execute({
         userId: user.sub,
         subCourseId,
+      });
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('video/timestamp')
+  @ApiOperation({ summary: 'Atualizar posição atual do vídeo (em segundos)' })
+  @ApiBody({ type: UpdateVideoTimestampDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Posição do vídeo atualizada com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            progress: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: 'uuid-do-progresso' },
+                userId: { type: 'string', example: 'uuid-do-usuario' },
+                videoId: { type: 'string', example: 'uuid-do-video' },
+                subCourseId: { type: 'string', example: 'uuid-do-sub-curso' },
+                isCompleted: { type: 'boolean', example: false },
+                currentTimestamp: { type: 'number', example: 120 },
+                completedAt: { type: 'string', format: 'date-time', nullable: true },
+                createdAt: { type: 'string', format: 'date-time' },
+                updatedAt: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async updateVideoTimestamp(
+    @CurrentUser() user: JwtPayload,
+    @Body() updateVideoTimestampDto: UpdateVideoTimestampDto,
+  ) {
+    try {
+      const result = await this.updateVideoTimestampUseCase.execute({
+        userId: user.sub,
+        videoId: updateVideoTimestampDto.videoId,
+        timestamp: updateVideoTimestampDto.timestamp,
+      });
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('videos/in-progress')
+  @ApiOperation({ summary: 'Obter lista de vídeos que o usuário está assistindo' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de vídeos em progresso retornada com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            videos: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/InProgressVideoDto',
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getInProgressVideos(@CurrentUser() user: JwtPayload) {
+    try {
+      const result = await this.getInProgressVideosUseCase.execute({
+        userId: user.sub,
       });
 
       return {

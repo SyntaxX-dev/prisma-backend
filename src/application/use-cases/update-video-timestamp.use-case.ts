@@ -1,32 +1,27 @@
 import { Injectable } from '@nestjs/common';
+import type { VideoProgressRepository } from '../../domain/repositories/video-progress.repository';
+import type { VideoRepository } from '../../domain/repositories/video.repository';
+import { VideoProgress } from '../../domain/entities/video-progress';
 import { v4 as randomUUID } from 'uuid';
-import type { VideoProgressRepository } from '../../../domain/repositories/video-progress.repository';
-import type { VideoRepository } from '../../../domain/repositories/video.repository';
-import { VideoProgress } from '../../../domain/entities/video-progress';
 
-export interface ToggleVideoProgressInput {
+export interface UpdateVideoTimestampInput {
   userId: string;
   videoId: string;
-  isCompleted: boolean;
+  timestamp: number; // Posição em segundos
 }
 
-export interface ToggleVideoProgressOutput {
+export interface UpdateVideoTimestampOutput {
   progress: VideoProgress;
-  courseProgress: {
-    totalVideos: number;
-    completedVideos: number;
-    progressPercentage: number;
-  };
 }
 
 @Injectable()
-export class ToggleVideoProgressUseCase {
+export class UpdateVideoTimestampUseCase {
   constructor(
     private readonly videoProgressRepository: VideoProgressRepository,
     private readonly videoRepository: VideoRepository,
   ) {}
 
-  async execute(input: ToggleVideoProgressInput): Promise<ToggleVideoProgressOutput> {
+  async execute(input: UpdateVideoTimestampInput): Promise<UpdateVideoTimestampOutput> {
     // Verificar se o vídeo existe
     const video = await this.videoRepository.findByVideoId(input.videoId);
     if (!video) {
@@ -40,12 +35,13 @@ export class ToggleVideoProgressUseCase {
     );
 
     if (!progress) {
-      // Criar novo progresso
+      // Criar novo progresso com timestamp
       const newProgress = VideoProgress.create(
         input.userId,
         video.id,
         video.subCourseId,
-        input.isCompleted,
+        false, // Não completado
+        input.timestamp,
       );
       progress = await this.videoProgressRepository.create(
         new VideoProgress(
@@ -61,24 +57,13 @@ export class ToggleVideoProgressUseCase {
         ),
       );
     } else {
-      // Atualizar progresso existente
-      const updatedProgress = input.isCompleted
-        ? progress.markAsCompleted()
-        : progress.markAsIncomplete();
-      
+      // Atualizar timestamp do progresso existente
+      const updatedProgress = progress.updateTimestamp(input.timestamp);
       await this.videoProgressRepository.update(updatedProgress);
       progress = updatedProgress;
     }
 
-    // Calcular progresso do curso
-    const courseProgress = await this.videoProgressRepository.getCourseProgress(
-      input.userId,
-      video.subCourseId,
-    );
-
-    return {
-      progress,
-      courseProgress,
-    };
+    return { progress };
   }
 }
+
