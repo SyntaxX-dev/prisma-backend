@@ -39,7 +39,7 @@ export class TestVideoCompletionUseCase {
 
     console.log(`[TEST] TestVideoCompletionUseCase - userId: ${userId}, videoId: ${videoId}, completedAt: ${completedAt.toISOString()}`);
 
-    const video = await this.videoRepository.findByVideoId(videoId);
+    const video = await this.videoRepository.findById(videoId);
     if (!video) {
       throw new Error(`Vídeo com ID "${videoId}" não encontrado`);
     }
