@@ -4,6 +4,7 @@ import { ToggleVideoProgressUseCase } from '../use-cases/toggle-video-progress.u
 import { GetCourseProgressUseCase } from './use-cases/get-course-progress.use-case';
 import { UpdateVideoTimestampUseCase } from '../use-cases/update-video-timestamp.use-case';
 import { GetInProgressVideosUseCase } from '../use-cases/get-in-progress-videos.use-case';
+import { TestVideoCompletionUseCase } from '../use-cases/test-video-completion.use-case';
 import { 
   SUB_COURSE_REPOSITORY, 
   VIDEO_REPOSITORY, 
@@ -38,12 +39,19 @@ import {
         new GetInProgressVideosUseCase(videoProgressRepository, videoRepository),
       inject: [VIDEO_PROGRESS_REPOSITORY, VIDEO_REPOSITORY],
     },
+    {
+      provide: TestVideoCompletionUseCase,
+      useFactory: (videoRepository, videoProgressRepository, offensiveService) =>
+        new TestVideoCompletionUseCase(videoRepository, videoProgressRepository, offensiveService),
+      inject: [VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, OFFENSIVE_SERVICE],
+    },
   ],
   exports: [
     ToggleVideoProgressUseCase,
     GetCourseProgressUseCase,
     UpdateVideoTimestampUseCase,
     GetInProgressVideosUseCase,
+    TestVideoCompletionUseCase,
   ],
 })
 export class ProgressModule {}

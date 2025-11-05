@@ -1,0 +1,1 @@
+ALTER TABLE "video_progress" ADD COLUMN "current_timestamp" integer;

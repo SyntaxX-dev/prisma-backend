@@ -19,36 +19,33 @@ export class OffensiveService {
   ) {}
 
   async processVideoCompletion(userId: string, videoCompletedAt: Date): Promise<OffensiveResult> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const completionDate = new Date(videoCompletedAt);
+    completionDate.setHours(0, 0, 0, 0);
     
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const previousDay = new Date(completionDate);
+    previousDay.setDate(previousDay.getDate() - 1);
 
     console.log(`[DEBUG] processVideoCompletion - userId: ${userId}, videoCompletedAt: ${videoCompletedAt.toISOString()}`);
+    console.log(`[DEBUG] completionDate (normalized): ${completionDate.toISOString()}, previousDay: ${previousDay.toISOString()}`);
 
-    // Verificar se o usuário já completou um vídeo hoje
-    const hasCompletedToday = await this.hasCompletedVideoToday(userId, today);
-    console.log(`[DEBUG] hasCompletedToday: ${hasCompletedToday}`);
+    let offensive = await this.offensiveRepository.findByUserId(userId);
     
-    if (hasCompletedToday) {
-      const existingOffensive = await this.offensiveRepository.findByUserId(userId);
-      console.log(`[DEBUG] existingOffensive: ${existingOffensive ? 'found' : 'not found'}`);
+    if (offensive) {
+      const lastOffensiveDate = new Date(offensive.lastVideoCompletedAt);
+      lastOffensiveDate.setHours(0, 0, 0, 0);
       
-      if (existingOffensive) {
+      console.log(`[DEBUG] lastOffensiveDate: ${lastOffensiveDate.toISOString()}, completionDate: ${completionDate.toISOString()}`);
+      
+      if (lastOffensiveDate.getTime() === completionDate.getTime()) {
+        console.log(`[DEBUG] Ofensiva já processada nesta data. Retornando ofensiva existente.`);
         return {
-          offensive: existingOffensive,
+          offensive: offensive,
           isNewOffensive: false,
           isStreakBroken: false,
           message: 'Você já ganhou uma ofensiva hoje!',
         };
       }
-      // Se não existe ofensiva mas já completou vídeo hoje, 
-      // significa que é a primeira vez - vamos processar normalmente
     }
-
-    // Buscar ofensiva existente
-    let offensive = await this.offensiveRepository.findByUserId(userId);
     let isNewOffensive = false;
     let isStreakBroken = false;
 
@@ -60,7 +57,7 @@ export class OffensiveService {
         OffensiveType.NORMAL,
         1,
         videoCompletedAt,
-        today,
+        completionDate,
         1,
         new Date(),
         new Date(),
@@ -71,12 +68,13 @@ export class OffensiveService {
       const lastCompletionDate = new Date(offensive.lastVideoCompletedAt);
       lastCompletionDate.setHours(0, 0, 0, 0);
 
-      if (lastCompletionDate.getTime() === yesterday.getTime()) {
-        // Sequência mantida
+      if (lastCompletionDate.getTime() === previousDay.getTime()) {
         const newConsecutiveDays = offensive.consecutiveDays + 1;
+        console.log(`[DEBUG] Sequência mantida! Incrementando de ${offensive.consecutiveDays} para ${newConsecutiveDays} dias`);
         offensive = offensive.updateStreak(newConsecutiveDays, videoCompletedAt);
       } else {
-        // Sequência quebrada - resetar
+        const daysDiff = Math.floor((completionDate.getTime() - lastCompletionDate.getTime()) / (1000 * 60 * 60 * 24));
+        console.log(`[DEBUG] Sequência quebrada! Última conclusão foi há ${daysDiff} dias. Resetando...`);
         offensive = offensive.resetStreak();
         offensive = new Offensive(
           offensive.id,
@@ -84,7 +82,7 @@ export class OffensiveService {
           OffensiveType.NORMAL,
           1,
           videoCompletedAt,
-          today,
+          completionDate, // Usar a data de conclusão normalizada
           offensive.totalOffensives + 1,
           offensive.createdAt,
           new Date(),
