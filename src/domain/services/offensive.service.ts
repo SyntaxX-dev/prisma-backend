@@ -222,6 +222,125 @@ export class OffensiveService {
     );
   }
 
+  /**
+   * Recalcula todas as ofensivas do usuário baseado em TODOS os vídeos concluídos.
+   * Útil para testes ou quando há inserções de vídeos em datas passadas.
+   */
+  async recalculateOffensives(userId: string): Promise<OffensiveResult> {
+    console.log(`[DEBUG] recalculateOffensives - userId: ${userId}`);
+
+    // Buscar TODAS as conclusões de vídeos do usuário, ordenadas por data
+    const endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 1); // 1 ano no futuro
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 10); // 10 anos no passado
+
+    const allCompletions = await this.videoProgressRepository.findCompletionsByDateRange(
+      userId,
+      startDate,
+      endDate,
+    );
+
+    console.log(`[DEBUG] Found ${allCompletions.length} total video completions`);
+
+    if (allCompletions.length === 0) {
+      // Sem vídeos, resetar ofensiva
+      const offensive = await this.offensiveRepository.findByUserId(userId);
+      if (offensive) {
+        const resetOffensive = offensive.resetStreak();
+        await this.offensiveRepository.update(resetOffensive);
+      }
+      return {
+        offensive: offensive || this.createDefaultOffensive(userId),
+        isNewOffensive: false,
+        isStreakBroken: true,
+        message: 'Nenhum vídeo concluído',
+      };
+    }
+
+    // Agrupar conclusões por dia (normalizar datas para 00:00:00)
+    const completionsByDay = new Map<number, Date>();
+    
+    for (const completion of allCompletions) {
+      const date = new Date(completion.completedAt!);
+      date.setHours(0, 0, 0, 0);
+      const timestamp = date.getTime();
+      
+      if (!completionsByDay.has(timestamp)) {
+        completionsByDay.set(timestamp, date);
+      }
+    }
+
+    // Ordenar datas
+    const sortedDates = Array.from(completionsByDay.values()).sort((a, b) => a.getTime() - b.getTime());
+    
+    console.log(`[DEBUG] Found ${sortedDates.length} unique completion days`);
+
+    // Calcular a sequência consecutiva a partir da data mais recente
+    let consecutiveDays = 1;
+    const mostRecentDate = sortedDates[sortedDates.length - 1];
+    
+    for (let i = sortedDates.length - 2; i >= 0; i--) {
+      const currentDate = sortedDates[i];
+      const nextDate = sortedDates[i + 1];
+      
+      const daysDiff = Math.floor((nextDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === 1) {
+        // Dias consecutivos
+        consecutiveDays++;
+      } else {
+        // Sequência quebrada
+        break;
+      }
+    }
+
+    console.log(`[DEBUG] Calculated consecutive days: ${consecutiveDays}`);
+
+    // Buscar ou criar ofensiva
+    let offensive = await this.offensiveRepository.findByUserId(userId);
+    let isNewOffensive = false;
+
+    if (!offensive) {
+      offensive = new Offensive(
+        '',
+        userId,
+        OffensiveType.NORMAL,
+        consecutiveDays,
+        mostRecentDate,
+        mostRecentDate,
+        1,
+        new Date(),
+        new Date(),
+      );
+      isNewOffensive = true;
+      offensive = await this.offensiveRepository.create(offensive);
+    } else {
+      // Atualizar ofensiva existente
+      offensive = new Offensive(
+        offensive.id,
+        offensive.userId,
+        OffensiveType.NORMAL,
+        consecutiveDays,
+        mostRecentDate,
+        mostRecentDate,
+        offensive.totalOffensives,
+        offensive.createdAt,
+        new Date(),
+      );
+      await this.offensiveRepository.update(offensive);
+    }
+
+    const message = this.generateOffensiveMessage(offensive, isNewOffensive, false);
+
+    return {
+      offensive,
+      isNewOffensive,
+      isStreakBroken: false,
+      message,
+    };
+  }
+
   private generateOffensiveMessage(
     offensive: Offensive,
     isNewOffensive: boolean,

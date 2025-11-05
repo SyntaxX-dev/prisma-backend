@@ -80,10 +80,9 @@ export class TestVideoCompletionUseCase {
       progress = updatedProgress;
     }
 
-    const offensiveResult = await this.offensiveService.processVideoCompletion(
-      userId,
-      completedAt,
-    );
+    // Para testes, recalcular TODAS as ofensivas baseado em TODOS os vídeos
+    // Isso permite inserir vídeos em datas passadas sem quebrar a sequência
+    const offensiveResult = await this.offensiveService.recalculateOffensives(userId);
 
     const currentDate = new Date();
     const daysDifference = Math.floor(
