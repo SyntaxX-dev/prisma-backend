@@ -325,20 +325,6 @@ export class ProgressController {
     @CurrentUser() user: JwtPayload,
     @Body() testDto: TestVideoCompletionDto,
   ) {
-    // ⚠️ Verificação de ambiente - permite em dev OU se habilitado explicitamente via variável de ambiente
-    const isDevelopment = process.env.NODE_ENV !== 'production';
-    const isTestEndpointEnabled = process.env.ENABLE_TEST_ENDPOINTS === 'true';
-    
-    if (!isDevelopment && !isTestEndpointEnabled) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Este endpoint está disponível apenas em ambiente de desenvolvimento/teste. Para habilitar em produção, defina ENABLE_TEST_ENDPOINTS=true',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
     try {
       const userId = testDto.userId || user.sub;
       const completedAt = new Date(testDto.completedAt);
