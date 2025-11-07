@@ -20,10 +20,12 @@ import { ToggleVideoProgressUseCase } from '../../../application/use-cases/toggl
 import { GetCourseProgressUseCase } from '../../../application/progress/use-cases/get-course-progress.use-case';
 import { UpdateVideoTimestampUseCase } from '../../../application/use-cases/update-video-timestamp.use-case';
 import { GetInProgressVideosUseCase } from '../../../application/use-cases/get-in-progress-videos.use-case';
+import { TestVideoCompletionUseCase } from '../../../application/use-cases/test-video-completion.use-case';
 import { ToggleVideoProgressDto } from '../dtos/toggle-video-progress.dto';
 import { CourseProgressResponseDto } from '../dtos/course-progress-response.dto';
 import { UpdateVideoTimestampDto } from '../dtos/update-video-timestamp.dto';
 import { InProgressVideoDto } from '../dtos/in-progress-video.dto';
+import { TestVideoCompletionDto } from '../dtos/test-video-completion.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../infrastructure/auth/jwt.strategy';
@@ -38,6 +40,7 @@ export class ProgressController {
     private readonly getCourseProgressUseCase: GetCourseProgressUseCase,
     private readonly updateVideoTimestampUseCase: UpdateVideoTimestampUseCase,
     private readonly getInProgressVideosUseCase: GetInProgressVideosUseCase,
+    private readonly testVideoCompletionUseCase: TestVideoCompletionUseCase,
   ) {}
 
   @Post('video')
@@ -249,6 +252,92 @@ export class ProgressController {
     try {
       const result = await this.getInProgressVideosUseCase.execute({
         userId: user.sub,
+      });
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('test/video-completion')
+  @ApiOperation({ 
+    summary: '🧪 [TESTE] Marcar vídeo como concluído em data específica',
+    description: '⚠️ USO APENAS PARA TESTES! Permite simular conclusão de vídeo em data passada para testar ofensivas.'
+  })
+  @ApiBody({ type: TestVideoCompletionDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Vídeo marcado como concluído com data customizada',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            progress: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                videoId: { type: 'string' },
+                isCompleted: { type: 'boolean', example: true },
+                completedAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            offensiveResult: {
+              type: 'object',
+              properties: {
+                offensive: {
+                  type: 'object',
+                  properties: {
+                    consecutiveDays: { type: 'number', example: 2 },
+                    type: { type: 'string', example: 'NORMAL' },
+                    lastVideoCompletedAt: { type: 'string', format: 'date-time' },
+                  },
+                },
+                message: { type: 'string', example: 'Ofensiva normal conquistada!' },
+              },
+            },
+            testInfo: {
+              type: 'object',
+              properties: {
+                simulatedDate: { type: 'string', format: 'date-time', example: '2025-11-05T12:00:00.000Z' },
+                currentDate: { type: 'string', format: 'date-time' },
+                daysDifference: { type: 'number', example: 1, description: 'Dias de diferença (negativo = no passado)' },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async testVideoCompletion(
+    @CurrentUser() user: JwtPayload,
+    @Body() testDto: TestVideoCompletionDto,
+  ) {
+    try {
+      const userId = testDto.userId || user.sub;
+      const completedAt = new Date(testDto.completedAt);
+
+      console.log(`[TEST ENDPOINT] Simulando conclusão de vídeo:`);
+      console.log(`[TEST ENDPOINT] - userId: ${userId}`);
+      console.log(`[TEST ENDPOINT] - videoId: ${testDto.videoId}`);
+      console.log(`[TEST ENDPOINT] - completedAt: ${completedAt.toISOString()}`);
+
+      const result = await this.testVideoCompletionUseCase.execute({
+        userId,
+        videoId: testDto.videoId,
+        completedAt,
       });
 
       return {

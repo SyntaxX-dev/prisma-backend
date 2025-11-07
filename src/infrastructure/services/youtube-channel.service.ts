@@ -13,18 +13,23 @@ export interface ChannelInfo {
 
 @Injectable()
 export class YouTubeChannelService {
-  private readonly apiKey: string;
+  private readonly apiKey: string | null;
   private readonly baseUrl = 'https://www.googleapis.com/youtube/v3';
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
     if (!apiKey) {
-      throw new Error('YOUTUBE_API_KEY não encontrada nas variáveis de ambiente');
+      console.warn('YOUTUBE_API_KEY não configurada. YouTube Channel Service desabilitado.');
     }
-    this.apiKey = apiKey;
+    this.apiKey = apiKey || null;
   }
 
   async getChannelInfo(channelId: string): Promise<ChannelInfo | null> {
+    if (!this.apiKey) {
+      console.warn('YOUTUBE_API_KEY não configurada. Não é possível buscar informações do canal.');
+      return null;
+    }
+
     try {
       const url = `${this.baseUrl}/channels?part=snippet,statistics&id=${channelId}&key=${this.apiKey}`;
       
@@ -52,6 +57,11 @@ export class YouTubeChannelService {
   }
 
   async getChannelInfoByUsername(username: string): Promise<ChannelInfo | null> {
+    if (!this.apiKey) {
+      console.warn('YOUTUBE_API_KEY não configurada. Não é possível buscar informações do canal.');
+      return null;
+    }
+
     try {
       // Primeiro, buscar o canal pelo username
       const searchUrl = `${this.baseUrl}/channels?part=snippet&forUsername=${username}&key=${this.apiKey}`;

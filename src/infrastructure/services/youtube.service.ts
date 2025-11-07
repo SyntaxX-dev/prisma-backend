@@ -7,7 +7,8 @@ import { YouTubeChannelService, ChannelInfo } from './youtube-channel.service';
 @Injectable()
 export class YouTubeService {
   private readonly logger = new Logger(YouTubeService.name);
-  private youtube: youtube_v3.Youtube;
+  private youtube: youtube_v3.Youtube | null = null;
+  private readonly apiKey: string | null;
 
   constructor(
     private configService: ConfigService,
@@ -16,19 +17,26 @@ export class YouTubeService {
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
     
     if (!apiKey) {
-      throw new Error('YOUTUBE_API_KEY não encontrada nas variáveis de ambiente');
+      this.logger.warn('YOUTUBE_API_KEY não configurada. YouTube Service desabilitado.');
+      this.apiKey = null;
+    } else {
+      this.apiKey = apiKey;
+      this.youtube = google.youtube({
+        version: 'v3',
+        auth: apiKey,
+      });
     }
-
-    this.youtube = google.youtube({
-      version: 'v3',
-      auth: apiKey,
-    });
   }
 
   /**
    * Busca vídeos por termo de pesquisa
    */
   async searchVideos(searchDto: YouTubeSearchDto): Promise<YouTubeVideoDto[]> {
+    if (!this.youtube || !this.apiKey) {
+      this.logger.warn('YouTube API não configurada. Não é possível buscar vídeos.');
+      return [];
+    }
+
     try {
       const response = await this.youtube.search.list({
         part: ['snippet'],
@@ -60,6 +68,11 @@ export class YouTubeService {
    * Obtém detalhes de vídeos específicos por ID
    */
   async getVideoDetails(videoIds: string[]): Promise<YouTubeVideoDto[]> {
+    if (!this.youtube || !this.apiKey) {
+      this.logger.warn('YouTube API não configurada. Não é possível obter detalhes dos vídeos.');
+      return [];
+    }
+
     try {
       const response = await this.youtube.videos.list({
         part: ['snippet', 'statistics', 'contentDetails'],
@@ -97,6 +110,11 @@ export class YouTubeService {
    * Obtém vídeos de uma playlist
    */
   async getPlaylistVideos(playlistId: string, maxResults: number = 50): Promise<YouTubeVideoDto[]> {
+    if (!this.youtube || !this.apiKey) {
+      this.logger.warn('YouTube API não configurada. Não é possível obter vídeos da playlist.');
+      return [];
+    }
+
     try {
       const response = await this.youtube.playlistItems.list({
         part: ['snippet'],
@@ -123,6 +141,11 @@ export class YouTubeService {
    * Obtém informações de uma playlist
    */
   async getPlaylistInfo(playlistId: string): Promise<YouTubePlaylistDto | null> {
+    if (!this.youtube || !this.apiKey) {
+      this.logger.warn('YouTube API não configurada. Não é possível obter informações da playlist.');
+      return null;
+    }
+
     try {
       const response = await this.youtube.playlists.list({
         part: ['snippet', 'contentDetails'],
