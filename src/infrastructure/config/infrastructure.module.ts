@@ -12,6 +12,9 @@ import {
   NOTIFICATION_SERVICE,
   OFFENSIVE_REPOSITORY,
   OFFENSIVE_SERVICE,
+  COMMUNITY_REPOSITORY,
+  COMMUNITY_MEMBER_REPOSITORY,
+  COMMUNITY_INVITE_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -27,6 +30,9 @@ import { OffensiveRepository } from '../repositories/offensive.repository';
 import { NotificationServiceImpl } from '../services/notification.service';
 import { OffensiveService } from '../../domain/services/offensive.service';
 import { CloudinaryService } from '../services/cloudinary.service';
+import { CommunityDrizzleRepository } from '../repositories/community.drizzle.repository';
+import { CommunityMemberDrizzleRepository } from '../repositories/community-member.drizzle.repository';
+import { CommunityInviteDrizzleRepository } from '../repositories/community-invite.drizzle.repository';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -85,6 +91,21 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
         new OffensiveService(offensiveRepository, videoProgressRepository),
       inject: [OFFENSIVE_REPOSITORY, VIDEO_PROGRESS_REPOSITORY],
     },
+    {
+      provide: COMMUNITY_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new CommunityDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: COMMUNITY_MEMBER_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new CommunityMemberDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: COMMUNITY_INVITE_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new CommunityInviteDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
     CloudinaryService,
   ],
   exports: [
@@ -100,6 +121,9 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     NOTIFICATION_SERVICE,
     OFFENSIVE_REPOSITORY,
     OFFENSIVE_SERVICE,
+    COMMUNITY_REPOSITORY,
+    COMMUNITY_MEMBER_REPOSITORY,
+    COMMUNITY_INVITE_REPOSITORY,
     CloudinaryService,
   ],
 })

@@ -1,0 +1,130 @@
+{
+  "fluxoCompleto": {
+    "descricao": "Como o sistema captura o tempo do vídeo e marca como 'em progresso'",
+    "passos": [
+      "1. Usuário assiste vídeo no frontend",
+      "2. Frontend captura timestamp durante reprodução (via YouTube Player API)",
+      "3. Frontend envia timestamp para backend periodicamente",
+      "4. Backend salva timestamp no banco de dados",
+      "5. Usuário volta para dashboard",
+      "6. Frontend busca vídeos em progresso",
+      "7. Dashboard exibe vídeos com progresso salvo"
+    ]
+  },
+  "backend": {
+    "comoFunciona": {
+      "criterioEmProgresso": "Um vídeo aparece como 'em progresso' quando:\n- Tem um registro em video_progress\n- isCompleted = false\n- currentTimestamp não é null (tem timestamp salvo)\n- Foi atualizado recentemente (ordenado por updatedAt desc)",
+      "logicaBusca": "O endpoint GET /progress/videos/in-progress busca vídeos que:\n1. Pertencem ao usuário (userId)\n2. Não estão completos (isCompleted = false)\n3. Têm timestamp salvo (currentTimestamp IS NOT NULL)\n4. Ordenados por última visualização (updatedAt DESC)"
+    },
+    "criacaoAutomatica": {
+      "quandoCriar": "O backend cria automaticamente um registro de progresso quando:\n- Frontend chama POST /progress/video/timestamp pela primeira vez\n- Não existe registro para aquele vídeo + usuário",
+      "quandoAtualizar": "O backend atualiza o timestamp quando:\n- Já existe registro de progresso\n- Frontend envia novo timestamp\n- Campo currentTimestamp é atualizado\n- Campo updatedAt é atualizado automaticamente"
+    }
+  },
+  "frontend": {
+    "capturaTimestamp": {
+      "metodo": "Usar YouTube Player API para capturar tempo atual",
+      "frequencia": "Enviar para backend a cada 10-30 segundos (não a cada segundo)",
+      "eventos": [
+        "Durante reprodução (setInterval)",
+        "Ao pausar (onPause)",
+        "Ao sair da página (beforeunload)",
+        "Ao mudar de vídeo (componentWillUnmount)"
+      ]
+    },
+    "codigoExemplo": {
+      "reactComponent": "import { useEffect, useRef, useState } from 'react';\nimport { updateVideoTimestamp } from '../services/api';\n\nfunction VideoPlayer({ videoId, userToken }) {\n  const playerRef = useRef(null);\n  const intervalRef = useRef(null);\n  const [currentTime, setCurrentTime] = useState(0);\n\n  // Função para salvar timestamp\n  const saveTimestamp = async (timestamp) => {\n    try {\n      // Só salva se tiver pelo menos 5 segundos assistidos\n      if (timestamp >= 5) {\n        await updateVideoTimestamp(userToken, videoId, Math.floor(timestamp));\n        console.log('Timestamp salvo:', timestamp);\n      }\n    } catch (error) {\n      console.error('Erro ao salvar timestamp:', error);\n    }\n  };\n\n  useEffect(() => {\n    // Carregar YouTube Player\n    const tag = document.createElement('script');\n    tag.src = 'https://www.youtube.com/iframe_api';\n    const firstScriptTag = document.getElementsByTagName('script')[0];\n    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);\n\n    window.onYouTubeIframeAPIReady = () => {\n      playerRef.current = new window.YT.Player('youtube-player', {\n        videoId: videoId,\n        events: {\n          onStateChange: (event) => {\n            // Quando pausar, salvar timestamp\n            if (event.data === window.YT.PlayerState.PAUSED) {\n              const time = playerRef.current.getCurrentTime();\n              saveTimestamp(time);\n            }\n          },\n          onReady: () => {\n            // Restaurar posição salva ao carregar\n            loadSavedProgress();\n            \n            // Salvar timestamp periodicamente durante reprodução\n            intervalRef.current = setInterval(() => {\n              if (playerRef.current && \n                  playerRef.current.getPlayerState() === window.YT.PlayerState.PLAYING) {\n                const time = playerRef.current.getCurrentTime();\n                setCurrentTime(time);\n                saveTimestamp(time);\n              }\n            }, 15000); // A cada 15 segundos\n          }\n        }\n      });\n    };\n\n    // Salvar ao sair da página\n    const handleBeforeUnload = () => {\n      if (playerRef.current) {\n        const time = playerRef.current.getCurrentTime();\n        saveTimestamp(time);\n      }\n    };\n    window.addEventListener('beforeunload', handleBeforeUnload);\n\n    return () => {\n      // Limpar interval e salvar timestamp final\n      if (intervalRef.current) {\n        clearInterval(intervalRef.current);\n      }\n      if (playerRef.current) {\n        const time = playerRef.current.getCurrentTime();\n        saveTimestamp(time);\n      }\n      window.removeEventListener('beforeunload', handleBeforeUnload);\n    };\n  }, [videoId, userToken]);\n\n  // Função para restaurar progresso salvo\n  const loadSavedProgress = async () => {\n    try {\n      const response = await fetch(\n        `${API_URL}/progress/videos/in-progress`,\n        {\n          headers: { Authorization: `Bearer ${userToken}` }\n        }\n      );\n      const data = await response.json();\n      const video = data.data.videos.find(v => v.videoId === videoId);\n      \n      if (video && video.currentTimestamp && playerRef.current) {\n        // Restaurar posição\n        playerRef.current.seekTo(video.currentTimestamp, true);\n      }\n    } catch (error) {\n      console.error('Erro ao carregar progresso:', error);\n    }\n  };\n\n  return (\n    <div>\n      <div id=\"youtube-player\"></div>\n    </div>\n  );\n}",
+      "hooksPersonalizados": "// Hook para gerenciar progresso do vídeo\nimport { useEffect, useRef } from 'react';\n\nconst useVideoProgress = (videoId, userToken, player) => {\n  const lastSavedRef = useRef(0);\n  const intervalRef = useRef(null);\n\n  useEffect(() => {\n    if (!player || !videoId) return;\n\n    // Salvar progresso periodicamente\n    intervalRef.current = setInterval(async () => {\n      try {\n        const currentTime = await player.getCurrentTime();\n        const timestamp = Math.floor(currentTime);\n        \n        // Só salva se mudou significativamente (evita muitas requisições)\n        if (Math.abs(timestamp - lastSavedRef.current) >= 10) {\n          await updateVideoTimestamp(userToken, videoId, timestamp);\n          lastSavedRef.current = timestamp;\n        }\n      } catch (error) {\n        console.error('Erro ao salvar progresso:', error);\n      }\n    }, 15000); // A cada 15 segundos\n\n    // Salvar ao pausar\n    const handlePause = async () => {\n      try {\n        const currentTime = await player.getCurrentTime();\n        await updateVideoTimestamp(userToken, videoId, Math.floor(currentTime));\n      } catch (error) {\n        console.error('Erro ao salvar ao pausar:', error);\n      }\n    };\n\n    player.addEventListener('pause', handlePause);\n\n    return () => {\n      if (intervalRef.current) {\n        clearInterval(intervalRef.current);\n      }\n      player.removeEventListener('pause', handlePause);\n      \n      // Salvar ao desmontar componente\n      (async () => {\n        try {\n          const currentTime = await player.getCurrentTime();\n          await updateVideoTimestamp(userToken, videoId, Math.floor(currentTime));\n        } catch (error) {\n          console.error('Erro ao salvar ao desmontar:', error);\n        }\n      })();\n    };\n  }, [videoId, userToken, player]);\n};"
+    },
+    "dashboard": {
+      "carregarVideosEmProgresso": "// No componente Dashboard\nimport { useEffect, useState } from 'react';\nimport { getInProgressVideos } from '../services/api';\n\nfunction Dashboard({ userToken }) {\n  const [inProgressVideos, setInProgressVideos] = useState([]);\n\n  useEffect(() => {\n    loadInProgressVideos();\n  }, []);\n\n  const loadInProgressVideos = async () => {\n    try {\n      const response = await getInProgressVideos(userToken);\n      if (response.success) {\n        setInProgressVideos(response.data.videos);\n      }\n    } catch (error) {\n      console.error('Erro ao carregar vídeos em progresso:', error);\n    }\n  };\n\n  return (\n    <div>\n      <h2>Continuar Assistindo</h2>\n      {inProgressVideos.map((video) => (\n        <VideoCard\n          key={video.videoId}\n          video={video}\n          onPlay={() => navigateToVideo(video.videoId)}\n        />\n      ))}\n    </div>\n  );\n}",
+      "componenteVideoCard": "function VideoCard({ video, onPlay }) {\n  // Formatar tempo (ex: 120 segundos = '2:00')\n  const formatTime = (seconds) => {\n    const mins = Math.floor(seconds / 60);\n    const secs = seconds % 60;\n    return `${mins}:${secs.toString().padStart(2, '0')}`;\n  };\n\n  return (\n    <div className=\"video-card\" onClick={onPlay}>\n      <img src={video.thumbnailUrl} alt={video.videoTitle} />\n      <div className=\"progress-bar\">\n        <div \n          className=\"progress-fill\" \n          style={{ width: `${video.progressPercentage}%` }}\n        />\n      </div>\n      <div className=\"video-info\">\n        <h3>{video.videoTitle}</h3>\n        <p>Parou em: {formatTime(video.currentTimestamp)}</p>\n        <p>Progresso: {video.progressPercentage}%</p>\n      </div>\n    </div>\n  );\n}"
+    }
+  },
+  "timeline": {
+    "exemploFluxo": [
+      {
+        "momento": "00:00",
+        "acao": "Usuário abre vídeo",
+        "backend": "Nenhuma ação",
+        "frontend": "Carrega player do YouTube"
+      },
+      {
+        "momento": "00:05",
+        "acao": "Usuário assiste 5 segundos",
+        "backend": "Nenhuma ação",
+        "frontend": "Timestamp = 5 segundos (não salva ainda)"
+      },
+      {
+        "momento": "00:15",
+        "acao": "15 segundos assistidos",
+        "backend": "Recebe POST /progress/video/timestamp com timestamp=15",
+        "frontend": "Envia timestamp para backend",
+        "detalhes": "Backend cria registro:\n- isCompleted = false\n- currentTimestamp = 15\n- updatedAt = agora"
+      },
+      {
+        "momento": "01:00",
+        "acao": "1 minuto assistido",
+        "backend": "Recebe POST /progress/video/timestamp com timestamp=60",
+        "frontend": "Envia timestamp periodicamente",
+        "detalhes": "Backend atualiza registro:\n- currentTimestamp = 60\n- updatedAt = agora"
+      },
+      {
+        "momento": "01:30",
+        "acao": "Usuário pausa vídeo",
+        "backend": "Recebe POST /progress/video/timestamp com timestamp=90",
+        "frontend": "Salva timestamp ao pausar",
+        "detalhes": "Backend atualiza:\n- currentTimestamp = 90\n- updatedAt = agora"
+      },
+      {
+        "momento": "01:35",
+        "acao": "Usuário volta para dashboard",
+        "backend": "Nenhuma ação",
+        "frontend": "Salva timestamp final antes de sair"
+      },
+      {
+        "momento": "01:36",
+        "acao": "Dashboard carrega",
+        "backend": "Recebe GET /progress/videos/in-progress",
+        "frontend": "Busca vídeos em progresso",
+        "detalhes": "Backend retorna vídeo porque:\n- isCompleted = false\n- currentTimestamp = 90 (não é null)\n- Ordenado por updatedAt DESC"
+      },
+      {
+        "momento": "01:37",
+        "acao": "Dashboard exibe vídeo",
+        "backend": "Nenhuma ação",
+        "frontend": "Mostra card com:\n- Thumbnail\n- Título\n- Barra de progresso (15% = 90/600)\n- 'Parou em: 1:30'"
+      }
+    ]
+  },
+  "critériosParaAparecerEmProgresso": {
+    "regra1": "Deve ter registro na tabela video_progress para o usuário + vídeo",
+    "regra2": "isCompleted deve ser false",
+    "regra3": "currentTimestamp deve ser NOT NULL (ter um valor salvo)",
+    "regra4": "Ordenado por updatedAt DESC (últimos assistidos primeiro)",
+    "observacao": "Se o usuário marcar vídeo como completo (isCompleted=true), ele NÃO aparece mais em 'em progresso'"
+  },
+  "exemplosCodigo": {
+    "salvarTimestampPeriodicamente": "// Salvar a cada 15 segundos durante reprodução\nuseEffect(() => {\n  if (!player || !isPlaying) return;\n\n  const interval = setInterval(async () => {\n    try {\n      const currentTime = await player.getCurrentTime();\n      const timestamp = Math.floor(currentTime);\n      \n      // Só salva se tiver pelo menos 5 segundos\n      if (timestamp >= 5) {\n        await updateVideoTimestamp(token, videoId, timestamp);\n      }\n    } catch (error) {\n      console.error('Erro:', error);\n    }\n  }, 15000); // 15 segundos\n\n  return () => clearInterval(interval);\n}, [player, isPlaying, videoId, token]);",
+    "salvarAoPausar": "// Salvar quando pausar\nconst handlePause = async () => {\n  if (player) {\n    try {\n      const currentTime = await player.getCurrentTime();\n      await updateVideoTimestamp(token, videoId, Math.floor(currentTime));\n    } catch (error) {\n      console.error('Erro ao salvar:', error);\n    }\n  }\n};",
+    "salvarAoSair": "// Salvar ao sair da página\nuseEffect(() => {\n  const handleBeforeUnload = () => {\n    if (player) {\n      const currentTime = player.getCurrentTime();\n      // Usar navigator.sendBeacon para garantir envio\n      navigator.sendBeacon(\n        `${API_URL}/progress/video/timestamp`,\n        JSON.stringify({\n          videoId,\n          timestamp: Math.floor(currentTime)\n        })\n      );\n    }\n  };\n\n  window.addEventListener('beforeunload', handleBeforeUnload);\n  return () => window.removeEventListener('beforeunload', handleBeforeUnload);\n}, [player, videoId]);",
+    "restaurarPosicaoAoCarregar": "// Ao carregar vídeo, restaurar posição salva\nuseEffect(() => {\n  const restoreProgress = async () => {\n    try {\n      const response = await getInProgressVideos(token);\n      const video = response.data.videos.find(v => v.videoId === currentVideoId);\n      \n      if (video && video.currentTimestamp && player) {\n        // Restaurar posição\n        player.seekTo(video.currentTimestamp, true);\n        \n        // Opcional: mostrar mensagem 'Continuar de onde parou'\n        showContinueDialog(video.currentTimestamp);\n      }\n    } catch (error) {\n      console.error('Erro ao restaurar:', error);\n    }\n  };\n\n  if (player && currentVideoId) {\n    restoreProgress();\n  }\n}, [player, currentVideoId, token]);"
+  },
+  "resumoFluxo": {
+    "1_captura": "Frontend captura tempo via YouTube Player API (getCurrentTime())",
+    "2_envio": "Frontend envia para POST /progress/video/timestamp periodicamente",
+    "3_salvamento": "Backend salva/atualiza currentTimestamp no banco",
+    "4_consulta": "Dashboard chama GET /progress/videos/in-progress ao carregar",
+    "5_exibicao": "Backend retorna vídeos com isCompleted=false E currentTimestamp NOT NULL",
+    "6_display": "Dashboard exibe cards com barra de progresso e timestamp salvo"
+  },
+  "importante": {
+    "nota1": "O vídeo só aparece como 'em progresso' se tiver currentTimestamp salvo (não null)",
+    "nota2": "Se o usuário nunca assistiu o vídeo, não terá registro, então não aparece",
+    "nota3": "Se marcar como completo, isCompleted=true, então não aparece mais em progresso",
+    "nota4": "Frontend deve enviar timestamp periodicamente (a cada 10-30 segundos)",
+    "nota5": "Sempre salvar ao pausar e ao sair da página para não perder progresso"
+  }
+}
+
+

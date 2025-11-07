@@ -76,6 +76,10 @@ export const offensiveTypeEnum = pgEnum('offensive_type', [
   'KING',
   'INFINITY',
 ]);
+export const communityVisibilityEnum = pgEnum('community_visibility', [
+  'PUBLIC',
+  'PRIVATE',
+]);
 
 export const users = pgTable(
   'users',
@@ -287,5 +291,91 @@ export const offensives = pgTable(
     typeIdx: index('offensives_type_idx').on(table.type),
     consecutiveDaysIdx: index('offensives_consecutive_days_idx').on(table.consecutiveDays),
     createdAtIdx: index('offensives_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const communities = pgTable(
+  'communities',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    focus: text('focus').notNull(),
+    description: text('description'),
+    image: text('image'),
+    visibility: communityVisibilityEnum('visibility').notNull().default('PUBLIC'),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('communities_name_unique').on(table.name),
+    ownerIdIdx: index('communities_owner_id_idx').on(table.ownerId),
+    visibilityIdx: index('communities_visibility_idx').on(table.visibility),
+    focusIdx: index('communities_focus_idx').on(table.focus),
+    createdAtIdx: index('communities_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const communityMembers = pgTable(
+  'community_members',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    communityId: uuid('community_id')
+      .notNull()
+      .references(() => communities.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    joinedAt: timestamp('joined_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    communityUserIdx: uniqueIndex('community_members_community_user_unique').on(
+      table.communityId,
+      table.userId,
+    ),
+    communityIdIdx: index('community_members_community_id_idx').on(table.communityId),
+    userIdIdx: index('community_members_user_id_idx').on(table.userId),
+    joinedAtIdx: index('community_members_joined_at_idx').on(table.joinedAt),
+  }),
+);
+
+export const communityInvites = pgTable(
+  'community_invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    communityId: uuid('community_id')
+      .notNull()
+      .references(() => communities.id, { onDelete: 'cascade' }),
+    inviterId: uuid('inviter_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    inviteeUsername: text('invitee_username').notNull(),
+    inviteeId: uuid('invitee_id').references(() => users.id, { onDelete: 'cascade' }),
+    status: text('status').notNull().default('PENDING'),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    communityInviteeIdx: uniqueIndex('community_invites_community_invitee_unique').on(
+      table.communityId,
+      table.inviteeUsername,
+    ),
+    communityIdIdx: index('community_invites_community_id_idx').on(table.communityId),
+    inviteeUsernameIdx: index('community_invites_invitee_username_idx').on(table.inviteeUsername),
+    inviteeIdIdx: index('community_invites_invitee_id_idx').on(table.inviteeId),
+    statusIdx: index('community_invites_status_idx').on(table.status),
+    createdAtIdx: index('community_invites_created_at_idx').on(table.createdAt),
   }),
 );

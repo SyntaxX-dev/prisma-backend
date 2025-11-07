@@ -6,6 +6,7 @@ import { AuthModule } from '../infrastructure/auth/auth.module';
 import { YouTubeModule } from '../infrastructure/youtube/youtube.module';
 import { CoursesModule } from '../application/courses/courses.module';
 import { ProgressModule } from '../application/progress/progress.module';
+import { CommunitiesModule } from '../application/communities/communities.module';
 import { AppController } from './http/controllers/app.controller';
 import { AuthController } from './http/controllers/auth.controller';
 import { UserController } from './http/controllers/user.controller';
@@ -17,6 +18,7 @@ import { UserProfileController } from './http/controllers/user-profile.controlle
 import { OptionsController } from './http/controllers/options.controller';
 import { ProgressController } from './http/controllers/progress.controller';
 import { OffensivesController } from './http/offensives.controller';
+import { CommunitiesController } from './http/controllers/communities.controller';
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { OffensivesController } from './http/offensives.controller';
     YouTubeModule,
     CoursesModule,
     ProgressModule,
+    CommunitiesModule,
   ],
   controllers: [
     AppController,
@@ -40,6 +43,7 @@ import { OffensivesController } from './http/offensives.controller';
     OptionsController,
     ProgressController,
     OffensivesController,
+    CommunitiesController,
   ],
 })
 export class PresentationModule {}

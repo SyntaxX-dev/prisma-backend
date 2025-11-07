@@ -1,0 +1,98 @@
+import { Injectable, Inject } from '@nestjs/common';
+import {
+  COMMUNITY_REPOSITORY,
+  COMMUNITY_MEMBER_REPOSITORY,
+} from '../../../domain/tokens';
+import type { CommunityRepository } from '../../../domain/repositories/community.repository';
+import type { CommunityMemberRepository } from '../../../domain/repositories/community-member.repository';
+import { CommunityVisibility } from '../../../domain/enums/community-visibility';
+
+export interface ListCommunitiesInput {
+  userId?: string;
+  focus?: string;
+  includePrivate?: boolean;
+}
+
+export interface CommunityListItem {
+  id: string;
+  name: string;
+  focus: string;
+  description: string | null;
+  image: string | null;
+  visibility: CommunityVisibility;
+  ownerId: string;
+  memberCount: number;
+  isMember: boolean;
+  createdAt: Date;
+}
+
+export interface ListCommunitiesOutput {
+  communities: CommunityListItem[];
+}
+
+@Injectable()
+export class ListCommunitiesUseCase {
+  constructor(
+    @Inject(COMMUNITY_REPOSITORY)
+    private readonly communityRepository: CommunityRepository,
+    @Inject(COMMUNITY_MEMBER_REPOSITORY)
+    private readonly communityMemberRepository: CommunityMemberRepository,
+  ) {}
+
+  async execute(input: ListCommunitiesInput): Promise<ListCommunitiesOutput> {
+    let communities;
+
+    if (input.focus) {
+      // Buscar comunidades públicas por foco
+      communities =
+        await this.communityRepository.findPublicCommunitiesByFocus(
+          input.focus,
+        );
+    } else if (input.userId && input.includePrivate) {
+      // Buscar todas as comunidades do usuário (públicas e privadas que ele é membro)
+      communities =
+        await this.communityRepository.findCommunitiesByUserId(input.userId);
+    } else {
+      // Buscar apenas comunidades públicas
+      communities = await this.communityRepository.findPublicCommunities();
+    }
+
+    // Enriquecer com informações de membros
+    const enrichedCommunities = await Promise.all(
+      communities.map(async (community) => {
+        const memberCount =
+          await this.communityMemberRepository.countMembersByCommunityId(
+            community.id,
+          );
+
+        let isMember = false;
+        if (input.userId) {
+          const member =
+            await this.communityMemberRepository.findByCommunityAndUser(
+              community.id,
+              input.userId,
+            );
+          isMember = !!member;
+        }
+
+        return {
+          id: community.id,
+          name: community.name,
+          focus: community.focus,
+          description: community.description,
+          image: community.image,
+          visibility: community.visibility,
+          ownerId: community.ownerId,
+          memberCount,
+          isMember,
+          createdAt: community.createdAt,
+        };
+      }),
+    );
+
+    return {
+      communities: enrichedCommunities,
+    };
+  }
+}
+
