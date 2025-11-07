@@ -1,7 +1,7 @@
 import { eq, and, count } from 'drizzle-orm';
 import { communityMembers } from '../database/schema';
 import type { CommunityMemberRepository } from '../../domain/repositories/community-member.repository';
-import type { CommunityMember } from '../../domain/entities/community-member';
+import { CommunityMember } from '../../domain/entities/community-member';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 export class CommunityMemberDrizzleRepository

@@ -1,7 +1,7 @@
 import { eq, and, or } from 'drizzle-orm';
 import { communities, communityMembers } from '../database/schema';
 import type { CommunityRepository } from '../../domain/repositories/community.repository';
-import type { Community } from '../../domain/entities/community';
+import { Community } from '../../domain/entities/community';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { CommunityVisibility } from '../../domain/enums/community-visibility';
 

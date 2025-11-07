@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { communityInvites } from '../database/schema';
 import type { CommunityInviteRepository } from '../../domain/repositories/community-invite.repository';
-import type { CommunityInvite } from '../../domain/entities/community-invite';
+import { CommunityInvite } from '../../domain/entities/community-invite';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 export class CommunityInviteDrizzleRepository
