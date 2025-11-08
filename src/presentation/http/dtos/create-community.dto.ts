@@ -36,13 +36,21 @@ export class CreateCommunityDto {
   description?: string;
 
   @ApiProperty({
-    description: 'URL da imagem da comunidade',
+    description: 'URL da imagem da comunidade (opcional se enviar arquivo)',
     example: 'https://exemplo.com/community-image.png',
     required: false,
   })
   @IsString()
   @IsOptional()
   image?: string;
+
+  @ApiProperty({
+    description: 'Arquivo de imagem da comunidade (opcional, aceita JPG, PNG, GIF, WebP, máx 5MB)',
+    type: 'string',
+    format: 'binary',
+    required: false,
+  })
+  imageFile?: Express.Multer.File;
 
   @ApiProperty({
     description: 'Visibilidade da comunidade',

@@ -65,6 +65,34 @@ export class CloudinaryService {
     }
   }
 
+  async uploadCommunityImage(file: Express.Multer.File): Promise<string> {
+    try {
+      // Usar buffer em vez de file.path para compatibilidade com multer em memória
+      const result = await cloudinary.uploader.upload(
+        `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+        {
+          folder: 'community-images',
+          transformation: [
+            { 
+              width: 800, 
+              height: 600, 
+              crop: 'fill', 
+              gravity: 'center',
+              quality: 'auto',
+              format: 'auto'
+            }
+          ],
+          resource_type: 'image',
+          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        }
+      );
+      
+      return result.secure_url;
+    } catch (error) {
+      throw new Error(`Erro ao fazer upload da imagem: ${error.message}`);
+    }
+  }
+
   extractPublicIdFromUrl(url: string): string | null {
     try {
       const matches = url.match(/\/v\d+\/(.+)\./);
