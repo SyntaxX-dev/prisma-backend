@@ -215,7 +215,13 @@ export class CommunitiesController {
     @Query('focus') focus?: string,
     @Query('includePrivate') includePrivate?: string,
   ) {
+    // Debug: verificar se req.user está sendo populado
+    console.log('[DEBUG] listCommunities - req.user:', req.user);
+    console.log('[DEBUG] listCommunities - req.headers.authorization:', req.headers?.authorization);
+    
     const userId = req.user?.sub;
+    console.log('[DEBUG] listCommunities - userId extraído:', userId);
+    
     const result = await this.listCommunitiesUseCase.execute({
       userId,
       focus,

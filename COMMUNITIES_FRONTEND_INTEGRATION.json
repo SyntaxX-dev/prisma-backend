@@ -1,0 +1,356 @@
+{
+  "title": "Guia de Integração Frontend - Comunidades",
+  "description": "Como fazer requisições para listar comunidades e obter informações de ownership",
+  "baseUrl": "https://prisma-backend-production-4c22.up.railway.app",
+  "authentication": {
+    "required": false,
+    "note": "Autenticação é OPCIONAL para listar comunidades, mas RECOMENDADA para obter informações corretas de isOwner e isMember",
+    "header": "Authorization: Bearer <token>",
+    "howToGetToken": "Fazer login em POST /auth/login para obter o accessToken"
+  },
+  "endpoints": {
+    "listCommunities": {
+      "method": "GET",
+      "path": "/communities",
+      "description": "Lista todas as comunidades públicas + comunidades privadas do usuário (se autenticado)",
+      "authentication": "Opcional (recomendado)",
+      "queryParameters": {
+        "focus": {
+          "type": "string",
+          "required": false,
+          "description": "Filtrar por foco (ex: PRF, ENEM, GENERAL)",
+          "example": "?focus=PRF"
+        },
+        "includePrivate": {
+          "type": "boolean",
+          "required": false,
+          "description": "Incluir comunidades privadas que o usuário é membro",
+          "example": "?includePrivate=true",
+          "note": "Se não autenticado, este parâmetro é ignorado"
+        }
+      },
+      "requestExamples": {
+        "withoutAuth": {
+          "description": "Sem autenticação - só retorna comunidades públicas",
+          "code": "const response = await fetch('https://prisma-backend-production-4c22.up.railway.app/communities');\nconst data = await response.json();\n// isOwner sempre será false\n// isMember sempre será false",
+          "headers": {}
+        },
+        "withAuth": {
+          "description": "Com autenticação - retorna comunidades públicas + privadas do dono + informações de ownership",
+          "code": "const token = 'seu-token-jwt-aqui';\nconst response = await fetch('https://prisma-backend-production-4c22.up.railway.app/communities', {\n  headers: {\n    'Authorization': `Bearer ${token}`\n  }\n});\nconst data = await response.json();\n// isOwner será true se você for o dono\n// isMember será true se você for membro",
+          "headers": {
+            "Authorization": "Bearer <token>"
+          }
+        },
+        "withFocus": {
+          "description": "Com filtro de foco e autenticação",
+          "code": "const token = 'seu-token-jwt-aqui';\nconst response = await fetch('https://prisma-backend-production-4c22.up.railway.app/communities?focus=PRF', {\n  headers: {\n    'Authorization': `Bearer ${token}`\n  }\n});\nconst data = await response.json();",
+          "headers": {
+            "Authorization": "Bearer <token>"
+          }
+        },
+        "withIncludePrivate": {
+          "description": "Incluindo comunidades privadas que o usuário é membro",
+          "code": "const token = 'seu-token-jwt-aqui';\nconst response = await fetch('https://prisma-backend-production-4c22.up.railway.app/communities?includePrivate=true', {\n  headers: {\n    'Authorization': `Bearer ${token}`\n  }\n});\nconst data = await response.json();",
+          "headers": {
+            "Authorization": "Bearer <token>"
+          }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "success": true,
+            "data": [
+              {
+                "id": "1b380319-9336-479a-8ac2-aed60cfdae4c",
+                "name": "teste",
+                "focus": "GENERAL",
+                "description": "teste desc",
+                "image": "https://res.cloudinary.com/...",
+                "visibility": "PUBLIC",
+                "ownerId": "d99f095c-32e1-496e-b20e-73a554bb9538",
+                "memberCount": 1,
+                "isMember": true,
+                "isOwner": true,
+                "createdAt": "2025-11-08T20:05:11.628Z"
+              },
+              {
+                "id": "a70247bc-6a9f-4f1b-9255-c6610df9d5cd",
+                "name": "teste3",
+                "focus": "GENERAL",
+                "description": "teste3",
+                "image": "https://res.cloudinary.com/...",
+                "visibility": "PUBLIC",
+                "ownerId": "outro-user-id",
+                "memberCount": 5,
+                "isMember": false,
+                "isOwner": false,
+                "createdAt": "2025-11-08T20:22:23.236Z"
+              },
+              {
+                "id": "e4e1f7c0-460b-4728-a5e2-0894ed4309b8",
+                "name": "Comunidade Privada",
+                "focus": "PRF",
+                "description": "Comunidade privada",
+                "image": null,
+                "visibility": "PRIVATE",
+                "ownerId": "d99f095c-32e1-496e-b20e-73a554bb9538",
+                "memberCount": 3,
+                "isMember": true,
+                "isOwner": true,
+                "createdAt": "2025-11-09T04:49:49.432Z"
+              }
+            ]
+          }
+        }
+      },
+      "fieldExplanations": {
+        "isOwner": {
+          "description": "Indica se o usuário autenticado é o dono/criador da comunidade",
+          "whenTrue": "Você criou esta comunidade",
+          "whenFalse": "Você não é o dono (ou não está autenticado)",
+          "important": "Sempre será false se não enviar o token de autenticação"
+        },
+        "isMember": {
+          "description": "Indica se o usuário autenticado é membro da comunidade",
+          "whenTrue": "Você já entrou nesta comunidade",
+          "whenFalse": "Você não é membro (ou não está autenticado)",
+          "important": "Sempre será false se não enviar o token de autenticação"
+        },
+        "visibility": {
+          "PUBLIC": "Qualquer pessoa pode ver e entrar",
+          "PRIVATE": "Apenas membros podem ver. Se você for o dono, aparecerá na lista mesmo sendo privada"
+        }
+      }
+    },
+    "getCommunity": {
+      "method": "GET",
+      "path": "/communities/:id",
+      "description": "Obter detalhes de uma comunidade específica",
+      "authentication": "Opcional (obrigatório para comunidades privadas)",
+      "requestExamples": {
+        "publicCommunity": {
+          "description": "Comunidade pública - funciona sem autenticação",
+          "code": "const communityId = '1b380319-9336-479a-8ac2-aed60cfdae4c';\nconst response = await fetch(`https://prisma-backend-production-4c22.up.railway.app/communities/${communityId}`);\nconst data = await response.json();",
+          "headers": {}
+        },
+        "privateCommunity": {
+          "description": "Comunidade privada - REQUER autenticação e ser membro ou dono",
+          "code": "const token = 'seu-token-jwt-aqui';\nconst communityId = 'e4e1f7c0-460b-4728-a5e2-0894ed4309b8';\nconst response = await fetch(`https://prisma-backend-production-4c22.up.railway.app/communities/${communityId}`, {\n  headers: {\n    'Authorization': `Bearer ${token}`\n  }\n});\nconst data = await response.json();",
+          "headers": {
+            "Authorization": "Bearer <token>"
+          },
+          "note": "Se você for o dono, pode visualizar mesmo sem ser membro (mas o dono sempre é membro automaticamente)"
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "success": true,
+            "data": {
+              "id": "1b380319-9336-479a-8ac2-aed60cfdae4c",
+              "name": "teste",
+              "focus": "GENERAL",
+              "description": "teste desc",
+              "image": "https://res.cloudinary.com/...",
+              "visibility": "PUBLIC",
+              "ownerId": "d99f095c-32e1-496e-b20e-73a554bb9538",
+              "memberCount": 1,
+              "isMember": true,
+              "isOwner": true,
+              "createdAt": "2025-11-08T20:05:11.628Z"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frontendImplementation": {
+    "reactExample": {
+      "description": "Exemplo completo em React com hooks",
+      "code": "import { useState, useEffect } from 'react';\n\nfunction CommunitiesList() {\n  const [communities, setCommunities] = useState([]);\n  const [loading, setLoading] = useState(true);\n  const token = localStorage.getItem('token'); // ou do seu contexto de auth\n\n  useEffect(() => {\n    const fetchCommunities = async () => {\n      try {\n        const headers = {};\n        \n        // IMPORTANTE: Adicionar token se disponível\n        if (token) {\n          headers['Authorization'] = `Bearer ${token}`;\n        }\n\n        const response = await fetch(\n          'https://prisma-backend-production-4c22.up.railway.app/communities',\n          { headers }\n        );\n\n        const data = await response.json();\n        \n        if (data.success) {\n          setCommunities(data.data);\n        }\n      } catch (error) {\n        console.error('Erro ao buscar comunidades:', error);\n      } finally {\n        setLoading(false);\n      }\n    };\n\n    fetchCommunities();\n  }, [token]);\n\n  if (loading) return <div>Carregando...</div>;\n\n  return (\n    <div>\n      <h2>Comunidades</h2>\n      {communities.map((community) => (\n        <div key={community.id}>\n          <h3>{community.name}</h3>\n          <p>{community.description}</p>\n          \n          {/* Mostrar badge se for dono */}\n          {community.isOwner && (\n            <span className=\"badge\">👑 Você é o dono</span>\n          )}\n          \n          {/* Mostrar badge se for membro mas não dono */}\n          {community.isMember && !community.isOwner && (\n            <span className=\"badge\">✓ Membro</span>\n          )}\n          \n          {/* Mostrar botão de entrar apenas se não for membro */}\n          {!community.isMember && (\n            <button onClick={() => joinCommunity(community.id)}>\n              Entrar\n            </button>\n          )}\n          \n          <p>Membros: {community.memberCount}</p>\n          <p>Visibilidade: {community.visibility === 'PUBLIC' ? 'Pública' : 'Privada'}</p>\n        </div>\n      ))}\n    </div>\n  );\n}"
+    },
+    "vanillaJavascriptExample": {
+      "description": "Exemplo em JavaScript puro",
+      "code": "async function listCommunities(token = null) {\n  const headers = {};\n  \n  // IMPORTANTE: Adicionar token se disponível\n  if (token) {\n    headers['Authorization'] = `Bearer ${token}`;\n  }\n\n  try {\n    const response = await fetch(\n      'https://prisma-backend-production-4c22.up.railway.app/communities',\n      { headers }\n    );\n\n    const data = await response.json();\n    \n    if (data.success) {\n      console.log('Comunidades:', data.data);\n      \n      // Filtrar comunidades do usuário\n      const myCommunities = data.data.filter(c => c.isOwner);\n      console.log('Minhas comunidades:', myCommunities);\n      \n      // Filtrar comunidades que o usuário é membro\n      const memberCommunities = data.data.filter(c => c.isMember);\n      console.log('Comunidades que sou membro:', memberCommunities);\n      \n      return data.data;\n    }\n  } catch (error) {\n    console.error('Erro:', error);\n  }\n}\n\n// Uso:\n// Sem autenticação\nlistCommunities();\n\n// Com autenticação\nconst token = localStorage.getItem('token');\nlistCommunities(token);"
+    },
+    "axiosExample": {
+      "description": "Exemplo usando Axios",
+      "code": "import axios from 'axios';\n\nasync function listCommunities(token = null) {\n  const config = {};\n  \n  // IMPORTANTE: Adicionar token se disponível\n  if (token) {\n    config.headers = {\n      'Authorization': `Bearer ${token}`\n    };\n  }\n\n  try {\n    const response = await axios.get(\n      'https://prisma-backend-production-4c22.up.railway.app/communities',\n      config\n    );\n    \n    if (response.data.success) {\n      return response.data.data;\n    }\n  } catch (error) {\n    console.error('Erro:', error.response?.data || error.message);\n  }\n}\n\n// Uso:\nconst token = localStorage.getItem('token');\nconst communities = await listCommunities(token);"
+    }
+  },
+  "importantNotes": {
+    "authentication": {
+      "critical": "Para obter isOwner e isMember corretos, você DEVE enviar o token JWT",
+      "howToGetToken": "1. Fazer login em POST /auth/login\n2. Salvar o accessToken retornado\n3. Enviar no header Authorization: Bearer <token>",
+      "storage": "Recomendado: localStorage ou contexto React/Context API",
+      "example": "const token = localStorage.getItem('token');\nheaders['Authorization'] = `Bearer ${token}`;"
+    },
+    "isOwner": {
+      "whenTrue": "Você criou esta comunidade. Você pode:\n- Editar a comunidade\n- Fazer upload de imagem\n- Convidar membros\n- Gerenciar a comunidade",
+      "whenFalse": "Você não é o dono. Pode ser:\n- Comunidade de outra pessoa\n- Você não está autenticado (token não enviado)",
+      "uiRecommendations": [
+        "Mostrar badge 'Dono' ou ícone de coroa quando isOwner: true",
+        "Habilitar botões de edição apenas quando isOwner: true",
+        "Mostrar opções de gerenciamento apenas para o dono"
+      ]
+    },
+    "isMember": {
+      "whenTrue": "Você já entrou nesta comunidade",
+      "whenFalse": "Você não é membro ainda",
+      "uiRecommendations": [
+        "Mostrar badge 'Membro' quando isMember: true",
+        "Desabilitar botão 'Entrar' quando isMember: true",
+        "Mostrar botão 'Sair' apenas quando isMember: true"
+      ]
+    },
+    "privateCommunities": {
+      "behavior": "Comunidades privadas aparecem na lista apenas se:\n- Você for o dono (automaticamente)\n- Você for membro E usar ?includePrivate=true",
+      "example": "GET /communities?includePrivate=true (com token)"
+    }
+  },
+  "commonScenarios": {
+    "scenario1": {
+      "name": "Listar todas as comunidades (usuário autenticado)",
+      "description": "Usuário quer ver todas as comunidades públicas + suas comunidades privadas",
+      "request": {
+        "method": "GET",
+        "url": "https://prisma-backend-production-4c22.up.railway.app/communities",
+        "headers": {
+          "Authorization": "Bearer <seu-token>"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": [
+          {
+            "id": "...",
+            "name": "Comunidade Pública",
+            "isOwner": false,
+            "isMember": false
+          },
+          {
+            "id": "...",
+            "name": "Minha Comunidade",
+            "isOwner": true,
+            "isMember": true
+          },
+          {
+            "id": "...",
+            "name": "Minha Comunidade Privada",
+            "visibility": "PRIVATE",
+            "isOwner": true,
+            "isMember": true
+          }
+        ]
+      },
+      "frontendCode": "const token = getAuthToken();\nconst response = await fetch('/communities', {\n  headers: { 'Authorization': `Bearer ${token}` }\n});\nconst { data } = await response.json();\n\n// Separar minhas comunidades\nconst myCommunities = data.filter(c => c.isOwner);\n\n// Separar comunidades que sou membro\nconst memberCommunities = data.filter(c => c.isMember && !c.isOwner);"
+    },
+    "scenario2": {
+      "name": "Verificar se sou dono de uma comunidade específica",
+      "description": "Verificar ownership antes de mostrar opções de edição",
+      "request": {
+        "method": "GET",
+        "url": "https://prisma-backend-production-4c22.up.railway.app/communities/:id",
+        "headers": {
+          "Authorization": "Bearer <seu-token>"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "id": "...",
+          "name": "Minha Comunidade",
+          "isOwner": true,
+          "isMember": true
+        }
+      },
+      "frontendCode": "const token = getAuthToken();\nconst response = await fetch(`/communities/${communityId}`, {\n  headers: { 'Authorization': `Bearer ${token}` }\n});\nconst { data } = await response.json();\n\nif (data.isOwner) {\n  // Mostrar opções de edição\n  showEditButton();\n  showManageButton();\n} else if (data.isMember) {\n  // Mostrar apenas opções de membro\n  showLeaveButton();\n}"
+    },
+    "scenario3": {
+      "name": "Listar comunidades sem autenticação",
+      "description": "Usuário não logado vê apenas comunidades públicas",
+      "request": {
+        "method": "GET",
+        "url": "https://prisma-backend-production-4c22.up.railway.app/communities",
+        "headers": {}
+      },
+      "response": {
+        "success": true,
+        "data": [
+          {
+            "id": "...",
+            "name": "Comunidade Pública",
+            "isOwner": false,
+            "isMember": false
+          }
+        ]
+      },
+      "note": "isOwner e isMember sempre serão false sem autenticação"
+    }
+  },
+  "troubleshooting": {
+    "isOwnerAlwaysFalse": {
+      "problem": "isOwner sempre retorna false mesmo sendo o dono",
+      "solutions": [
+        "Verificar se o token JWT está sendo enviado no header Authorization",
+        "Verificar se o token não expirou (fazer login novamente)",
+        "Verificar se o userId no token corresponde ao ownerId da comunidade",
+        "Verificar se o header está no formato correto: 'Authorization: Bearer <token>'"
+      ],
+      "debugCode": "console.log('Token:', token);\nconsole.log('Headers:', headers);\nconsole.log('Response:', data);\nconsole.log('OwnerId:', data.data[0]?.ownerId);\nconsole.log('My UserId:', getUserIdFromToken(token));"
+    },
+    "privateCommunitiesNotShowing": {
+      "problem": "Minhas comunidades privadas não aparecem na lista",
+      "solutions": [
+        "Verificar se está enviando o token de autenticação",
+        "Verificar se o userId no token corresponde ao ownerId",
+        "Comunidades privadas aparecem automaticamente se você for o dono (não precisa de includePrivate)"
+      ]
+    },
+    "tokenNotWorking": {
+      "problem": "Token não está sendo reconhecido",
+      "solutions": [
+        "Verificar formato do header: 'Authorization: Bearer <token>' (com espaço após Bearer)",
+        "Verificar se o token não expirou",
+        "Fazer login novamente para obter novo token",
+        "Verificar se o token está completo (não cortado)"
+      ]
+    }
+  },
+  "bestPractices": {
+    "tokenManagement": [
+      "Armazenar token de forma segura (localStorage para web, SecureStore para mobile)",
+      "Verificar expiração do token antes de fazer requisições",
+      "Implementar refresh token se disponível",
+      "Limpar token ao fazer logout"
+    ],
+    "uiUpdates": [
+      "Atualizar UI baseado em isOwner e isMember",
+      "Mostrar loading state durante requisições",
+      "Tratar erros de autenticação (401) redirecionando para login",
+      "Cachear lista de comunidades e atualizar após ações (criar, entrar, sair)"
+    ],
+    "performance": [
+      "Cachear lista de comunidades por alguns segundos",
+      "Usar paginação se houver muitas comunidades",
+      "Fazer requisições apenas quando necessário"
+    ]
+  },
+  "completeExample": {
+    "description": "Exemplo completo de componente React",
+    "code": "import { useState, useEffect } from 'react';\n\nfunction CommunitiesPage() {\n  const [communities, setCommunities] = useState([]);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState(null);\n  \n  // Obter token do seu sistema de autenticação\n  const token = localStorage.getItem('authToken');\n\n  useEffect(() => {\n    fetchCommunities();\n  }, []);\n\n  const fetchCommunities = async () => {\n    try {\n      setLoading(true);\n      \n      // IMPORTANTE: Sempre enviar token se disponível\n      const headers = {};\n      if (token) {\n        headers['Authorization'] = `Bearer ${token}`;\n      }\n\n      const response = await fetch(\n        'https://prisma-backend-production-4c22.up.railway.app/communities',\n        { headers }\n      );\n\n      if (!response.ok) {\n        throw new Error('Erro ao buscar comunidades');\n      }\n\n      const data = await response.json();\n      \n      if (data.success) {\n        setCommunities(data.data);\n      }\n    } catch (err) {\n      setError(err.message);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  if (loading) return <div>Carregando comunidades...</div>;\n  if (error) return <div>Erro: {error}</div>;\n\n  // Separar comunidades por tipo\n  const myCommunities = communities.filter(c => c.isOwner);\n  const memberCommunities = communities.filter(c => c.isMember && !c.isOwner);\n  const otherCommunities = communities.filter(c => !c.isMember && !c.isOwner);\n\n  return (\n    <div>\n      <h1>Comunidades</h1>\n      \n      {/* Minhas Comunidades */}\n      {myCommunities.length > 0 && (\n        <section>\n          <h2>👑 Minhas Comunidades ({myCommunities.length})</h2>\n          {myCommunities.map(community => (\n            <CommunityCard \n              key={community.id} \n              community={community} \n              showManageButton={true}\n            />\n          ))}\n        </section>\n      )}\n      \n      {/* Comunidades que sou membro */}\n      {memberCommunities.length > 0 && (\n        <section>\n          <h2>✓ Minhas Participações ({memberCommunities.length})</h2>\n          {memberCommunities.map(community => (\n            <CommunityCard \n              key={community.id} \n              community={community}\n            />\n          ))}\n        </section>\n      )}\n      \n      {/* Outras Comunidades */}\n      <section>\n        <h2>Descobrir Comunidades ({otherCommunities.length})</h2>\n        {otherCommunities.map(community => (\n          <CommunityCard \n            key={community.id} \n            community={community}\n            showJoinButton={true}\n          />\n        ))}\n      </section>\n    </div>\n  );\n}\n\nfunction CommunityCard({ community, showManageButton, showJoinButton }) {\n  return (\n    <div className=\"community-card\">\n      {community.image && (\n        <img src={community.image} alt={community.name} />\n      )}\n      <h3>{community.name}</h3>\n      <p>{community.description}</p>\n      \n      <div className=\"badges\">\n        {community.isOwner && (\n          <span className=\"badge owner\">👑 Dono</span>\n        )}\n        {community.isMember && !community.isOwner && (\n          <span className=\"badge member\">✓ Membro</span>\n        )}\n        {community.visibility === 'PRIVATE' && (\n          <span className=\"badge private\">🔒 Privada</span>\n        )}\n      </div>\n      \n      <div className=\"info\">\n        <span>👥 {community.memberCount} membros</span>\n        <span>📚 {community.focus}</span>\n      </div>\n      \n      <div className=\"actions\">\n        {showManageButton && community.isOwner && (\n          <button onClick={() => manageCommunity(community.id)}>\n            Gerenciar\n          </button>\n        )}\n        {showJoinButton && !community.isMember && (\n          <button onClick={() => joinCommunity(community.id)}>\n            Entrar\n          </button>\n        )}\n      </div>\n    </div>\n  );\n}"
+  },
+  "quickReference": {
+    "getToken": "const token = localStorage.getItem('token'); // ou do seu contexto",
+    "addHeader": "headers['Authorization'] = `Bearer ${token}`;",
+    "checkIsOwner": "if (community.isOwner) { /* você é dono */ }",
+    "checkIsMember": "if (community.isMember) { /* você é membro */ }",
+    "filterMyCommunities": "const myCommunities = communities.filter(c => c.isOwner);",
+    "filterMemberCommunities": "const memberCommunities = communities.filter(c => c.isMember && !c.isOwner);"
+  }
+}
+
