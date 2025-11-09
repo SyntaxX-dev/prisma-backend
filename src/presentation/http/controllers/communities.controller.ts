@@ -26,9 +26,11 @@ import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../../infrastructure/guards/optional-jwt.guard';
 import { CreateCommunityUseCase } from '../../../application/communities/use-cases/create-community.use-case';
 import { JoinCommunityUseCase } from '../../../application/communities/use-cases/join-community.use-case';
+import { LeaveCommunityUseCase } from '../../../application/communities/use-cases/leave-community.use-case';
 import { InviteToCommunityUseCase } from '../../../application/communities/use-cases/invite-to-community.use-case';
 import { ListCommunitiesUseCase } from '../../../application/communities/use-cases/list-communities.use-case';
 import { GetCommunityUseCase } from '../../../application/communities/use-cases/get-community.use-case';
+import { ListCommunityMembersUseCase } from '../../../application/communities/use-cases/list-community-members.use-case';
 import { CreateCommunityDto } from '../dtos/create-community.dto';
 import { JoinCommunityDto } from '../dtos/join-community.dto';
 import { InviteToCommunityDto } from '../dtos/invite-to-community.dto';
@@ -43,9 +45,11 @@ export class CommunitiesController {
   constructor(
     private readonly createCommunityUseCase: CreateCommunityUseCase,
     private readonly joinCommunityUseCase: JoinCommunityUseCase,
+    private readonly leaveCommunityUseCase: LeaveCommunityUseCase,
     private readonly inviteToCommunityUseCase: InviteToCommunityUseCase,
     private readonly listCommunitiesUseCase: ListCommunitiesUseCase,
     private readonly getCommunityUseCase: GetCommunityUseCase,
+    private readonly listCommunityMembersUseCase: ListCommunityMembersUseCase,
     private readonly cloudinaryService: CloudinaryService,
     @Inject(COMMUNITY_REPOSITORY)
     private readonly communityRepository: CommunityRepository,
@@ -168,6 +172,56 @@ export class CommunitiesController {
     return result;
   }
 
+  @Post('leave')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sair de uma comunidade' })
+  @ApiResponse({
+    status: 200,
+    description: 'Saiu da comunidade com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Você saiu da comunidade com sucesso'
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Você não é membro desta comunidade',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: 'Você não é membro desta comunidade',
+        error: 'Bad Request'
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'O dono da comunidade não pode sair',
+    schema: {
+      example: {
+        statusCode: 403,
+        message: 'O dono da comunidade não pode sair. Se deseja excluir a comunidade, use o endpoint de exclusão.',
+        error: 'Forbidden'
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Comunidade não encontrada' })
+  async leaveCommunity(
+    @Request() req: any,
+    @Body() leaveCommunityDto: JoinCommunityDto,
+  ) {
+    const result = await this.leaveCommunityUseCase.execute({
+      userId: req.user.sub,
+      communityId: leaveCommunityDto.communityId,
+    });
+
+    return result;
+  }
+
   @Post('invite')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -215,13 +269,7 @@ export class CommunitiesController {
     @Query('focus') focus?: string,
     @Query('includePrivate') includePrivate?: string,
   ) {
-    // Debug: verificar se req.user está sendo populado
-    console.log('[DEBUG] listCommunities - req.user:', req.user);
-    console.log('[DEBUG] listCommunities - req.headers.authorization:', req.headers?.authorization);
-    
     const userId = req.user?.sub;
-    console.log('[DEBUG] listCommunities - userId extraído:', userId);
-    
     const result = await this.listCommunitiesUseCase.execute({
       userId,
       focus,
@@ -248,6 +296,69 @@ export class CommunitiesController {
     const result = await this.getCommunityUseCase.execute({
       communityId: id,
       userId,
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  @Get(':id/members')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Listar membros de uma comunidade' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Número de membros por página (máximo 100)',
+    type: Number,
+    example: 20,
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: 'Número de membros para pular (para paginação)',
+    type: Number,
+    example: 0,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de membros retornada com sucesso',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          members: [
+            {
+              id: 'uuid-do-usuario',
+              name: 'João Silva',
+              profileImage: 'https://...',
+              joinedAt: '2025-11-08T20:05:11.628Z',
+              isOwner: true
+            }
+          ],
+          total: 50,
+          limit: 20,
+          offset: 0,
+          hasMore: true
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Comunidade não encontrada' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar os membros' })
+  async listCommunityMembers(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const userId = req.user?.sub;
+    const result = await this.listCommunityMembersUseCase.execute({
+      communityId: id,
+      userId,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
     });
 
     return {

@@ -29,24 +29,12 @@ export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
   }
 
   handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
-    // Debug
-    console.log('[DEBUG] OptionalJwtAuthGuard - err:', err);
-    console.log('[DEBUG] OptionalJwtAuthGuard - user:', user);
-    console.log('[DEBUG] OptionalJwtAuthGuard - info:', info);
-    
-    // Se houver erro mas não for erro de token ausente, logar
-    if (err && err.message !== 'No auth token') {
-      console.log('[DEBUG] OptionalJwtAuthGuard - Erro de autenticação:', err.message);
-    }
-    
     // Se houver usuário, retorna (token válido)
     if (user) {
-      console.log('[DEBUG] OptionalJwtAuthGuard - Usuário autenticado:', user.sub);
       return user;
     }
     
     // Se não houver usuário ou houver erro, retorna undefined (mas permite continuar)
-    console.log('[DEBUG] OptionalJwtAuthGuard - Sem autenticação, continuando...');
     return undefined;
   }
 }

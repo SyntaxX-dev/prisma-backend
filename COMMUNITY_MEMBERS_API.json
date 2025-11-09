@@ -1,0 +1,471 @@
+{
+  "title": "API de Membros de Comunidades - Documentação Completa",
+  "description": "Documentação dos endpoints para entrar, sair e listar membros de comunidades",
+  "baseUrl": "https://prisma-backend-production-4c22.up.railway.app",
+  "endpoints": {
+    "joinCommunity": {
+      "method": "POST",
+      "path": "/communities/join",
+      "description": "Entrar em uma comunidade (pública ou privada com convite)",
+      "authentication": {
+        "required": true,
+        "header": "Authorization: Bearer <token>"
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <seu-token-jwt>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "communityId": "uuid-da-comunidade"
+        },
+        "example": {
+          "communityId": "1b380319-9336-479a-8ac2-aed60cfdae4c"
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "success": true,
+            "message": "Você entrou na comunidade com sucesso"
+          }
+        },
+        "errors": {
+          "400": {
+            "description": "Você já é membro desta comunidade",
+            "body": {
+              "statusCode": 400,
+              "message": "Você já é membro desta comunidade",
+              "error": "Bad Request"
+            }
+          },
+          "400_private": {
+            "description": "Comunidade privada sem convite",
+            "body": {
+              "statusCode": 400,
+              "message": "Esta comunidade é privada. Você precisa de um convite para participar.",
+              "error": "Bad Request"
+            }
+          },
+          "404": {
+            "description": "Comunidade não encontrada",
+            "body": {
+              "statusCode": 404,
+              "message": "Comunidade não encontrada",
+              "error": "Not Found"
+            }
+          }
+        }
+      },
+      "businessRules": {
+        "publicCommunities": {
+          "description": "Comunidades públicas",
+          "rules": [
+            "Qualquer usuário autenticado pode entrar diretamente",
+            "Não precisa de convite",
+            "Se sair, pode entrar novamente a qualquer momento"
+          ]
+        },
+        "privateCommunities": {
+          "description": "Comunidades privadas",
+          "rules": [
+            "Requer convite pendente para entrar",
+            "O convite é aceito automaticamente ao entrar",
+            "Se sair, precisa de novo convite para entrar novamente"
+          ]
+        },
+        "validations": [
+          "Verifica se o usuário já é membro (retorna erro se for)",
+          "Verifica se a comunidade existe",
+          "Para privadas, verifica se há convite pendente",
+          "Adiciona o usuário como membro automaticamente"
+        ]
+      },
+      "codeExamples": {
+        "javascript": "async function joinCommunity(communityId, token) {\n  const response = await fetch('https://prisma-backend-production-4c22.up.railway.app/communities/join', {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({ communityId })\n  });\n\n  if (!response.ok) {\n    const error = await response.json();\n    throw new Error(error.message);\n  }\n\n  const result = await response.json();\n  return result;\n}\n\n// Uso:\nconst token = localStorage.getItem('token');\nconst result = await joinCommunity('1b380319-9336-479a-8ac2-aed60cfdae4c', token);\nconsole.log(result.message); // 'Você entrou na comunidade com sucesso'",
+        "react": "function JoinCommunityButton({ communityId }) {\n  const [loading, setLoading] = useState(false);\n  const token = useAuth().token;\n\n  const handleJoin = async () => {\n    setLoading(true);\n    try {\n      const response = await fetch('/communities/join', {\n        method: 'POST',\n        headers: {\n          'Authorization': `Bearer ${token}`,\n          'Content-Type': 'application/json'\n        },\n        body: JSON.stringify({ communityId })\n      });\n\n      const result = await response.json();\n      \n      if (result.success) {\n        toast.success(result.message);\n        // Atualizar UI - marcar como membro\n        updateCommunityStatus(communityId, { isMember: true });\n      }\n    } catch (error) {\n      toast.error(error.message);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  return (\n    <button onClick={handleJoin} disabled={loading}>\n      {loading ? 'Entrando...' : 'Entrar na Comunidade'}\n    </button>\n  );\n}"
+      }
+    },
+    "leaveCommunity": {
+      "method": "POST",
+      "path": "/communities/leave",
+      "description": "Sair de uma comunidade (pública ou privada)",
+      "authentication": {
+        "required": true,
+        "header": "Authorization: Bearer <token>"
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <seu-token-jwt>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "communityId": "uuid-da-comunidade"
+        },
+        "example": {
+          "communityId": "1b380319-9336-479a-8ac2-aed60cfdae4c"
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "success": true,
+            "message": "Você saiu da comunidade com sucesso"
+          }
+        },
+        "errors": {
+          "400": {
+            "description": "Usuário não é membro",
+            "body": {
+              "statusCode": 400,
+              "message": "Você não é membro desta comunidade",
+              "error": "Bad Request"
+            }
+          },
+          "403": {
+            "description": "Dono não pode sair",
+            "body": {
+              "statusCode": 403,
+              "message": "O dono da comunidade não pode sair. Se deseja excluir a comunidade, use o endpoint de exclusão.",
+              "error": "Forbidden"
+            }
+          },
+          "404": {
+            "description": "Comunidade não encontrada",
+            "body": {
+              "statusCode": 404,
+              "message": "Comunidade não encontrada",
+              "error": "Not Found"
+            }
+          }
+        }
+      },
+      "businessRules": {
+        "publicCommunities": {
+          "description": "Comunidades públicas",
+          "rules": [
+            "Usuário pode sair a qualquer momento",
+            "Após sair, pode entrar novamente diretamente (sem convite)",
+            "Não há restrições para reentrada"
+          ]
+        },
+        "privateCommunities": {
+          "description": "Comunidades privadas",
+          "rules": [
+            "Usuário pode sair a qualquer momento",
+            "Após sair, precisa de NOVO convite para entrar novamente",
+            "Convites anteriores são considerados inválidos após sair"
+          ]
+        },
+        "ownerRestriction": {
+          "description": "Restrição para dono",
+          "rules": [
+            "O dono NÃO pode sair da comunidade",
+            "Se o dono quiser remover a comunidade, deve usar endpoint de exclusão",
+            "Isso garante que sempre haverá um responsável pela comunidade"
+          ]
+        },
+        "validations": [
+          "Verifica se a comunidade existe",
+          "Verifica se o usuário é membro",
+          "Impede que o dono saia",
+          "Remove o usuário da lista de membros"
+        ]
+      },
+      "codeExamples": {
+        "javascript": "async function leaveCommunity(communityId, token) {\n  const response = await fetch('https://prisma-backend-production-4c22.up.railway.app/communities/leave', {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({ communityId })\n  });\n\n  if (!response.ok) {\n    const error = await response.json();\n    throw new Error(error.message);\n  }\n\n  const result = await response.json();\n  return result;\n}\n\n// Uso:\nconst token = localStorage.getItem('token');\nconst result = await leaveCommunity('1b380319-9336-479a-8ac2-aed60cfdae4c', token);\nconsole.log(result.message); // 'Você saiu da comunidade com sucesso'",
+        "react": "function LeaveCommunityButton({ communityId, isOwner }) {\n  const [loading, setLoading] = useState(false);\n  const token = useAuth().token;\n\n  // Dono não pode sair\n  if (isOwner) {\n    return (\n      <button disabled>\n        Você é o dono (não pode sair)\n      </button>\n    );\n  }\n\n  const handleLeave = async () => {\n    if (!confirm('Tem certeza que deseja sair desta comunidade?')) {\n      return;\n    }\n\n    setLoading(true);\n    try {\n      const response = await fetch('/communities/leave', {\n        method: 'POST',\n        headers: {\n          'Authorization': `Bearer ${token}`,\n          'Content-Type': 'application/json'\n        },\n        body: JSON.stringify({ communityId })\n      });\n\n      const result = await response.json();\n      \n      if (result.success) {\n        toast.success(result.message);\n        // Atualizar UI - marcar como não membro\n        updateCommunityStatus(communityId, { isMember: false });\n      }\n    } catch (error) {\n      toast.error(error.message);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  return (\n    <button onClick={handleLeave} disabled={loading}>\n      {loading ? 'Saindo...' : 'Sair da Comunidade'}\n    </button>\n  );\n}"
+      }
+    },
+    "listCommunityMembers": {
+      "method": "GET",
+      "path": "/communities/:id/members",
+      "description": "Listar membros de uma comunidade com paginação",
+      "authentication": {
+        "required": false,
+        "note": "Opcional para comunidades públicas, obrigatório para privadas",
+        "header": "Authorization: Bearer <token>"
+      },
+      "queryParameters": {
+        "limit": {
+          "type": "number",
+          "required": false,
+          "default": 20,
+          "maximum": 100,
+          "description": "Número de membros por página",
+          "example": "?limit=20"
+        },
+        "offset": {
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "description": "Número de membros para pular (para paginação)",
+          "example": "?offset=0"
+        }
+      },
+      "request": {
+        "publicCommunity": {
+          "description": "Comunidade pública - sem autenticação",
+          "headers": {},
+          "url": "GET /communities/123/members?limit=20&offset=0"
+        },
+        "privateCommunity": {
+          "description": "Comunidade privada - requer autenticação",
+          "headers": {
+            "Authorization": "Bearer <token>"
+          },
+          "url": "GET /communities/123/members?limit=20&offset=0"
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "success": true,
+            "data": {
+              "members": [
+                {
+                  "id": "d99f095c-32e1-496e-b20e-73a554bb9538",
+                  "name": "João Silva",
+                  "profileImage": "https://res.cloudinary.com/.../profile.jpg",
+                  "joinedAt": "2025-11-08T20:05:11.628Z",
+                  "isOwner": true
+                },
+                {
+                  "id": "a1b2c3d4-5678-90ab-cdef-123456789012",
+                  "name": "Maria Santos",
+                  "profileImage": null,
+                  "joinedAt": "2025-11-08T21:10:30.500Z",
+                  "isOwner": false
+                },
+                {
+                  "id": "b2c3d4e5-6789-01ab-cdef-234567890123",
+                  "name": "Pedro Oliveira",
+                  "profileImage": "https://res.cloudinary.com/.../pedro.jpg",
+                  "joinedAt": "2025-11-09T10:15:20.300Z",
+                  "isOwner": false
+                }
+              ],
+              "total": 50,
+              "limit": 20,
+              "offset": 0,
+              "hasMore": true
+            }
+          }
+        },
+        "errors": {
+          "403_private": {
+            "description": "Acesso negado a comunidade privada",
+            "body": {
+              "statusCode": 403,
+              "message": "Esta comunidade é privada. Você precisa estar autenticado e ser membro para visualizar os membros.",
+              "error": "Forbidden"
+            }
+          },
+          "403_not_member": {
+            "description": "Não é membro de comunidade privada",
+            "body": {
+              "statusCode": 403,
+              "message": "Você não tem permissão para visualizar os membros desta comunidade privada",
+              "error": "Forbidden"
+            }
+          },
+          "404": {
+            "description": "Comunidade não encontrada",
+            "body": {
+              "statusCode": 404,
+              "message": "Comunidade não encontrada",
+              "error": "Not Found"
+            }
+          }
+        }
+      },
+      "memberFields": {
+        "id": {
+          "type": "string",
+          "description": "ID único do usuário",
+          "example": "d99f095c-32e1-496e-b20e-73a554bb9538"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nome completo do usuário",
+          "example": "João Silva"
+        },
+        "profileImage": {
+          "type": "string | null",
+          "description": "URL da imagem de perfil do usuário (pode ser null)",
+          "example": "https://res.cloudinary.com/.../profile.jpg"
+        },
+        "joinedAt": {
+          "type": "string (ISO 8601)",
+          "description": "Data e hora em que o usuário entrou na comunidade",
+          "example": "2025-11-08T20:05:11.628Z"
+        },
+        "isOwner": {
+          "type": "boolean",
+          "description": "Indica se o usuário é o dono/criador da comunidade",
+          "example": true
+        }
+      },
+      "paginationFields": {
+        "total": {
+          "type": "number",
+          "description": "Total de membros na comunidade",
+          "example": 50
+        },
+        "limit": {
+          "type": "number",
+          "description": "Número de membros retornados nesta página",
+          "example": 20
+        },
+        "offset": {
+          "type": "number",
+          "description": "Número de membros pulados (para paginação)",
+          "example": 0
+        },
+        "hasMore": {
+          "type": "boolean",
+          "description": "Indica se há mais páginas disponíveis",
+          "example": true,
+          "calculation": "offset + limit < total"
+        }
+      },
+      "businessRules": {
+        "ordering": {
+          "description": "Ordenação dos membros",
+          "rules": [
+            "O dono sempre aparece primeiro na lista",
+            "Demais membros são ordenados por data de entrada (mais antigos primeiro)",
+            "Isso garante que o criador seja sempre visível"
+          ]
+        },
+        "accessControl": {
+          "publicCommunities": [
+            "Qualquer pessoa pode ver os membros (mesmo sem autenticação)",
+            "Não requer token JWT"
+          ],
+          "privateCommunities": [
+            "Apenas membros e dono podem ver a lista de membros",
+            "Requer autenticação",
+            "Verifica se o usuário é membro ou dono"
+          ]
+        },
+        "pagination": {
+          "description": "Sistema de paginação",
+          "rules": [
+            "Padrão: 20 membros por página",
+            "Máximo: 100 membros por página",
+            "Use offset para navegar entre páginas",
+            "hasMore indica se há mais resultados"
+          ]
+        }
+      },
+      "codeExamples": {
+        "javascript": "async function listCommunityMembers(communityId, token = null, limit = 20, offset = 0) {\n  const headers = {};\n  if (token) {\n    headers['Authorization'] = `Bearer ${token}`;\n  }\n\n  const response = await fetch(\n    `https://prisma-backend-production-4c22.up.railway.app/communities/${communityId}/members?limit=${limit}&offset=${offset}`,\n    { headers }\n  );\n\n  if (!response.ok) {\n    const error = await response.json();\n    throw new Error(error.message);\n  }\n\n  const result = await response.json();\n  return result.data;\n}\n\n// Uso:\nconst token = localStorage.getItem('token');\nconst page1 = await listCommunityMembers('123', token, 20, 0);\nconsole.log(`Total: ${page1.total}, Mostrando: ${page1.members.length}`);\n\n// Próxima página\nif (page1.hasMore) {\n  const page2 = await listCommunityMembers('123', token, 20, 20);\n}",
+        "react": "function CommunityMembersList({ communityId, isPrivate }) {\n  const [members, setMembers] = useState([]);\n  const [loading, setLoading] = useState(true);\n  const [pagination, setPagination] = useState({ total: 0, limit: 20, offset: 0, hasMore: false });\n  const token = useAuth().token;\n\n  const fetchMembers = async (offset = 0) => {\n    setLoading(true);\n    try {\n      const headers = {};\n      if (token || isPrivate) {\n        headers['Authorization'] = `Bearer ${token}`;\n      }\n\n      const response = await fetch(\n        `/communities/${communityId}/members?limit=20&offset=${offset}`,\n        { headers }\n      );\n\n      const result = await response.json();\n      \n      if (result.success) {\n        setMembers(result.data.members);\n        setPagination({\n          total: result.data.total,\n          limit: result.data.limit,\n          offset: result.data.offset,\n          hasMore: result.data.hasMore\n        });\n      }\n    } catch (error) {\n      console.error('Erro ao buscar membros:', error);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  useEffect(() => {\n    fetchMembers();\n  }, [communityId]);\n\n  const loadMore = () => {\n    if (pagination.hasMore) {\n      fetchMembers(pagination.offset + pagination.limit);\n    }\n  };\n\n  if (loading) return <div>Carregando membros...</div>;\n\n  return (\n    <div>\n      <h3>Membros ({pagination.total})</h3>\n      \n      {members.map(member => (\n        <div key={member.id} className=\"member-card\">\n          {member.profileImage && (\n            <img src={member.profileImage} alt={member.name} />\n          )}\n          <div>\n            <h4>{member.name}</h4>\n            {member.isOwner && <span className=\"badge\">👑 Dono</span>}\n            <p>Entrou em: {new Date(member.joinedAt).toLocaleDateString()}</p>\n          </div>\n        </div>\n      ))}\n      \n      {pagination.hasMore && (\n        <button onClick={loadMore}>Carregar mais membros</button>\n      )}\n    </div>\n  );\n}"
+      }
+    }
+  },
+  "workflowExamples": {
+    "joinPublicCommunity": {
+      "step1": "GET /communities - Listar comunidades públicas",
+      "step2": "POST /communities/join - Entrar na comunidade (com token)",
+      "step3": "GET /communities/:id/members - Ver membros",
+      "step4": "POST /communities/leave - Sair (opcional)",
+      "step5": "POST /communities/join - Entrar novamente (pode entrar de novo)"
+    },
+    "joinPrivateCommunity": {
+      "step1": "POST /communities/invite - Receber convite (de outro membro)",
+      "step2": "POST /communities/join - Entrar na comunidade (aceita convite automaticamente)",
+      "step3": "GET /communities/:id/members - Ver membros (requer autenticação)",
+      "step4": "POST /communities/leave - Sair (opcional)",
+      "step5": "POST /communities/invite - Precisa de NOVO convite para entrar novamente"
+    }
+  },
+  "importantNotes": {
+    "authentication": {
+      "join": "SEMPRE requer autenticação (token JWT obrigatório)",
+      "leave": "SEMPRE requer autenticação (token JWT obrigatório)",
+      "listMembers": "Opcional para públicas, obrigatório para privadas"
+    },
+    "ownerRestrictions": {
+      "cannotLeave": "O dono NÃO pode sair da comunidade",
+      "alwaysFirst": "O dono sempre aparece primeiro na lista de membros",
+      "alwaysMember": "O dono sempre é considerado membro (isMember: true)"
+    },
+    "privateCommunities": {
+      "joinRequiresInvite": "Precisa de convite pendente para entrar",
+      "leaveRequiresNewInvite": "Se sair, precisa de novo convite para entrar",
+      "membersListRequiresAuth": "Lista de membros só visível para membros/dono"
+    },
+    "publicCommunities": {
+      "joinFree": "Qualquer um pode entrar diretamente",
+      "leaveAndRejoin": "Pode sair e entrar novamente sem restrições",
+      "membersListPublic": "Lista de membros é pública (visível para todos)"
+    }
+  },
+  "errorHandling": {
+    "commonErrors": {
+      "400_already_member": "Usuário já é membro - não tente entrar novamente",
+      "400_not_member": "Usuário não é membro - não pode sair",
+      "403_owner_cannot_leave": "Dono não pode sair - use endpoint de exclusão",
+      "403_private_access": "Comunidade privada - precisa ser membro para ver membros",
+      "404_community_not_found": "Comunidade não existe - verifique o ID"
+    },
+    "bestPractices": [
+      "Sempre verificar isMember antes de mostrar botão 'Entrar'",
+      "Sempre verificar isOwner antes de permitir sair",
+      "Tratar erros 403 para comunidades privadas",
+      "Implementar retry para erros de rede",
+      "Mostrar loading states durante requisições"
+    ]
+  },
+  "uiRecommendations": {
+    "joinButton": {
+      "showWhen": "isMember === false",
+      "hideWhen": "isMember === true",
+      "text": "Entrar na Comunidade",
+      "loadingText": "Entrando...",
+      "successMessage": "Você entrou na comunidade com sucesso!"
+    },
+    "leaveButton": {
+      "showWhen": "isMember === true && isOwner === false",
+      "hideWhen": "isMember === false || isOwner === true",
+      "text": "Sair da Comunidade",
+      "loadingText": "Saindo...",
+      "confirmDialog": "Tem certeza que deseja sair desta comunidade?",
+      "successMessage": "Você saiu da comunidade com sucesso!"
+    },
+    "membersList": {
+      "showOwnerBadge": "Sempre mostrar badge '👑 Dono' quando isOwner === true",
+      "showProfileImage": "Mostrar imagem de perfil ou avatar padrão",
+      "showJoinDate": "Mostrar data de entrada formatada",
+      "pagination": "Implementar botão 'Carregar mais' quando hasMore === true",
+      "emptyState": "Mostrar mensagem quando não houver membros"
+    }
+  },
+  "quickReference": {
+    "join": {
+      "endpoint": "POST /communities/join",
+      "auth": "Obrigatório",
+      "body": "{ communityId: string }",
+      "success": "{ success: true, message: string }"
+    },
+    "leave": {
+      "endpoint": "POST /communities/leave",
+      "auth": "Obrigatório",
+      "body": "{ communityId: string }",
+      "success": "{ success: true, message: string }",
+      "restriction": "Dono não pode sair"
+    },
+    "listMembers": {
+      "endpoint": "GET /communities/:id/members",
+      "auth": "Opcional (obrigatório para privadas)",
+      "query": "?limit=20&offset=0",
+      "success": "{ success: true, data: { members: [...], total, limit, offset, hasMore } }"
+    }
+  }
+}
+

@@ -86,16 +86,11 @@ export class ListCommunitiesUseCase {
         let isOwner = false;
         
         if (input.userId) {
-          // Debug
-          console.log('[DEBUG] ListCommunities - Comparando userId:', input.userId, 'com ownerId:', community.ownerId);
-          
           isOwner = community.ownerId === input.userId;
-          console.log('[DEBUG] ListCommunities - isOwner calculado:', isOwner);
           
           // Se for dono, sempre é membro
           if (isOwner) {
             isMember = true;
-            console.log('[DEBUG] ListCommunities - Dono sempre é membro, isMember:', isMember);
           } else {
             // Se não for dono, verificar se é membro
             const member =
@@ -104,10 +99,7 @@ export class ListCommunitiesUseCase {
                 input.userId,
               );
             isMember = !!member;
-            console.log('[DEBUG] ListCommunities - Verificando membro, isMember:', isMember);
           }
-        } else {
-          console.log('[DEBUG] ListCommunities - Sem userId, isOwner e isMember serão false');
         }
 
         return {
