@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../../infrastructure/guards/optional-jwt.guard';
 import { CreateCommunityUseCase } from '../../../application/communities/use-cases/create-community.use-case';
 import { JoinCommunityUseCase } from '../../../application/communities/use-cases/join-community.use-case';
 import { InviteToCommunityUseCase } from '../../../application/communities/use-cases/invite-to-community.use-case';
@@ -191,6 +192,7 @@ export class CommunitiesController {
   }
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Listar comunidades' })
   @ApiQuery({
     name: 'focus',
@@ -227,6 +229,7 @@ export class CommunitiesController {
   }
 
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Obter detalhes de uma comunidade' })
   @ApiResponse({
     status: 200,
