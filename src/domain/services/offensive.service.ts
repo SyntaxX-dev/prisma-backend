@@ -297,6 +297,9 @@ export class OffensiveService {
 
     console.log(`[DEBUG] Calculated consecutive days: ${consecutiveDays}`);
 
+    // Calcular total de ofensivas (número de dias únicos com vídeos completados)
+    const totalOffensives = sortedDates.length;
+
     // Buscar ou criar ofensiva
     let offensive = await this.offensiveRepository.findByUserId(userId);
     let isNewOffensive = false;
@@ -309,7 +312,7 @@ export class OffensiveService {
         consecutiveDays,
         mostRecentDate,
         mostRecentDate,
-        1,
+        totalOffensives,
         new Date(),
         new Date(),
       );
@@ -324,7 +327,7 @@ export class OffensiveService {
         consecutiveDays,
         mostRecentDate,
         mostRecentDate,
-        offensive.totalOffensives,
+        totalOffensives,
         offensive.createdAt,
         new Date(),
       );
