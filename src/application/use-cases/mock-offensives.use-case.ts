@@ -1,10 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { VideoProgress } from '../../domain/entities/video-progress';
-import { VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '../../domain/tokens';
+import { VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, OFFENSIVE_SERVICE } from '../../domain/tokens';
 import type { VideoRepository } from '../../domain/repositories/video.repository';
 import type { VideoProgressRepository } from '../../domain/repositories/video-progress.repository';
-import { OffensiveService } from '../../domain/services/offensive.service';
+import type { OffensiveService } from '../../domain/services/offensive.service';
 
 export interface MockOffensivesInput {
   userId: string;
@@ -39,6 +39,7 @@ export class MockOffensivesUseCase {
     private readonly videoRepository: VideoRepository,
     @Inject(VIDEO_PROGRESS_REPOSITORY)
     private readonly videoProgressRepository: VideoProgressRepository,
+    @Inject(OFFENSIVE_SERVICE)
     private readonly offensiveService: OffensiveService,
   ) {}
 
