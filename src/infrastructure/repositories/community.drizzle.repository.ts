@@ -105,6 +105,48 @@ export class CommunityDrizzleRepository implements CommunityRepository {
     return results.map((c) => this.mapToEntity(c));
   }
 
+  async findPublicAndOwnedCommunities(userId: string): Promise<Community[]> {
+    const results = await this.db
+      .select()
+      .from(communities)
+      .where(
+        or(
+          eq(communities.visibility, 'PUBLIC'),
+          and(
+            eq(communities.visibility, 'PRIVATE'),
+            eq(communities.ownerId, userId),
+          ),
+        ),
+      )
+      .orderBy(communities.createdAt);
+
+    return results.map((c) => this.mapToEntity(c));
+  }
+
+  async findPublicAndOwnedCommunitiesByFocus(
+    userId: string,
+    focus: string,
+  ): Promise<Community[]> {
+    const results = await this.db
+      .select()
+      .from(communities)
+      .where(
+        and(
+          eq(communities.focus, focus),
+          or(
+            eq(communities.visibility, 'PUBLIC'),
+            and(
+              eq(communities.visibility, 'PRIVATE'),
+              eq(communities.ownerId, userId),
+            ),
+          ),
+        ),
+      )
+      .orderBy(communities.createdAt);
+
+    return results.map((c) => this.mapToEntity(c));
+  }
+
   async update(community: Community): Promise<void> {
     await this.db
       .update(communities)

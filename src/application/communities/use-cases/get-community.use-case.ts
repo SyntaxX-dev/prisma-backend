@@ -22,6 +22,7 @@ export interface GetCommunityOutput {
   ownerId: string;
   memberCount: number;
   isMember: boolean;
+  isOwner: boolean;
   createdAt: Date;
 }
 
@@ -43,7 +44,7 @@ export class GetCommunityUseCase {
       throw new NotFoundException('Comunidade não encontrada');
     }
 
-    // Se for privada, verificar se o usuário tem acesso
+    // Se for privada, verificar se o usuário tem acesso (dono ou membro)
     if (community.visibility === CommunityVisibility.PRIVATE) {
       if (!input.userId) {
         throw new ForbiddenException(
@@ -51,16 +52,22 @@ export class GetCommunityUseCase {
         );
       }
 
-      const member =
-        await this.communityMemberRepository.findByCommunityAndUser(
-          input.communityId,
-          input.userId,
-        );
+      // Verificar se é o dono
+      const isOwner = community.ownerId === input.userId;
+      
+      // Se não for dono, verificar se é membro
+      if (!isOwner) {
+        const member =
+          await this.communityMemberRepository.findByCommunityAndUser(
+            input.communityId,
+            input.userId,
+          );
 
-      if (!member) {
-        throw new ForbiddenException(
-          'Você não tem permissão para visualizar esta comunidade privada',
-        );
+        if (!member) {
+          throw new ForbiddenException(
+            'Você não tem permissão para visualizar esta comunidade privada',
+          );
+        }
       }
     }
 
@@ -70,7 +77,11 @@ export class GetCommunityUseCase {
       );
 
     let isMember = false;
+    let isOwner = false;
+    
     if (input.userId) {
+      isOwner = community.ownerId === input.userId;
+      
       const member =
         await this.communityMemberRepository.findByCommunityAndUser(
           community.id,
@@ -89,6 +100,7 @@ export class GetCommunityUseCase {
       ownerId: community.ownerId,
       memberCount,
       isMember,
+      isOwner,
       createdAt: community.createdAt,
     };
   }

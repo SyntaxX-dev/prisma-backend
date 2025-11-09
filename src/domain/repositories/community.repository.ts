@@ -9,6 +9,8 @@ export interface CommunityRepository {
   findPublicCommunities(): Promise<Community[]>;
   findPublicCommunitiesByFocus(focus: string): Promise<Community[]>;
   findCommunitiesByUserId(userId: string): Promise<Community[]>;
+  findPublicAndOwnedCommunities(userId: string): Promise<Community[]>;
+  findPublicAndOwnedCommunitiesByFocus(userId: string, focus: string): Promise<Community[]>;
   update(community: Community): Promise<void>;
   delete(id: string): Promise<void>;
 }

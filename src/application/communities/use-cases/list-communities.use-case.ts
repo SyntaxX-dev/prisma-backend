@@ -23,6 +23,7 @@ export interface CommunityListItem {
   ownerId: string;
   memberCount: number;
   isMember: boolean;
+  isOwner: boolean;
   createdAt: Date;
 }
 
@@ -43,18 +44,34 @@ export class ListCommunitiesUseCase {
     let communities;
 
     if (input.focus) {
-      // Buscar comunidades públicas por foco
-      communities =
-        await this.communityRepository.findPublicCommunitiesByFocus(
-          input.focus,
-        );
+      // Buscar comunidades públicas por foco + comunidades privadas do dono
+      if (input.userId) {
+        communities =
+          await this.communityRepository.findPublicAndOwnedCommunitiesByFocus(
+            input.userId,
+            input.focus,
+          );
+      } else {
+        communities =
+          await this.communityRepository.findPublicCommunitiesByFocus(
+            input.focus,
+          );
+      }
     } else if (input.userId && input.includePrivate) {
       // Buscar todas as comunidades do usuário (públicas e privadas que ele é membro)
       communities =
         await this.communityRepository.findCommunitiesByUserId(input.userId);
     } else {
-      // Buscar apenas comunidades públicas
-      communities = await this.communityRepository.findPublicCommunities();
+      // Buscar comunidades públicas + comunidades privadas do dono (se autenticado)
+      if (input.userId) {
+        communities =
+          await this.communityRepository.findPublicAndOwnedCommunities(
+            input.userId,
+          );
+      } else {
+        // Buscar apenas comunidades públicas
+        communities = await this.communityRepository.findPublicCommunities();
+      }
     }
 
     // Enriquecer com informações de membros
@@ -66,7 +83,11 @@ export class ListCommunitiesUseCase {
           );
 
         let isMember = false;
+        let isOwner = false;
+        
         if (input.userId) {
+          isOwner = community.ownerId === input.userId;
+          
           const member =
             await this.communityMemberRepository.findByCommunityAndUser(
               community.id,
@@ -85,6 +106,7 @@ export class ListCommunitiesUseCase {
           ownerId: community.ownerId,
           memberCount,
           isMember,
+          isOwner,
           createdAt: community.createdAt,
         };
       }),
