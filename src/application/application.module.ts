@@ -7,6 +7,7 @@ import { ListContestsUseCase } from './use-cases/list-contests.use-case';
 import { ListCollegeCoursesUseCase } from './use-cases/list-college-courses.use-case';
 import { GetUserOffensivesUseCase } from './use-cases/get-user-offensives.use-case';
 import { GetUserProfileUseCase } from './use-cases/get-user-profile.use-case';
+import { MockOffensivesUseCase } from './use-cases/mock-offensives.use-case';
 import { InfrastructureModule } from '../infrastructure/config/infrastructure.module';
 import { EmailModule } from '../infrastructure/email/email.module';
 import { AuthModule } from '../infrastructure/auth/auth.module';
@@ -22,6 +23,7 @@ import { OFFENSIVE_SERVICE } from '../domain/tokens';
     ListContestsUseCase,
     ListCollegeCoursesUseCase,
     GetUserProfileUseCase,
+    MockOffensivesUseCase,
     {
       provide: GetUserOffensivesUseCase,
       useFactory: (offensiveService) => new GetUserOffensivesUseCase(offensiveService),
@@ -36,6 +38,7 @@ import { OFFENSIVE_SERVICE } from '../domain/tokens';
     ListContestsUseCase,
     ListCollegeCoursesUseCase,
     GetUserProfileUseCase,
+    MockOffensivesUseCase,
     GetUserOffensivesUseCase,
   ],
 })
