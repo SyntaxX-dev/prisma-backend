@@ -5,6 +5,7 @@ import {
   NotFoundException,
   ForbiddenException,
   Optional,
+  forwardRef,
 } from '@nestjs/common';
 import {
   FRIEND_REQUEST_REPOSITORY,
@@ -52,6 +53,7 @@ export class SendFriendRequestUseCase {
     private readonly userRepository: UserRepository,
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepository: NotificationRepository,
+    @Inject(forwardRef(() => NotificationsGateway))
     @Optional()
     private readonly notificationsGateway?: NotificationsGateway,
   ) {}
@@ -131,7 +133,7 @@ export class SendFriendRequestUseCase {
 
     // Enviar notificação em tempo real via WebSocket
     if (this.notificationsGateway) {
-      this.notificationsGateway.emitToUser(receiverId, 'friend_request', {
+      const notificationData = {
         id: notification.id,
         type: NotificationType.FRIEND_REQUEST,
         title: notification.title,
@@ -144,7 +146,16 @@ export class SendFriendRequestUseCase {
           profileImage: requester.profileImage,
         },
         createdAt: notification.createdAt,
-      });
+      };
+      
+      const sent = this.notificationsGateway.emitToUser(receiverId, 'friend_request', notificationData);
+      if (!sent) {
+        console.log(`[SendFriendRequest] Usuário ${receiverId} não está conectado ao WebSocket`);
+      } else {
+        console.log(`[SendFriendRequest] Notificação enviada via WebSocket para usuário ${receiverId}`);
+      }
+    } else {
+      console.warn('[SendFriendRequest] NotificationsGateway não está disponível');
     }
 
     return {

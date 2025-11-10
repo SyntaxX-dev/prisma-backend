@@ -79,12 +79,15 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   // Método público para emitir notificações
   emitToUser(userId: string, event: string, data: any) {
     const socketId = this.connectedUsers.get(userId);
+    this.logger.debug(`Tentando enviar ${event} para usuário ${userId}, socketId: ${socketId}`);
+    this.logger.debug(`Usuários conectados: ${Array.from(this.connectedUsers.keys()).join(', ')}`);
+    
     if (socketId) {
       this.server.to(socketId).emit(event, data);
-      this.logger.log(`Notificação enviada para usuário ${userId}: ${event}`);
+      this.logger.log(`✅ Notificação enviada para usuário ${userId} (${socketId}): ${event}`);
       return true;
     }
-    this.logger.warn(`Usuário ${userId} não está conectado`);
+    this.logger.warn(`❌ Usuário ${userId} não está conectado ao WebSocket`);
     return false;
   }
 
