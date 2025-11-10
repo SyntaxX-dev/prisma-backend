@@ -171,10 +171,72 @@ export class OffensiveService {
     
     // Buscar histórico dos últimos 30 dias
     const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999); // Fim do dia
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);
+    startDate.setHours(0, 0, 0, 0); // Início do dia
     
-    const history = await this.offensiveRepository.getOffensiveHistory(userId, startDate, endDate);
+    // Buscar todas as conclusões no período
+    const completions = await this.videoProgressRepository.findCompletionsByDateRange(
+      userId,
+      startDate,
+      endDate,
+    );
+
+    // Agrupar por dia e calcular tipo de ofensiva para cada dia
+    const completionsByDay = new Map<number, Date>();
+    for (const completion of completions) {
+      if (completion.completedAt) {
+        const date = new Date(completion.completedAt);
+        date.setHours(0, 0, 0, 0);
+        const timestamp = date.getTime();
+        if (!completionsByDay.has(timestamp)) {
+          completionsByDay.set(timestamp, date);
+        }
+      }
+    }
+
+    // Ordenar datas
+    const sortedDates = Array.from(completionsByDay.values()).sort((a, b) => a.getTime() - b.getTime());
+
+    // Gerar histórico: apenas dias com ofensivas
+    const history: { date: Date; hasOffensive: boolean; type?: string }[] = [];
+
+    // Para cada dia com vídeo completado, calcular tipo de ofensiva
+    for (let i = 0; i < sortedDates.length; i++) {
+      const day = sortedDates[i];
+      let consecutiveDays = 1;
+      
+      // Contar dias consecutivos anteriores (retroceder na lista)
+      for (let j = i - 1; j >= 0; j--) {
+        const prevDate = sortedDates[j];
+        const nextDate = sortedDates[j + 1];
+        const daysDiff = Math.floor((nextDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysDiff === 1) {
+          consecutiveDays++;
+        } else {
+          break;
+        }
+      }
+
+      // Calcular tipo baseado na sequência
+      let type = OffensiveType.NORMAL;
+      if (consecutiveDays >= 365) {
+        type = OffensiveType.INFINITY;
+      } else if (consecutiveDays >= 180) {
+        type = OffensiveType.KING;
+      } else if (consecutiveDays >= 30) {
+        type = OffensiveType.ULTRA;
+      } else if (consecutiveDays >= 7) {
+        type = OffensiveType.SUPER;
+      }
+
+      history.push({
+        date: new Date(day),
+        hasOffensive: true,
+        type: type,
+      });
+    }
 
     const stats = {
       totalOffensives: currentOffensive?.totalOffensives || 0,
