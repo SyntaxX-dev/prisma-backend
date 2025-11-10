@@ -8,6 +8,7 @@ import { ListCollegeCoursesUseCase } from './use-cases/list-college-courses.use-
 import { GetUserOffensivesUseCase } from './use-cases/get-user-offensives.use-case';
 import { GetUserProfileUseCase } from './use-cases/get-user-profile.use-case';
 import { MockOffensivesUseCase } from './use-cases/mock-offensives.use-case';
+import { ListNotificationsUseCase } from './use-cases/list-notifications.use-case';
 import { InfrastructureModule } from '../infrastructure/config/infrastructure.module';
 import { EmailModule } from '../infrastructure/email/email.module';
 import { AuthModule } from '../infrastructure/auth/auth.module';
@@ -23,6 +24,7 @@ import { OFFENSIVE_SERVICE, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '
     ListContestsUseCase,
     ListCollegeCoursesUseCase,
     GetUserProfileUseCase,
+    ListNotificationsUseCase,
     {
       provide: MockOffensivesUseCase,
       useFactory: (videoRepository, videoProgressRepository, offensiveService) =>
@@ -43,6 +45,7 @@ import { OFFENSIVE_SERVICE, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '
     ListContestsUseCase,
     ListCollegeCoursesUseCase,
     GetUserProfileUseCase,
+    ListNotificationsUseCase,
     MockOffensivesUseCase,
     GetUserOffensivesUseCase,
   ],

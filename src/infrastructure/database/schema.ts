@@ -80,6 +80,15 @@ export const communityVisibilityEnum = pgEnum('community_visibility', [
   'PUBLIC',
   'PRIVATE',
 ]);
+export const friendRequestStatusEnum = pgEnum('friend_request_status', [
+  'PENDING',
+  'ACCEPTED',
+  'REJECTED',
+]);
+export const notificationTypeEnum = pgEnum('notification_type', [
+  'FRIEND_REQUEST',
+  'FRIEND_ACCEPTED',
+]);
 
 export const users = pgTable(
   'users',
@@ -377,5 +386,110 @@ export const communityInvites = pgTable(
     inviteeIdIdx: index('community_invites_invitee_id_idx').on(table.inviteeId),
     statusIdx: index('community_invites_status_idx').on(table.status),
     createdAtIdx: index('community_invites_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const friendRequests = pgTable(
+  'friend_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    requesterId: uuid('requester_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    receiverId: uuid('receiver_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: friendRequestStatusEnum('status').notNull().default('PENDING'),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    requesterReceiverIdx: uniqueIndex('friend_requests_requester_receiver_unique').on(
+      table.requesterId,
+      table.receiverId,
+    ),
+    requesterIdIdx: index('friend_requests_requester_id_idx').on(table.requesterId),
+    receiverIdIdx: index('friend_requests_receiver_id_idx').on(table.receiverId),
+    statusIdx: index('friend_requests_status_idx').on(table.status),
+    createdAtIdx: index('friend_requests_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const friendships = pgTable(
+  'friendships',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId1: uuid('user_id_1')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    userId2: uuid('user_id_2')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userPairIdx: uniqueIndex('friendships_user_pair_unique').on(
+      table.userId1,
+      table.userId2,
+    ),
+    userId1Idx: index('friendships_user_id_1_idx').on(table.userId1),
+    userId2Idx: index('friendships_user_id_2_idx').on(table.userId2),
+    createdAtIdx: index('friendships_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const blocks = pgTable(
+  'blocks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    blockerId: uuid('blocker_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    blockedId: uuid('blocked_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    blockerBlockedIdx: uniqueIndex('blocks_blocker_blocked_unique').on(
+      table.blockerId,
+      table.blockedId,
+    ),
+    blockerIdIdx: index('blocks_blocker_id_idx').on(table.blockerId),
+    blockedIdIdx: index('blocks_blocked_id_idx').on(table.blockedId),
+    createdAtIdx: index('blocks_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: notificationTypeEnum('type').notNull(),
+    title: text('title').notNull(),
+    message: text('message').notNull(),
+    relatedUserId: uuid('related_user_id').references(() => users.id, { onDelete: 'set null' }),
+    relatedEntityId: uuid('related_entity_id'), // ID de outra entidade (pedido de amizade, etc)
+    isRead: text('is_read').notNull().default('false'),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index('notifications_user_id_idx').on(table.userId),
+    typeIdx: index('notifications_type_idx').on(table.type),
+    isReadIdx: index('notifications_is_read_idx').on(table.isRead),
+    createdAtIdx: index('notifications_created_at_idx').on(table.createdAt),
   }),
 );

@@ -15,6 +15,10 @@ import {
   COMMUNITY_REPOSITORY,
   COMMUNITY_MEMBER_REPOSITORY,
   COMMUNITY_INVITE_REPOSITORY,
+  FRIEND_REQUEST_REPOSITORY,
+  FRIENDSHIP_REPOSITORY,
+  BLOCK_REPOSITORY,
+  NOTIFICATION_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -33,6 +37,10 @@ import { CloudinaryService } from '../services/cloudinary.service';
 import { CommunityDrizzleRepository } from '../repositories/community.drizzle.repository';
 import { CommunityMemberDrizzleRepository } from '../repositories/community-member.drizzle.repository';
 import { CommunityInviteDrizzleRepository } from '../repositories/community-invite.drizzle.repository';
+import { FriendRequestDrizzleRepository } from '../repositories/friend-request.drizzle.repository';
+import { FriendshipDrizzleRepository } from '../repositories/friendship.drizzle.repository';
+import { BlockDrizzleRepository } from '../repositories/block.drizzle.repository';
+import { NotificationDrizzleRepository } from '../repositories/notification.drizzle.repository';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -106,6 +114,26 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       useFactory: (db: NodePgDatabase) => new CommunityInviteDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
+    {
+      provide: FRIEND_REQUEST_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new FriendRequestDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: FRIENDSHIP_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new FriendshipDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: BLOCK_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new BlockDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: NOTIFICATION_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new NotificationDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
     CloudinaryService,
   ],
   exports: [
@@ -124,6 +152,10 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     COMMUNITY_REPOSITORY,
     COMMUNITY_MEMBER_REPOSITORY,
     COMMUNITY_INVITE_REPOSITORY,
+    FRIEND_REQUEST_REPOSITORY,
+    FRIENDSHIP_REPOSITORY,
+    BLOCK_REPOSITORY,
+    NOTIFICATION_REPOSITORY,
     CloudinaryService,
   ],
 })
