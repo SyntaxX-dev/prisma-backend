@@ -90,13 +90,17 @@ export class SendFriendRequestUseCase {
       throw new BadRequestException('Vocês já são amigos');
     }
 
-    // Verificar se já existe um pedido pendente (em qualquer direção)
+    // Verificar se já existe um pedido entre esses dois usuários (direção atual)
     const existingRequest = await this.friendRequestRepository.findByRequesterAndReceiver(
       requesterId,
       receiverId,
     );
-    if (existingRequest && existingRequest.status === FriendRequestStatus.PENDING) {
-      throw new BadRequestException('Já existe um pedido de amizade pendente');
+    if (existingRequest) {
+      if (existingRequest.status === FriendRequestStatus.PENDING) {
+        throw new BadRequestException('Já existe um pedido de amizade pendente');
+      }
+      // Se o pedido foi aceito ou rejeitado, deleta o antigo para criar um novo
+      await this.friendRequestRepository.delete(existingRequest.id);
     }
 
     // Verificar se existe um pedido na direção oposta
@@ -104,8 +108,12 @@ export class SendFriendRequestUseCase {
       receiverId,
       requesterId,
     );
-    if (reverseRequest && reverseRequest.status === FriendRequestStatus.PENDING) {
-      throw new BadRequestException('Este usuário já enviou um pedido de amizade para você');
+    if (reverseRequest) {
+      if (reverseRequest.status === FriendRequestStatus.PENDING) {
+        throw new BadRequestException('Este usuário já enviou um pedido de amizade para você');
+      }
+      // Se o pedido foi aceito ou rejeitado, deleta o antigo para criar um novo
+      await this.friendRequestRepository.delete(reverseRequest.id);
     }
 
     // Criar o pedido de amizade
