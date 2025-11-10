@@ -12,6 +12,9 @@ export class WsJwtGuard implements CanActivate {
     const token = this.extractTokenFromHeader(client);
 
     if (!token) {
+      console.log('[WsJwtGuard] Token não encontrado. Headers:', client.handshake.headers);
+      console.log('[WsJwtGuard] Query:', client.handshake.query);
+      console.log('[WsJwtGuard] Auth:', client.handshake.auth);
       throw new UnauthorizedException('Token não fornecido');
     }
 
@@ -21,20 +24,37 @@ export class WsJwtGuard implements CanActivate {
       
       // Adicionar payload ao socket para uso posterior
       client.data.user = payload;
+      console.log('[WsJwtGuard] ✅ Token válido para usuário:', payload.sub);
       return true;
-    } catch {
+    } catch (error) {
+      console.log('[WsJwtGuard] ❌ Erro ao verificar token:', error.message);
       throw new UnauthorizedException('Token inválido');
     }
   }
 
   private extractTokenFromHeader(client: Socket): string | undefined {
+    // Tentar 1: Header Authorization
     const authHeader = client.handshake.headers.authorization;
-    if (!authHeader) {
-      return undefined;
+    if (authHeader) {
+      const [type, token] = authHeader.split(' ') ?? [];
+      if (type === 'Bearer' && token) {
+        return token;
+      }
     }
 
-    const [type, token] = authHeader.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    // Tentar 2: Query string (?token=...)
+    const queryToken = client.handshake.query?.token as string | undefined;
+    if (queryToken) {
+      return queryToken;
+    }
+
+    // Tentar 3: Auth object do Socket.io
+    const authToken = (client.handshake.auth as any)?.token as string | undefined;
+    if (authToken) {
+      return authToken;
+    }
+
+    return undefined;
   }
 }
 
