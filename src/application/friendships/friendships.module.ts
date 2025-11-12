@@ -6,6 +6,7 @@ import { AcceptFriendRequestUseCase } from './use-cases/accept-friend-request.us
 import { RejectFriendRequestUseCase } from './use-cases/reject-friend-request.use-case';
 import { BlockUserUseCase } from './use-cases/block-user.use-case';
 import { UnblockUserUseCase } from './use-cases/unblock-user.use-case';
+import { UnfriendUserUseCase } from './use-cases/unfriend-user.use-case';
 import { ListFriendsUseCase } from './use-cases/list-friends.use-case';
 import { ListFriendRequestsUseCase } from './use-cases/list-friend-requests.use-case';
 
@@ -17,6 +18,7 @@ import { ListFriendRequestsUseCase } from './use-cases/list-friend-requests.use-
     RejectFriendRequestUseCase,
     BlockUserUseCase,
     UnblockUserUseCase,
+    UnfriendUserUseCase,
     ListFriendsUseCase,
     ListFriendRequestsUseCase,
   ],
@@ -26,6 +28,7 @@ import { ListFriendRequestsUseCase } from './use-cases/list-friend-requests.use-
     RejectFriendRequestUseCase,
     BlockUserUseCase,
     UnblockUserUseCase,
+    UnfriendUserUseCase,
     ListFriendsUseCase,
     ListFriendRequestsUseCase,
   ],

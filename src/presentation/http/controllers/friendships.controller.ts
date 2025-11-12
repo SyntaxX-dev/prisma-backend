@@ -16,6 +16,7 @@ import { AcceptFriendRequestUseCase } from '../../../application/friendships/use
 import { RejectFriendRequestUseCase } from '../../../application/friendships/use-cases/reject-friend-request.use-case';
 import { BlockUserUseCase } from '../../../application/friendships/use-cases/block-user.use-case';
 import { UnblockUserUseCase } from '../../../application/friendships/use-cases/unblock-user.use-case';
+import { UnfriendUserUseCase } from '../../../application/friendships/use-cases/unfriend-user.use-case';
 import { ListFriendsUseCase } from '../../../application/friendships/use-cases/list-friends.use-case';
 import { ListFriendRequestsUseCase } from '../../../application/friendships/use-cases/list-friend-requests.use-case';
 import { FriendRequestStatus } from '../../../domain/enums/friend-request-status';
@@ -31,6 +32,7 @@ export class FriendshipsController {
     private readonly rejectFriendRequestUseCase: RejectFriendRequestUseCase,
     private readonly blockUserUseCase: BlockUserUseCase,
     private readonly unblockUserUseCase: UnblockUserUseCase,
+    private readonly unfriendUserUseCase: UnfriendUserUseCase,
     private readonly listFriendsUseCase: ListFriendsUseCase,
     private readonly listFriendRequestsUseCase: ListFriendRequestsUseCase,
   ) {}
@@ -149,6 +151,23 @@ export class FriendshipsController {
     const result = await this.unblockUserUseCase.execute({
       blockerId: req.user.sub,
       blockedId,
+    });
+
+    return {
+      success: result.success,
+      message: result.message,
+    };
+  }
+
+  @Delete(':friendId')
+  @ApiOperation({ summary: 'Desfazer amizade' })
+  @ApiResponse({ status: 200, description: 'Amizade desfeita com sucesso' })
+  @ApiResponse({ status: 400, description: 'Erro ao desfazer amizade' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async unfriendUser(@Request() req: any, @Param('friendId') friendId: string) {
+    const result = await this.unfriendUserUseCase.execute({
+      userId: req.user.sub,
+      friendId,
     });
 
     return {
