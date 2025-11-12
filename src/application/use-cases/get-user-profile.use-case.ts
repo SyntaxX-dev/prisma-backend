@@ -1,10 +1,12 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { USER_REPOSITORY } from '../../domain/tokens';
+import { USER_REPOSITORY, FRIENDSHIP_REPOSITORY } from '../../domain/tokens';
 import type { UserRepository } from '../../domain/repositories/user.repository';
+import type { FriendshipRepository } from '../../domain/repositories/friendship.repository';
 import { UserRole } from '../../domain/enums/user-role';
 
 export interface GetUserProfileInput {
   userId: string;
+  viewerId?: string; // ID do usuário que está visualizando (opcional, para verificar se são amigos)
 }
 
 export interface UserProfileOutput {
@@ -34,6 +36,8 @@ export interface UserProfileOutput {
   socialLinksOrder: string[] | null;
   // Data de criação
   createdAt: Date;
+  // Relacionamento com o visualizador (se viewerId foi fornecido)
+  isFriend?: boolean; // true se viewerId e userId são amigos
 }
 
 @Injectable()
@@ -41,6 +45,8 @@ export class GetUserProfileUseCase {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
+    @Inject(FRIENDSHIP_REPOSITORY)
+    private readonly friendshipRepository: FriendshipRepository,
   ) {}
 
   async execute(input: GetUserProfileInput): Promise<UserProfileOutput> {
@@ -61,6 +67,13 @@ export class GetUserProfileUseCase {
       }
     } else {
       socialLinksOrder = ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'];
+    }
+
+    // Verificar se são amigos (apenas se viewerId foi fornecido e é diferente do userId)
+    let isFriend: boolean | undefined = undefined;
+    if (input.viewerId && input.viewerId !== input.userId) {
+      const friendship = await this.friendshipRepository.findByUsers(input.viewerId, input.userId);
+      isFriend = friendship !== null;
     }
 
     return {
@@ -87,6 +100,7 @@ export class GetUserProfileUseCase {
       twitter: user.twitter,
       socialLinksOrder,
       createdAt: user.createdAt,
+      isFriend,
     };
   }
 }

@@ -118,8 +118,13 @@ export class UserController {
       }
     }
   })
-  async getUserProfile(@Param('id') userId: string) {
-    const result = await this.getUserProfileUseCase.execute({ userId });
+  async getUserProfile(@Param('id') userId: string, @Request() req: any) {
+    // Se houver usuário autenticado, passar o viewerId para verificar se são amigos
+    const viewerId = req.user?.sub;
+    const result = await this.getUserProfileUseCase.execute({ 
+      userId,
+      viewerId,
+    });
 
     return {
       success: true,
