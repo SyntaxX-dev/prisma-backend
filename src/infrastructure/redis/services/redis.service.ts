@@ -29,42 +29,37 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor() {
     const config = RedisConfiguration.loadFromEnv();
 
-    // Cliente para publicar mensagens (só pode publicar, não pode assinar)
-    this.publisher = new Redis({
-      host: config.host,
-      port: config.port,
-      password: config.password,
-      db: config.db,
-      retryStrategy: (times) => {
+    // Configuração comum para todos os clientes
+    const redisOptions: any = {
+      retryStrategy: (times: number) => {
         const delay = Math.min(times * 50, 2000);
         this.logger.warn(`Tentando reconectar ao Redis... (tentativa ${times})`);
         return delay;
       },
-    });
+      enableReadyCheck: true,
+      maxRetriesPerRequest: 3,
+    };
 
-    // Cliente para assinar mensagens (só pode assinar, não pode publicar)
-    this.subscriber = new Redis({
-      host: config.host,
-      port: config.port,
-      password: config.password,
-      db: config.db,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
-
-    // Cliente geral para cache e outras operações
-    this.client = new Redis({
-      host: config.host,
-      port: config.port,
-      password: config.password,
-      db: config.db,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
+    // Se tiver URL completa, usar ela (mais confiável)
+    if (config.url) {
+      redisOptions.host = undefined;
+      redisOptions.port = undefined;
+      redisOptions.password = undefined;
+      // ioredis aceita URL diretamente no construtor
+      this.publisher = new Redis(config.url, redisOptions);
+      this.subscriber = new Redis(config.url, redisOptions);
+      this.client = new Redis(config.url, redisOptions);
+    } else {
+      // Fallback: usar host/port separados
+      redisOptions.host = config.host;
+      redisOptions.port = config.port;
+      redisOptions.password = config.password;
+      redisOptions.db = config.db;
+      
+      this.publisher = new Redis(redisOptions);
+      this.subscriber = new Redis(redisOptions);
+      this.client = new Redis(redisOptions);
+    }
 
     // Event listeners para debug
     this.publisher.on('connect', () => {
@@ -95,9 +90,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     // Redis é opcional - não travar a aplicação se não conectar
     const config = RedisConfiguration.loadFromEnv();
-    // Verificar se Redis está configurado (não é localhost e não está vazio)
-    if (!config.host || config.host === 'localhost' || config.host.trim() === '') {
-      this.logger.warn('⚠️ Redis não configurado (REDIS_HOST/REDISHOST não definida ou é localhost). Continuando sem Redis.');
+    
+    // Verificar se Redis está configurado
+    const hasUrl = config.url && !config.url.includes('${{') && config.url.trim() !== '';
+    const hasHost = config.host && config.host !== 'localhost' && config.host.trim() !== '' && !config.host.includes('${{');
+    
+    if (!hasUrl && !hasHost) {
+      this.logger.warn('⚠️ Redis não configurado (REDIS_URL ou REDIS_HOST/REDISHOST não definida). Continuando sem Redis.');
       console.warn('[REDIS] ⚠️ Redis não configurado. Aplicação continuará sem Redis.');
       return;
     }

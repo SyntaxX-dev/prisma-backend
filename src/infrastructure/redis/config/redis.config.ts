@@ -16,14 +16,30 @@
  */
 
 export interface RedisConfig {
-  host: string;
-  port: number;
+  host?: string;
+  port?: number;
   password?: string;
   db?: number; // Database number (0-15)
+  url?: string; // URL completa (prioridade sobre host/port)
 }
 
 export class RedisConfiguration {
   static loadFromEnv(): RedisConfig {
+    // Prioridade 1: REDIS_URL (URL completa - mais confiável)
+    if (process.env.REDIS_URL && !process.env.REDIS_URL.includes('${{')) {
+      return {
+        url: process.env.REDIS_URL,
+      };
+    }
+
+    // Prioridade 2: REDIS_PUBLIC_URL (URL pública do Railway)
+    if (process.env.REDIS_PUBLIC_URL && !process.env.REDIS_PUBLIC_URL.includes('${{')) {
+      return {
+        url: process.env.REDIS_PUBLIC_URL,
+      };
+    }
+
+    // Prioridade 3: Host/Port separados (fallback)
     // Railway fornece REDISHOST (sem underscore), mas também aceita REDIS_HOST
     const host = process.env.REDIS_HOST || process.env.REDISHOST || 'localhost';
     const port = parseInt(process.env.REDIS_PORT || process.env.REDISPORT || '6379', 10);
