@@ -57,8 +57,14 @@ export class UpdateVideoTimestampUseCase {
         ),
       );
     } else {
-      // Atualizar timestamp do progresso existente
-      const updatedProgress = progress.updateTimestamp(input.timestamp);
+      // Se o vídeo estava completado, desmarcar ao atualizar timestamp
+      // (usuário está assistindo novamente)
+      let updatedProgress = progress.updateTimestamp(input.timestamp);
+      if (progress.isCompleted) {
+        console.log('[UpdateTimestamp] Vídeo estava completado, desmarcando...');
+        updatedProgress = updatedProgress.markAsIncomplete();
+      }
+
       await this.videoProgressRepository.update(updatedProgress);
       progress = updatedProgress;
     }

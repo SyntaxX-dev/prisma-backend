@@ -33,11 +33,24 @@ export class GetInProgressVideosUseCase {
     // Buscar todos os vídeos em progresso (não completos com timestamp)
     const progressList = await this.videoProgressRepository.findInProgressVideos(input.userId);
 
+    console.log('[GetInProgressVideos] Progressos encontrados:', progressList.length);
+    progressList.forEach(p => {
+      console.log('[GetInProgressVideos] Progresso:', {
+        videoId: p.videoId,
+        currentTimestamp: p.currentTimestamp,
+        isCompleted: p.isCompleted
+      });
+    });
+
     // Buscar informações completas dos vídeos
     const videosWithDetails = await Promise.all(
       progressList.map(async (progress) => {
         const video = await this.videoRepository.findById(progress.videoId);
+
+        console.log('[GetInProgressVideos] Video buscado para ID:', progress.videoId, '-> encontrado:', !!video);
+
         if (!video) {
+          console.warn('[GetInProgressVideos] Vídeo não encontrado no DB para ID:', progress.videoId);
           return null;
         }
 
