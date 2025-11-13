@@ -76,6 +76,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.handleRedisMessage(message);
     });
 
+    // Assina canal para eventos de typing
+    await this.redisService.subscribe('chat:typing', (message) => {
+      this.handleRedisTyping(message);
+    });
+
     this.logger.log('✅ Assinando canais Redis para chat');
   }
 
@@ -100,6 +105,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     } catch (error) {
       this.logger.error('Erro ao processar mensagem do Redis:', error);
+    }
+  }
+
+  /**
+   * Processa eventos de typing recebidos do Redis (de outras instâncias)
+   */
+  private handleRedisTyping(message: any) {
+    try {
+      if (message.type === 'typing') {
+        // Envia evento de typing para o destinatário se estiver conectado
+        const socketId = this.connectedUsers.get(message.receiverId);
+        if (socketId) {
+          this.server.to(socketId).emit('typing', {
+            userId: message.userId,
+            isTyping: message.isTyping,
+          });
+          this.logger.debug(`⌨️  Typing do Redis enviado para ${message.receiverId}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Erro ao processar typing do Redis:', error);
     }
   }
 
@@ -158,22 +184,50 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para quando o usuário está digitando
+   * 
+   * Formato recebido do frontend: { receiverId: string, isTyping: boolean }
+   * Formato enviado para o destinatário: { userId: string, isTyping: boolean }
    */
   @SubscribeMessage('typing')
-  handleTyping(
+  async handleTyping(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { receiverId: string; isTyping: boolean },
   ) {
     const user = client.data.user as JwtPayload;
-    if (!user?.sub) return;
+    if (!user?.sub) {
+      this.logger.warn('Tentativa de typing sem autenticação');
+      return;
+    }
+
+    if (!data.receiverId) {
+      this.logger.warn('Typing sem receiverId');
+      return;
+    }
 
     // Envia para o destinatário que o usuário está digitando
     const receiverSocketId = this.connectedUsers.get(data.receiverId);
     if (receiverSocketId) {
+      // Envia diretamente se o destinatário estiver conectado nesta instância
       this.server.to(receiverSocketId).emit('typing', {
         userId: user.sub,
         isTyping: data.isTyping,
       });
+      this.logger.debug(`⌨️  Typing enviado para ${data.receiverId}: ${data.isTyping ? 'digitando' : 'parou'}`);
+    }
+
+    // Publica no Redis para outras instâncias do servidor
+    if (this.redisService) {
+      try {
+        await this.redisService.publish('chat:typing', {
+          type: 'typing',
+          userId: user.sub,
+          receiverId: data.receiverId,
+          isTyping: data.isTyping,
+        });
+        this.logger.debug('📤 Typing publicado no Redis');
+      } catch (error) {
+        this.logger.error('Erro ao publicar typing no Redis:', error);
+      }
     }
   }
 
