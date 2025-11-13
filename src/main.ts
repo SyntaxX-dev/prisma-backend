@@ -4,8 +4,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  try {
+    console.log('🚀 Iniciando aplicação...');
+    const app = await NestFactory.create(AppModule, {
+      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   app.enableCors({
     origin: [
@@ -41,14 +45,20 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  const port = process.env.PORT || 3006;
-  console.log(`Tentando iniciar na porta: ${port}`);
+    const port = process.env.PORT || 3006;
+    console.log(`🌐 Tentando iniciar na porta: ${port}`);
 
-  await app.listen(port, '0.0.0.0');
-  console.log(`Aplicação rodando em http://0.0.0.0:${port}`);
+    await app.listen(port, '0.0.0.0');
+    console.log(`✅ Aplicação rodando em http://0.0.0.0:${port}`);
+    console.log(`📚 Swagger disponível em http://0.0.0.0:${port}/docs`);
+    console.log(`❤️  Healthcheck disponível em http://0.0.0.0:${port}/`);
 
-  setTimeout(() => {
-    console.log('Aplicação ainda está rodando após 10 segundos');
-  }, 10000);
+    setTimeout(() => {
+      console.log('✅ Aplicação ainda está rodando após 10 segundos');
+    }, 10000);
+  } catch (error) {
+    console.error('❌ Erro fatal ao iniciar aplicação:', error);
+    process.exit(1);
+  }
 }
 void bootstrap();

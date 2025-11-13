@@ -38,13 +38,25 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
+    // RabbitMQ é opcional - não travar a aplicação se não conectar
+    if (!this.config.url || this.config.url === 'amqp://localhost:5672') {
+      this.logger.warn('⚠️ RabbitMQ não configurado (RABBITMQ_URL não definida). Continuando sem RabbitMQ.');
+      console.warn('[RABBITMQ] ⚠️ RabbitMQ não configurado. Aplicação continuará sem RabbitMQ.');
+      return;
+    }
+
     try {
-      // Conecta ao RabbitMQ
-      const conn = await amqp.connect(this.config.url);
-      this.connection = conn as any; // Type assertion para evitar problemas de tipo
+      // Timeout de conexão para não travar indefinidamente
+      const connectPromise = amqp.connect(this.config.url);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout ao conectar ao RabbitMQ')), 10000)
+      );
+
+      const conn = await Promise.race([connectPromise, timeoutPromise]) as any;
+      this.connection = conn;
       this.logger.log('✅ Conectado ao RabbitMQ');
       console.log('[RABBITMQ] ✅ Conectado ao RabbitMQ', {
-        url: this.config.url,
+        url: this.config.url.replace(/:[^:]*@/, ':****@'), // Esconder senha
         timestamp: new Date().toISOString(),
       });
 
@@ -81,15 +93,19 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       // Event listeners para reconexão
       this.connection.on('error', (err) => {
         this.logger.error('❌ Erro na conexão RabbitMQ:', err);
+        console.error('[RABBITMQ] ❌ Erro na conexão:', err);
       });
 
       this.connection.on('close', () => {
         this.logger.warn('⚠️ Conexão RabbitMQ fechada. Tentando reconectar...');
-        // Em produção, implementar lógica de reconexão
+        console.warn('[RABBITMQ] ⚠️ Conexão fechada');
       });
     } catch (error) {
       this.logger.error('❌ Erro ao conectar ao RabbitMQ:', error);
+      console.error('[RABBITMQ] ❌ Erro ao conectar (continuando sem RabbitMQ):', error);
       // Não lança erro para não quebrar a aplicação se RabbitMQ não estiver disponível
+      this.connection = null;
+      this.channel = null;
     }
   }
 
@@ -121,7 +137,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
    */
   async sendToQueue(queueName: string, message: any, options?: amqp.Options.Publish): Promise<boolean> {
     if (!this.channel) {
-      throw new Error('Canal RabbitMQ não está disponível');
+      this.logger.warn(`⚠️ RabbitMQ não disponível. Mensagem não enviada para fila: ${queueName}`);
+      console.warn(`[RABBITMQ] ⚠️ RabbitMQ não disponível. Mensagem não enviada:`, { queueName, messageType: message?.type });
+      return false;
     }
 
     try {
@@ -171,7 +189,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
    */
   async publish(routingKey: string, message: any, options?: amqp.Options.Publish): Promise<boolean> {
     if (!this.channel) {
-      throw new Error('Canal RabbitMQ não está disponível');
+      this.logger.warn(`⚠️ RabbitMQ não disponível. Mensagem não publicada: ${routingKey}`);
+      console.warn(`[RABBITMQ] ⚠️ RabbitMQ não disponível. Mensagem não publicada:`, { routingKey, messageType: message?.type });
+      return false;
     }
 
     try {
@@ -229,7 +249,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     options?: amqp.Options.Consume,
   ): Promise<void> {
     if (!this.channel) {
-      throw new Error('Canal RabbitMQ não está disponível');
+      this.logger.warn(`⚠️ RabbitMQ não disponível. Não é possível consumir fila: ${queueName}`);
+      console.warn(`[RABBITMQ] ⚠️ RabbitMQ não disponível. Não é possível consumir:`, { queueName });
+      return;
     }
 
     try {

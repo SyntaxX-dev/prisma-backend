@@ -93,11 +93,33 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
+    // Redis é opcional - não travar a aplicação se não conectar
+    const config = RedisConfiguration.loadFromEnv();
+    if (!config.host || config.host === 'localhost') {
+      this.logger.warn('⚠️ Redis não configurado (REDIS_HOST não definida). Continuando sem Redis.');
+      console.warn('[REDIS] ⚠️ Redis não configurado. Aplicação continuará sem Redis.');
+      return;
+    }
+
     // Conecta ao Redis quando o módulo é inicializado
     try {
-      await this.publisher.ping();
-      await this.subscriber.ping();
-      await this.client.ping();
+      // Timeout para não travar indefinidamente
+      const pingPromises = [
+        Promise.race([
+          this.publisher.ping(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+        ]),
+        Promise.race([
+          this.subscriber.ping(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+        ]),
+        Promise.race([
+          this.client.ping(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+        ])
+      ];
+
+      await Promise.all(pingPromises);
       this.logger.log('✅ Todos os clientes Redis conectados com sucesso');
       console.log('[REDIS] ✅ Todos os clientes Redis conectados com sucesso', {
         timestamp: new Date().toISOString(),
@@ -106,8 +128,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         client: 'connected',
       });
     } catch (error) {
-      this.logger.error('❌ Erro ao conectar ao Redis:', error);
-      console.error('[REDIS] ❌ Erro ao conectar:', error);
+      this.logger.error('❌ Erro ao conectar ao Redis (continuando sem Redis):', error);
+      console.error('[REDIS] ❌ Erro ao conectar (continuando sem Redis):', error);
+      // Não lança erro - Redis é opcional
     }
   }
 
@@ -130,6 +153,20 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async publish(channel: string, message: any): Promise<void> {
     try {
+      // Verificar se Redis está disponível
+      if (!this.publisher) {
+        this.logger.warn(`⚠️ Redis não disponível. Mensagem não publicada no canal: ${channel}`);
+        console.warn(`[REDIS] ⚠️ Redis não disponível. Mensagem não publicada:`, { channel, messageType: message?.type });
+        return;
+      }
+
+      // Verificar status do cliente (ioredis não tem status 'ready', usa 'end' para verificar se desconectou)
+      if (this.publisher.status === 'end') {
+        this.logger.warn(`⚠️ Redis desconectado. Mensagem não publicada no canal: ${channel}`);
+        console.warn(`[REDIS] ⚠️ Redis desconectado. Mensagem não publicada:`, { channel, messageType: message?.type });
+        return;
+      }
+
       const messageStr = JSON.stringify(message);
       await this.publisher.publish(channel, messageStr);
       this.logger.debug(`📤 Mensagem publicada no canal: ${channel}`);
@@ -141,7 +178,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error(`Erro ao publicar no canal ${channel}:`, error);
       console.error(`[REDIS] ❌ Erro ao publicar no canal "${channel}":`, error);
-      throw error;
+      // Não lança erro - Redis é opcional
     }
   }
 
