@@ -39,9 +39,16 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     // RabbitMQ é opcional - não travar a aplicação se não conectar
-    if (!this.config.url || this.config.url === 'amqp://localhost:5672') {
-      this.logger.warn('⚠️ RabbitMQ não configurado (RABBITMQ_URL não definida). Continuando sem RabbitMQ.');
+    // Verificar se a URL está definida e não é localhost ou uma string vazia/resolvida incorretamente
+    if (
+      !this.config.url ||
+      this.config.url === 'amqp://localhost:5672' ||
+      this.config.url.trim() === '' ||
+      this.config.url.includes('${{') // Se ainda contém template não resolvido
+    ) {
+      this.logger.warn('⚠️ RabbitMQ não configurado (RABBITMQ_URL não definida ou não resolvida). Continuando sem RabbitMQ.');
       console.warn('[RABBITMQ] ⚠️ RabbitMQ não configurado. Aplicação continuará sem RabbitMQ.');
+      console.warn('[RABBITMQ] URL recebida:', this.config.url || 'não definida');
       return;
     }
 

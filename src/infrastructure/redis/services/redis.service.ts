@@ -95,8 +95,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     // Redis é opcional - não travar a aplicação se não conectar
     const config = RedisConfiguration.loadFromEnv();
-    if (!config.host || config.host === 'localhost') {
-      this.logger.warn('⚠️ Redis não configurado (REDIS_HOST não definida). Continuando sem Redis.');
+    // Verificar se Redis está configurado (não é localhost e não está vazio)
+    if (!config.host || config.host === 'localhost' || config.host.trim() === '') {
+      this.logger.warn('⚠️ Redis não configurado (REDIS_HOST/REDISHOST não definida ou é localhost). Continuando sem Redis.');
       console.warn('[REDIS] ⚠️ Redis não configurado. Aplicação continuará sem Redis.');
       return;
     }
