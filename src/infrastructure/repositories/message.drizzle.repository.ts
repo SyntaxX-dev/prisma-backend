@@ -122,75 +122,71 @@ export class MessageDrizzleRepository implements MessageRepository {
     lastMessage: Message;
     unreadCount: number;
   }>> {
-    // Query SQL otimizada para buscar última mensagem de cada conversa
-    // e contar mensagens não lidas em uma única query
-    const result = await this.db.execute(sql`
-      WITH ranked_messages AS (
-        SELECT 
-          m.*,
-          CASE 
-            WHEN m.sender_id = ${userId} THEN m.receiver_id
-            ELSE m.sender_id
-          END as other_user_id,
-          ROW_NUMBER() OVER (
-            PARTITION BY 
-              CASE 
-                WHEN m.sender_id = ${userId} THEN m.receiver_id
-                ELSE m.sender_id
-              END
-            ORDER BY m.created_at DESC
-          ) as rn
-        FROM messages m
-        WHERE m.sender_id = ${userId} OR m.receiver_id = ${userId}
-      ),
-      unread_counts AS (
-        SELECT 
-          CASE 
-            WHEN sender_id = ${userId} THEN receiver_id
-            ELSE sender_id
-          END as other_user_id,
-          COUNT(*)::int as unread_count
-        FROM messages
-        WHERE receiver_id = ${userId} 
-          AND is_read = 'false'
-        GROUP BY 
-          CASE 
-            WHEN sender_id = ${userId} THEN receiver_id
-            ELSE sender_id
-          END
+    // Buscar todas as mensagens do usuário ordenadas por data
+    const allMessages = await this.db
+      .select()
+      .from(messages)
+      .where(
+        or(eq(messages.senderId, userId), eq(messages.receiverId, userId)),
       )
-      SELECT 
-        rm.id,
-        rm.sender_id,
-        rm.receiver_id,
-        rm.content,
-        rm.is_read,
-        rm.read_at,
-        rm.created_at,
-        rm.other_user_id,
-        COALESCE(uc.unread_count, 0)::int as unread_count
-      FROM ranked_messages rm
-      LEFT JOIN unread_counts uc ON rm.other_user_id = uc.other_user_id
-      WHERE rm.rn = 1
-      ORDER BY rm.created_at DESC
-    `);
+      .orderBy(desc(messages.createdAt));
 
-    // O Drizzle retorna os resultados em result.rows
-    const rows = (result as any).rows || (result as any);
+    // Buscar contagem de não lidas agrupadas por sender
+    const unreadCounts = await this.db
+      .select({
+        senderId: messages.senderId,
+        count: count(),
+      })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.receiverId, userId),
+          eq(messages.isRead, 'false'),
+        ),
+      )
+      .groupBy(messages.senderId);
 
-    return rows.map((row: any) => ({
-      otherUserId: row.other_user_id,
-      lastMessage: this.mapToEntity({
-        id: row.id,
-        senderId: row.sender_id,
-        receiverId: row.receiver_id,
-        content: row.content,
-        isRead: row.is_read,
-        readAt: row.read_at,
-        createdAt: row.created_at,
-      }),
-      unreadCount: parseInt(String(row.unread_count || '0'), 10),
-    }));
+    // Criar mapa de contagens não lidas
+    const unreadCountMap = new Map<string, number>();
+    for (const item of unreadCounts) {
+      unreadCountMap.set(item.senderId, item.count);
+    }
+
+    // Agrupar por par de usuários e pegar a última mensagem de cada conversa
+    const conversationsMap = new Map<string, {
+      otherUserId: string;
+      lastMessage: Message;
+    }>();
+
+    for (const msg of allMessages) {
+      // Determinar qual é o outro usuário
+      const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      
+      // Se já não temos uma conversa com esse usuário, adicionar
+      if (!conversationsMap.has(otherUserId)) {
+        conversationsMap.set(otherUserId, {
+          otherUserId,
+          lastMessage: this.mapToEntity(msg),
+        });
+      }
+    }
+
+    // Montar resultado final com contagens
+    const conversations = Array.from(conversationsMap.values()).map((conv) => {
+      const unreadCount = unreadCountMap.get(conv.otherUserId) || 0;
+      return {
+        otherUserId: conv.otherUserId,
+        lastMessage: conv.lastMessage,
+        unreadCount,
+      };
+    });
+
+    // Ordenar por data da última mensagem (mais recentes primeiro)
+    conversations.sort((a, b) => 
+      b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime()
+    );
+
+    return conversations;
   }
 
   private mapToEntity(row: any): Message {
