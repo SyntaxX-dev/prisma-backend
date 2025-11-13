@@ -8,6 +8,7 @@ import { CoursesModule } from '../application/courses/courses.module';
 import { ProgressModule } from '../application/progress/progress.module';
 import { CommunitiesModule } from '../application/communities/communities.module';
 import { FriendshipsModule } from '../application/friendships/friendships.module';
+import { MessagesModule } from '../application/messages/messages.module';
 import { AppController } from './http/controllers/app.controller';
 import { AuthController } from './http/controllers/auth.controller';
 import { UserController } from './http/controllers/user.controller';
@@ -21,6 +22,7 @@ import { ProgressController } from './http/controllers/progress.controller';
 import { OffensivesController } from './http/offensives.controller';
 import { CommunitiesController } from './http/controllers/communities.controller';
 import { FriendshipsController } from './http/controllers/friendships.controller';
+import { MessagesController } from './http/controllers/messages.controller';
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { FriendshipsController } from './http/controllers/friendships.controller
     ProgressModule,
     CommunitiesModule,
     FriendshipsModule,
+    MessagesModule,
   ],
   controllers: [
     AppController,
@@ -48,6 +51,7 @@ import { FriendshipsController } from './http/controllers/friendships.controller
     OffensivesController,
     CommunitiesController,
     FriendshipsController,
+    MessagesController,
   ],
 })
 export class PresentationModule {}

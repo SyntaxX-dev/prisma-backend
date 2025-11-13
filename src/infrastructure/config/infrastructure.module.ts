@@ -19,6 +19,7 @@ import {
   FRIENDSHIP_REPOSITORY,
   BLOCK_REPOSITORY,
   NOTIFICATION_REPOSITORY,
+  MESSAGE_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -41,6 +42,7 @@ import { FriendRequestDrizzleRepository } from '../repositories/friend-request.d
 import { FriendshipDrizzleRepository } from '../repositories/friendship.drizzle.repository';
 import { BlockDrizzleRepository } from '../repositories/block.drizzle.repository';
 import { NotificationDrizzleRepository } from '../repositories/notification.drizzle.repository';
+import { MessageDrizzleRepository } from '../repositories/message.drizzle.repository';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -134,6 +136,11 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       useFactory: (db: NodePgDatabase) => new NotificationDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
+    {
+      provide: MESSAGE_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new MessageDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
     CloudinaryService,
   ],
   exports: [
@@ -156,6 +163,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     FRIENDSHIP_REPOSITORY,
     BLOCK_REPOSITORY,
     NOTIFICATION_REPOSITORY,
+    MESSAGE_REPOSITORY,
     CloudinaryService,
   ],
 })

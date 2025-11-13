@@ -493,3 +493,46 @@ export const notifications = pgTable(
     createdAtIdx: index('notifications_created_at_idx').on(table.createdAt),
   }),
 );
+
+/**
+ * Tabela messages - Armazena mensagens de chat entre usuários
+ * 
+ * Esta tabela armazena todas as mensagens trocadas entre usuários que são amigos.
+ * Ela mantém o histórico completo de conversas e permite rastrear mensagens não lidas.
+ */
+export const messages = pgTable(
+  'messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    senderId: uuid('sender_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    receiverId: uuid('receiver_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(), // Conteúdo da mensagem
+    isRead: text('is_read').notNull().default('false'), // 'true' ou 'false' como string
+    readAt: timestamp('read_at', { withTimezone: false }), // Quando foi lida (null se não foi)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar mensagens entre dois usuários rapidamente
+    senderReceiverIdx: index('messages_sender_receiver_idx').on(
+      table.senderId,
+      table.receiverId,
+    ),
+    // Índice para buscar mensagens não lidas de um usuário
+    receiverUnreadIdx: index('messages_receiver_unread_idx').on(
+      table.receiverId,
+      table.isRead,
+    ),
+    // Índice para ordenar por data de criação
+    createdAtIdx: index('messages_created_at_idx').on(table.createdAt),
+    // Índice para buscar por sender
+    senderIdIdx: index('messages_sender_id_idx').on(table.senderId),
+    // Índice para buscar por receiver
+    receiverIdIdx: index('messages_receiver_id_idx').on(table.receiverId),
+  }),
+);
