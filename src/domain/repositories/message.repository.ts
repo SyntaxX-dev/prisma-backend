@@ -50,5 +50,21 @@ export interface MessageRepository {
    * Conta quantas mensagens não lidas um usuário tem
    */
   countUnread(receiverId: string): Promise<number>;
+
+  /**
+   * Busca todas as conversas de um usuário (última mensagem de cada conversa)
+   * @param userId - ID do usuário
+   * @returns Array com informações da última mensagem de cada conversa
+   */
+  findConversations(userId: string): Promise<Array<{
+    otherUserId: string;
+    lastMessage: Message;
+    unreadCount: number;
+  }>>;
+
+  /**
+   * Conta mensagens não lidas de uma conversa específica
+   */
+  countUnreadByConversation(receiverId: string, senderId: string): Promise<number>;
 }
 

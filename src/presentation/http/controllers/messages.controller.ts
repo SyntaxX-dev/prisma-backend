@@ -17,6 +17,7 @@ import { SendMessageUseCase } from '../../../application/messages/use-cases/send
 import { GetMessagesUseCase } from '../../../application/messages/use-cases/get-messages.use-case';
 import { MarkMessagesAsReadUseCase } from '../../../application/messages/use-cases/mark-messages-as-read.use-case';
 import { GetUnreadCountUseCase } from '../../../application/messages/use-cases/get-unread-count.use-case';
+import { ListConversationsUseCase } from '../../../application/messages/use-cases/list-conversations.use-case';
 
 @ApiTags('Messages')
 @Controller('messages')
@@ -28,6 +29,7 @@ export class MessagesController {
     private readonly getMessagesUseCase: GetMessagesUseCase,
     private readonly markMessagesAsReadUseCase: MarkMessagesAsReadUseCase,
     private readonly getUnreadCountUseCase: GetUnreadCountUseCase,
+    private readonly listConversationsUseCase: ListConversationsUseCase,
   ) {}
 
   @Post()
@@ -123,6 +125,76 @@ export class MessagesController {
   async getUnreadCount(@Request() req: any) {
     try {
       const result = await this.getUnreadCountUseCase.execute({
+        userId: req.user.sub,
+      });
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('conversations')
+  @ApiOperation({ summary: 'Listar todas as conversas do usuário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de conversas retornada com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        data: {
+          type: 'object',
+          properties: {
+            conversations: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  otherUser: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      name: { type: 'string' },
+                      email: { type: 'string' },
+                      profileImage: { type: 'string', nullable: true },
+                    },
+                  },
+                  lastMessage: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      content: { type: 'string' },
+                      senderId: { type: 'string' },
+                      receiverId: { type: 'string' },
+                      isRead: { type: 'boolean' },
+                      createdAt: { type: 'string', format: 'date-time' },
+                      readAt: { type: 'string', format: 'date-time', nullable: true },
+                    },
+                  },
+                  unreadCount: { type: 'number' },
+                  isFromMe: { type: 'boolean' },
+                },
+              },
+            },
+            total: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  async listConversations(@Request() req: any) {
+    try {
+      const result = await this.listConversationsUseCase.execute({
         userId: req.user.sub,
       });
 
