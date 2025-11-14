@@ -13,14 +13,14 @@
  * 5. Ao abrir navegador, busca mensagens do banco de dados
  */
 
-import { Injectable, Logger, Optional, Inject } from '@nestjs/common';
+import { Injectable, Logger, Optional, Inject, OnModuleInit } from '@nestjs/common';
 import * as webpush from 'web-push';
 import type { PushNotificationService } from '../../domain/services/push-notification.service';
 import { PUSH_SUBSCRIPTION_REPOSITORY } from '../../domain/tokens';
 import type { PushSubscriptionRepository } from '../../domain/repositories/push-subscription.repository';
 
 @Injectable()
-export class FCMPushNotificationService implements PushNotificationService {
+export class FCMPushNotificationService implements PushNotificationService, OnModuleInit {
   private readonly logger = new Logger(FCMPushNotificationService.name);
   private readonly vapidPublicKey: string | null;
   private readonly vapidPrivateKey: string | null;
@@ -111,6 +111,21 @@ export class FCMPushNotificationService implements PushNotificationService {
       vapidConfigured: this.vapidConfigured,
       hasVapidKeys,
       hasFcmKey,
+      subscriptionRepositoryAvailable: !!this.subscriptionRepository,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Hook do NestJS - executado quando o módulo é inicializado
+   * Garante que os logs apareçam mesmo se o serviço não for usado imediatamente
+   */
+  onModuleInit() {
+    console.log('[WEB_PUSH] 🔄 onModuleInit executado - Serviço Web Push está ativo', {
+      vapidConfigured: this.vapidConfigured,
+      hasVapidPublicKey: !!this.vapidPublicKey,
+      hasVapidPrivateKey: !!this.vapidPrivateKey,
+      hasFcmKey: !!this.fcmServerKey,
       subscriptionRepositoryAvailable: !!this.subscriptionRepository,
       timestamp: new Date().toISOString(),
     });
