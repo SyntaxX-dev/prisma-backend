@@ -84,11 +84,29 @@ export class SendMessageUseCase {
     const message = await this.messageRepository.create(senderId, receiverId, content);
 
     // Enviar via WebSocket em tempo real (se destinatário estiver online)
+    console.log('[SEND_MESSAGE] 🔍 Verificando status do destinatário e serviços disponíveis...', {
+      receiverId,
+      chatGatewayAvailable: !!this.chatGateway,
+      rabbitMQServiceAvailable: !!this.rabbitMQService,
+      timestamp: new Date().toISOString(),
+    });
+
     if (this.chatGateway) {
       const isOnline = this.chatGateway.isUserOnline(receiverId);
+      console.log('[SEND_MESSAGE] 📊 Status do destinatário:', {
+        receiverId,
+        isOnline,
+        timestamp: new Date().toISOString(),
+      });
       
       if (isOnline) {
         // Envia diretamente via WebSocket
+        console.log('[SEND_MESSAGE] ✅ Destinatário ONLINE - Enviando via WebSocket...', {
+          receiverId,
+          messageId: message.id,
+          timestamp: new Date().toISOString(),
+        });
+        
         this.chatGateway.emitToUser(receiverId, 'new_message', {
           id: message.id,
           senderId: message.senderId,
@@ -99,6 +117,12 @@ export class SendMessageUseCase {
         });
 
         // Publica no Redis para outras instâncias do servidor
+        console.log('[SEND_MESSAGE] 🔴 Usando REDIS para distribuir mensagem para outras instâncias...', {
+          receiverId,
+          messageId: message.id,
+          timestamp: new Date().toISOString(),
+        });
+        
         await this.chatGateway.publishToRedis({
           type: 'new_message',
           receiverId: message.receiverId,
@@ -111,11 +135,31 @@ export class SendMessageUseCase {
             createdAt: message.createdAt,
           },
         });
+        
+        console.log('[SEND_MESSAGE] ✅ REDIS usado com sucesso para distribuir mensagem', {
+          receiverId,
+          messageId: message.id,
+          timestamp: new Date().toISOString(),
+        });
       } else {
         // Se destinatário estiver offline, envia para RabbitMQ
         // RabbitMQ garante que a mensagem será processada quando ele voltar
+        console.log('[SEND_MESSAGE] ❌ Destinatário OFFLINE - Enviando para RabbitMQ...', {
+          receiverId,
+          messageId: message.id,
+          rabbitMQServiceAvailable: !!this.rabbitMQService,
+          timestamp: new Date().toISOString(),
+        });
+        
         if (this.rabbitMQService) {
-          await this.rabbitMQService.sendToQueue('chat_messages', {
+          console.log('[SEND_MESSAGE] 🐰 Usando RABBITMQ para garantir entrega quando usuário voltar...', {
+            receiverId,
+            messageId: message.id,
+            queueName: 'chat_messages',
+            timestamp: new Date().toISOString(),
+          });
+          
+          const rabbitMQResult = await this.rabbitMQService.sendToQueue('chat_messages', {
             type: 'offline_message',
             messageId: message.id,
             receiverId: message.receiverId,
@@ -128,8 +172,36 @@ export class SendMessageUseCase {
               createdAt: message.createdAt,
             },
           });
+          
+          if (rabbitMQResult) {
+            console.log('[SEND_MESSAGE] ✅ RABBITMQ usado com sucesso - Mensagem enviada para fila', {
+              receiverId,
+              messageId: message.id,
+              queueName: 'chat_messages',
+              timestamp: new Date().toISOString(),
+            });
+          } else {
+            console.warn('[SEND_MESSAGE] ⚠️ RABBITMQ falhou ao enviar mensagem para fila', {
+              receiverId,
+              messageId: message.id,
+              queueName: 'chat_messages',
+              timestamp: new Date().toISOString(),
+            });
+          }
+        } else {
+          console.warn('[SEND_MESSAGE] ⚠️ RabbitMQ não disponível - Mensagem não será entregue quando usuário voltar', {
+            receiverId,
+            messageId: message.id,
+            timestamp: new Date().toISOString(),
+          });
         }
       }
+    } else {
+      console.warn('[SEND_MESSAGE] ⚠️ ChatGateway não disponível - Mensagem não será enviada em tempo real', {
+        receiverId,
+        messageId: message.id,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     return {

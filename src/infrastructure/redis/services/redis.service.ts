@@ -152,32 +152,63 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * redisService.publish('chat:user123', { type: 'new_message', data: {...} })
    */
   async publish(channel: string, message: any): Promise<void> {
+    console.log('[REDIS_SERVICE] 🔴 Método publish() chamado - Verificando disponibilidade do Redis...', {
+      channel,
+      messageType: message?.type,
+      publisherExists: !!this.publisher,
+      publisherStatus: this.publisher?.status,
+      timestamp: new Date().toISOString(),
+    });
+
     try {
       // Verificar se Redis está disponível
       if (!this.publisher) {
         this.logger.warn(`⚠️ Redis não disponível. Mensagem não publicada no canal: ${channel}`);
-        console.warn(`[REDIS] ⚠️ Redis não disponível. Mensagem não publicada:`, { channel, messageType: message?.type });
+        console.warn(`[REDIS_SERVICE] ⚠️ Redis não disponível. Mensagem não publicada:`, { 
+          channel, 
+          messageType: message?.type,
+          timestamp: new Date().toISOString(),
+        });
         return;
       }
 
       // Verificar status do cliente (ioredis não tem status 'ready', usa 'end' para verificar se desconectou)
       if (this.publisher.status === 'end') {
         this.logger.warn(`⚠️ Redis desconectado. Mensagem não publicada no canal: ${channel}`);
-        console.warn(`[REDIS] ⚠️ Redis desconectado. Mensagem não publicada:`, { channel, messageType: message?.type });
+        console.warn(`[REDIS_SERVICE] ⚠️ Redis desconectado. Mensagem não publicada:`, { 
+          channel, 
+          messageType: message?.type,
+          publisherStatus: this.publisher.status,
+          timestamp: new Date().toISOString(),
+        });
         return;
       }
 
-      const messageStr = JSON.stringify(message);
-      await this.publisher.publish(channel, messageStr);
-      this.logger.debug(`📤 Mensagem publicada no canal: ${channel}`);
-      console.log(`[REDIS] ✅ Publicado no canal "${channel}":`, {
+      console.log('[REDIS_SERVICE] 🔴 Redis disponível - Publicando mensagem...', {
         channel,
         messageType: message?.type,
+        publisherStatus: this.publisher.status,
+        timestamp: new Date().toISOString(),
+      });
+
+      const messageStr = JSON.stringify(message);
+      await this.publisher.publish(channel, messageStr);
+      
+      this.logger.debug(`📤 Mensagem publicada no canal: ${channel}`);
+      console.log(`[REDIS_SERVICE] ✅ REDIS usado com sucesso - Mensagem publicada no canal "${channel}":`, {
+        channel,
+        messageType: message?.type,
+        publisherStatus: this.publisher.status,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
       this.logger.error(`Erro ao publicar no canal ${channel}:`, error);
-      console.error(`[REDIS] ❌ Erro ao publicar no canal "${channel}":`, error);
+      console.error(`[REDIS_SERVICE] ❌ Erro ao publicar no canal "${channel}":`, {
+        error: error.message,
+        channel,
+        messageType: message?.type,
+        timestamp: new Date().toISOString(),
+      });
       // Não lança erro - Redis é opcional
     }
   }

@@ -255,16 +255,49 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param message - Mensagem a ser publicada
    */
   async publishToRedis(message: any): Promise<void> {
+    console.log('[CHAT_GATEWAY] 🔴 Tentando publicar no REDIS...', {
+      channel: 'chat:messages',
+      messageType: message?.type,
+      receiverId: message?.receiverId,
+      redisServiceAvailable: !!this.redisService,
+      timestamp: new Date().toISOString(),
+    });
+
     if (!this.redisService) {
       this.logger.warn('Redis não disponível, mensagem não será distribuída');
+      console.warn('[CHAT_GATEWAY] ⚠️ REDIS não disponível - Mensagem não será distribuída para outras instâncias', {
+        messageType: message?.type,
+        receiverId: message?.receiverId,
+        timestamp: new Date().toISOString(),
+      });
       return;
     }
 
     try {
+      console.log('[CHAT_GATEWAY] 🔴 Publicando mensagem no REDIS (canal: chat:messages)...', {
+        channel: 'chat:messages',
+        messageType: message?.type,
+        receiverId: message?.receiverId,
+        timestamp: new Date().toISOString(),
+      });
+      
       await this.redisService.publish('chat:messages', message);
+      
       this.logger.debug('📤 Mensagem publicada no Redis');
+      console.log('[CHAT_GATEWAY] ✅ REDIS usado com sucesso - Mensagem publicada no canal "chat:messages"', {
+        channel: 'chat:messages',
+        messageType: message?.type,
+        receiverId: message?.receiverId,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       this.logger.error('Erro ao publicar no Redis:', error);
+      console.error('[CHAT_GATEWAY] ❌ Erro ao publicar no REDIS:', {
+        error: error.message,
+        messageType: message?.type,
+        receiverId: message?.receiverId,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 

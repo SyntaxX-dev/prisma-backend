@@ -143,15 +143,36 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
    * rabbitmq.sendToQueue('chat_messages', { userId: '123', content: 'Olá' })
    */
   async sendToQueue(queueName: string, message: any, options?: amqp.Options.Publish): Promise<boolean> {
+    console.log('[RABBITMQ_SERVICE] 🐰 Método sendToQueue() chamado - Verificando disponibilidade do RabbitMQ...', {
+      queueName,
+      messageType: message?.type,
+      channelExists: !!this.channel,
+      connectionExists: !!this.connection,
+      timestamp: new Date().toISOString(),
+    });
+
     if (!this.channel) {
       this.logger.warn(`⚠️ RabbitMQ não disponível. Mensagem não enviada para fila: ${queueName}`);
-      console.warn(`[RABBITMQ] ⚠️ RabbitMQ não disponível. Mensagem não enviada:`, { queueName, messageType: message?.type });
+      console.warn(`[RABBITMQ_SERVICE] ⚠️ RabbitMQ não disponível. Mensagem não enviada:`, { 
+        queueName, 
+        messageType: message?.type,
+        channelExists: false,
+        connectionExists: !!this.connection,
+        timestamp: new Date().toISOString(),
+      });
       return false;
     }
 
     try {
+      console.log('[RABBITMQ_SERVICE] 🐰 RabbitMQ disponível - Garantindo que fila existe e enviando mensagem...', {
+        queueName,
+        messageType: message?.type,
+        timestamp: new Date().toISOString(),
+      });
+
       // Garante que a fila existe
       await this.channel.assertQueue(queueName, { durable: true });
+      console.log('[RABBITMQ_SERVICE] ✅ Fila garantida:', { queueName });
 
       // Converte mensagem para Buffer
       const messageBuffer = Buffer.from(JSON.stringify(message));
@@ -168,19 +189,30 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
       if (sent) {
         this.logger.debug(`📤 Mensagem enviada para fila: ${queueName}`);
-        console.log(`[RABBITMQ] ✅ Mensagem enviada para fila "${queueName}":`, {
+        console.log(`[RABBITMQ_SERVICE] ✅ RABBITMQ usado com sucesso - Mensagem enviada para fila "${queueName}":`, {
           queueName,
           messageType: message?.type,
+          persistent: true,
           timestamp: new Date().toISOString(),
         });
       } else {
         this.logger.warn(`⚠️ Fila ${queueName} está cheia, mensagem não foi enviada`);
-        console.warn(`[RABBITMQ] ⚠️ Fila "${queueName}" está cheia, mensagem não foi enviada`);
+        console.warn(`[RABBITMQ_SERVICE] ⚠️ Fila "${queueName}" está cheia, mensagem não foi enviada`, {
+          queueName,
+          messageType: message?.type,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       return sent;
     } catch (error) {
       this.logger.error(`Erro ao enviar mensagem para fila ${queueName}:`, error);
+      console.error(`[RABBITMQ_SERVICE] ❌ Erro ao enviar mensagem para fila "${queueName}":`, {
+        error: error.message,
+        queueName,
+        messageType: message?.type,
+        timestamp: new Date().toISOString(),
+      });
       throw error;
     }
   }
