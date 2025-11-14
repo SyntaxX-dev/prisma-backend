@@ -536,3 +536,32 @@ export const messages = pgTable(
     receiverIdIdx: index('messages_receiver_id_idx').on(table.receiverId),
   }),
 );
+
+/**
+ * Tabela user_push_subscriptions - Armazena subscriptions de Web Push
+ * 
+ * Esta tabela armazena as subscriptions de push notifications dos usuários.
+ * Permite enviar notificações mesmo quando o usuário está offline.
+ */
+export const userPushSubscriptions = pgTable(
+  'user_push_subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull(), // URL do serviço push (FCM endpoint)
+    p256dh: text('p256dh').notNull(), // Chave pública do cliente
+    auth: text('auth').notNull(), // Segredo de autenticação
+    token: text('token'), // Token FCM (opcional, para compatibilidade)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar subscriptions de um usuário
+    userIdIdx: index('user_push_subscriptions_user_id_idx').on(table.userId),
+    // Índice único para endpoint (um endpoint por subscription)
+    endpointIdx: uniqueIndex('user_push_subscriptions_endpoint_idx').on(table.endpoint),
+  }),
+);

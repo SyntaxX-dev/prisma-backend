@@ -23,6 +23,7 @@ import { OffensivesController } from './http/offensives.controller';
 import { CommunitiesController } from './http/controllers/communities.controller';
 import { FriendshipsController } from './http/controllers/friendships.controller';
 import { MessagesController } from './http/controllers/messages.controller';
+import { PushController } from './http/controllers/push.controller';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { MessagesController } from './http/controllers/messages.controller';
     CommunitiesController,
     FriendshipsController,
     MessagesController,
+    PushController,
   ],
 })
 export class PresentationModule {}

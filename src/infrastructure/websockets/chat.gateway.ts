@@ -30,8 +30,9 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Inject, Optional } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { JwtPayload } from '../services/auth.service';
-import { REDIS_SERVICE } from '../../domain/tokens';
+import { REDIS_SERVICE, MESSAGE_REPOSITORY } from '../../domain/tokens';
 import type { RedisService } from '../redis/services/redis.service';
+import type { MessageRepository } from '../../domain/repositories/message.repository';
 
 @WebSocketGateway({
   cors: {
@@ -58,6 +59,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(REDIS_SERVICE)
     @Optional()
     private readonly redisService?: RedisService,
+    @Inject(MESSAGE_REPOSITORY)
+    @Optional()
+    private readonly messageRepository?: MessageRepository,
   ) {
     // Assina canais Redis para receber mensagens de outras instâncias
     if (this.redisService) {
@@ -156,6 +160,52 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         // Confirma conexão
         client.emit('connected', { userId: user.sub });
+
+        // 🔄 PADRÃO MODERNO: Buscar mensagens não lidas do banco quando usuário conecta
+        // Isso garante que mensagens enviadas enquanto estava offline sejam entregues
+        if (this.messageRepository) {
+          try {
+            const unreadMessages = await this.messageRepository.findUnreadByReceiverId(user.sub);
+            
+            console.log('[CHAT_GATEWAY] 📥 Buscando mensagens não lidas do banco...', {
+              userId: user.sub,
+              unreadCount: unreadMessages.length,
+              timestamp: new Date().toISOString(),
+            });
+
+            if (unreadMessages.length > 0) {
+              // Envia todas as mensagens não lidas para o usuário
+              for (const msg of unreadMessages) {
+                client.emit('new_message', {
+                  id: msg.id,
+                  senderId: msg.senderId,
+                  receiverId: msg.receiverId,
+                  content: msg.content,
+                  isRead: msg.isRead,
+                  createdAt: msg.createdAt,
+                });
+              }
+              
+              console.log('[CHAT_GATEWAY] ✅ Mensagens não lidas enviadas do banco', {
+                userId: user.sub,
+                count: unreadMessages.length,
+                timestamp: new Date().toISOString(),
+              });
+            } else {
+              console.log('[CHAT_GATEWAY] ℹ️ Nenhuma mensagem não lida encontrada', {
+                userId: user.sub,
+                timestamp: new Date().toISOString(),
+              });
+            }
+          } catch (error) {
+            this.logger.error(`Erro ao buscar mensagens não lidas para ${user.sub}:`, error);
+            console.error('[CHAT_GATEWAY] ❌ Erro ao buscar mensagens não lidas:', {
+              userId: user.sub,
+              error: error.message,
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
       }
     } catch (error) {
       this.logger.error(`Erro ao conectar: ${error.message}`);

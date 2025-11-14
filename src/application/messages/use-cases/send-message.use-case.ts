@@ -1,22 +1,21 @@
 /**
- * SendMessageUseCase - Lógica para enviar uma mensagem
+ * SendMessageUseCase - Lógica para enviar uma mensagem (Padrão Moderno)
  * 
- * Este use case:
+ * Este use case segue o padrão usado por WhatsApp, Telegram, Discord:
  * 1. Valida se os usuários são amigos
- * 2. Salva a mensagem no banco de dados
- * 3. Envia via WebSocket em tempo real
- * 4. Publica no Redis para outras instâncias
- * 5. Envia para RabbitMQ para garantir entrega
+ * 2. Salva a mensagem no banco de dados (fonte da verdade)
+ * 3. Se usuário ONLINE: Envia via WebSocket + Redis (distribuição)
+ * 4. Se usuário OFFLINE: Envia Push Notification (FCM/APNS)
+ * 5. Quando usuário voltar: Busca mensagens do banco (não de filas)
  */
 
 import { Injectable, Inject, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, USER_REPOSITORY } from '../../../domain/tokens';
+import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, USER_REPOSITORY, PUSH_NOTIFICATION_SERVICE } from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
+import type { PushNotificationService } from '../../../domain/services/push-notification.service';
 import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
-import { RABBITMQ_SERVICE } from '../../../domain/tokens';
-import type { RabbitMQService } from '../../../infrastructure/rabbitmq/services/rabbitmq.service';
 
 export interface SendMessageInput {
   senderId: string;
@@ -47,9 +46,9 @@ export class SendMessageUseCase {
     private readonly userRepository: UserRepository,
     @Optional()
     private readonly chatGateway?: ChatGateway,
-    @Inject(RABBITMQ_SERVICE)
+    @Inject(PUSH_NOTIFICATION_SERVICE)
     @Optional()
-    private readonly rabbitMQService?: RabbitMQService,
+    private readonly pushNotificationService?: PushNotificationService,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -80,128 +79,119 @@ export class SendMessageUseCase {
       throw new BadRequestException('Vocês precisam ser amigos para trocar mensagens');
     }
 
-    // Criar mensagem no banco de dados
+    // Criar mensagem no banco de dados (FONTE DA VERDADE)
+    // Sempre salva primeiro - padrão moderno de mensagens
     const message = await this.messageRepository.create(senderId, receiverId, content);
-
-    // Enviar via WebSocket em tempo real (se destinatário estiver online)
-    console.log('[SEND_MESSAGE] 🔍 Verificando status do destinatário e serviços disponíveis...', {
+    
+    console.log('[SEND_MESSAGE] 💾 Mensagem salva no banco de dados (fonte da verdade)', {
+      messageId: message.id,
+      senderId,
       receiverId,
-      chatGatewayAvailable: !!this.chatGateway,
-      rabbitMQServiceAvailable: !!this.rabbitMQService,
       timestamp: new Date().toISOString(),
     });
 
-    if (this.chatGateway) {
-      const isOnline = this.chatGateway.isUserOnline(receiverId);
-      console.log('[SEND_MESSAGE] 📊 Status do destinatário:', {
+    // Verificar se destinatário está online
+    const isOnline = this.chatGateway?.isUserOnline(receiverId) || false;
+    
+    console.log('[SEND_MESSAGE] 🔍 Verificando status do destinatário...', {
+      receiverId,
+      isOnline,
+      chatGatewayAvailable: !!this.chatGateway,
+      pushNotificationServiceAvailable: !!this.pushNotificationService,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (isOnline) {
+      // ✅ USUÁRIO ONLINE - Padrão Moderno: WebSocket + Redis
+      console.log('[SEND_MESSAGE] ✅ Destinatário ONLINE - Enviando via WebSocket + Redis...', {
         receiverId,
-        isOnline,
+        messageId: message.id,
         timestamp: new Date().toISOString(),
       });
       
-      if (isOnline) {
-        // Envia diretamente via WebSocket
-        console.log('[SEND_MESSAGE] ✅ Destinatário ONLINE - Enviando via WebSocket...', {
-          receiverId,
-          messageId: message.id,
-          timestamp: new Date().toISOString(),
-        });
-        
-        this.chatGateway.emitToUser(receiverId, 'new_message', {
+      // Envia diretamente via WebSocket
+      this.chatGateway!.emitToUser(receiverId, 'new_message', {
+        id: message.id,
+        senderId: message.senderId,
+        receiverId: message.receiverId,
+        content: message.content,
+        isRead: message.isRead,
+        createdAt: message.createdAt,
+      });
+
+      // Publica no Redis para outras instâncias do servidor
+      await this.chatGateway!.publishToRedis({
+        type: 'new_message',
+        receiverId: message.receiverId,
+        data: {
           id: message.id,
           senderId: message.senderId,
           receiverId: message.receiverId,
           content: message.content,
           isRead: message.isRead,
           createdAt: message.createdAt,
-        });
-
-        // Publica no Redis para outras instâncias do servidor
-        console.log('[SEND_MESSAGE] 🔴 Usando REDIS para distribuir mensagem para outras instâncias...', {
-          receiverId,
-          messageId: message.id,
-          timestamp: new Date().toISOString(),
-        });
+        },
+      });
+      
+      console.log('[SEND_MESSAGE] ✅ Mensagem entregue via WebSocket + Redis', {
+        receiverId,
+        messageId: message.id,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      // ❌ USUÁRIO OFFLINE - Padrão Moderno: Push Notification
+      // Mensagem já está salva no banco, usuário buscará quando voltar
+      console.log('[SEND_MESSAGE] ❌ Destinatário OFFLINE - Enviando Push Notification...', {
+        receiverId,
+        messageId: message.id,
+        pushNotificationServiceAvailable: !!this.pushNotificationService,
+        timestamp: new Date().toISOString(),
+      });
+      
+      if (this.pushNotificationService) {
+        // Buscar nome do remetente para a notificação
+        const sender = await this.userRepository.findById(senderId);
+        const senderName = sender?.name || 'Alguém';
         
-        await this.chatGateway.publishToRedis({
-          type: 'new_message',
-          receiverId: message.receiverId,
-          data: {
-            id: message.id,
+        // Enviar push notification
+        const pushSent = await this.pushNotificationService.sendNotification(
+          receiverId,
+          `Nova mensagem de ${senderName}`,
+          content.length > 100 ? content.substring(0, 100) + '...' : content,
+          {
+            type: 'new_message',
+            messageId: message.id,
             senderId: message.senderId,
             receiverId: message.receiverId,
-            content: message.content,
-            isRead: message.isRead,
-            createdAt: message.createdAt,
           },
-        });
+        );
         
-        console.log('[SEND_MESSAGE] ✅ REDIS usado com sucesso para distribuir mensagem', {
-          receiverId,
-          messageId: message.id,
-          timestamp: new Date().toISOString(),
-        });
-      } else {
-        // Se destinatário estiver offline, envia para RabbitMQ
-        // RabbitMQ garante que a mensagem será processada quando ele voltar
-        console.log('[SEND_MESSAGE] ❌ Destinatário OFFLINE - Enviando para RabbitMQ...', {
-          receiverId,
-          messageId: message.id,
-          rabbitMQServiceAvailable: !!this.rabbitMQService,
-          timestamp: new Date().toISOString(),
-        });
-        
-        if (this.rabbitMQService) {
-          console.log('[SEND_MESSAGE] 🐰 Usando RABBITMQ para garantir entrega quando usuário voltar...', {
+        if (pushSent) {
+          console.log('[SEND_MESSAGE] ✅ Push Notification enviada com sucesso', {
             receiverId,
             messageId: message.id,
-            queueName: 'chat_messages',
             timestamp: new Date().toISOString(),
           });
-          
-          const rabbitMQResult = await this.rabbitMQService.sendToQueue('chat_messages', {
-            type: 'offline_message',
-            messageId: message.id,
-            receiverId: message.receiverId,
-            data: {
-              id: message.id,
-              senderId: message.senderId,
-              receiverId: message.receiverId,
-              content: message.content,
-              isRead: message.isRead,
-              createdAt: message.createdAt,
-            },
-          });
-          
-          if (rabbitMQResult) {
-            console.log('[SEND_MESSAGE] ✅ RABBITMQ usado com sucesso - Mensagem enviada para fila', {
-              receiverId,
-              messageId: message.id,
-              queueName: 'chat_messages',
-              timestamp: new Date().toISOString(),
-            });
-          } else {
-            console.warn('[SEND_MESSAGE] ⚠️ RABBITMQ falhou ao enviar mensagem para fila', {
-              receiverId,
-              messageId: message.id,
-              queueName: 'chat_messages',
-              timestamp: new Date().toISOString(),
-            });
-          }
         } else {
-          console.warn('[SEND_MESSAGE] ⚠️ RabbitMQ não disponível - Mensagem não será entregue quando usuário voltar', {
+          console.warn('[SEND_MESSAGE] ⚠️ Push Notification não pôde ser enviada', {
             receiverId,
             messageId: message.id,
             timestamp: new Date().toISOString(),
           });
         }
+      } else {
+        console.warn('[SEND_MESSAGE] ⚠️ Push Notification Service não disponível', {
+          receiverId,
+          messageId: message.id,
+          note: 'Mensagem salva no banco, usuário buscará quando voltar',
+          timestamp: new Date().toISOString(),
+        });
       }
-    } else {
-      console.warn('[SEND_MESSAGE] ⚠️ ChatGateway não disponível - Mensagem não será enviada em tempo real', {
-        receiverId,
-        messageId: message.id,
-        timestamp: new Date().toISOString(),
-      });
+      
+      // Nota: Mensagem já está no banco, quando usuário voltar:
+      // 1. Conecta via WebSocket
+      // 2. Busca mensagens não lidas do banco
+      // 3. Recebe todas as mensagens pendentes
     }
 
     return {

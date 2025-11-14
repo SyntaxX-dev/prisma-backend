@@ -20,6 +20,8 @@ import {
   BLOCK_REPOSITORY,
   NOTIFICATION_REPOSITORY,
   MESSAGE_REPOSITORY,
+  PUSH_NOTIFICATION_SERVICE,
+  PUSH_SUBSCRIPTION_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -43,6 +45,8 @@ import { FriendshipDrizzleRepository } from '../repositories/friendship.drizzle.
 import { BlockDrizzleRepository } from '../repositories/block.drizzle.repository';
 import { NotificationDrizzleRepository } from '../repositories/notification.drizzle.repository';
 import { MessageDrizzleRepository } from '../repositories/message.drizzle.repository';
+import { FCMPushNotificationService } from '../services/fcm-push-notification.service';
+import { PushSubscriptionDrizzleRepository } from '../repositories/push-subscription.drizzle.repository';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -141,6 +145,15 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       useFactory: (db: NodePgDatabase) => new MessageDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
+    {
+      provide: PUSH_NOTIFICATION_SERVICE,
+      useClass: FCMPushNotificationService,
+    },
+    {
+      provide: PUSH_SUBSCRIPTION_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new PushSubscriptionDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
     CloudinaryService,
   ],
   exports: [
@@ -164,6 +177,8 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     BLOCK_REPOSITORY,
     NOTIFICATION_REPOSITORY,
     MESSAGE_REPOSITORY,
+    PUSH_NOTIFICATION_SERVICE,
+    PUSH_SUBSCRIPTION_REPOSITORY,
     CloudinaryService,
   ],
 })
