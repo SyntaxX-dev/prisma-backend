@@ -35,7 +35,7 @@ import {
   PASSWORD_RESET_SERVICE,
   GOOGLE_CONFIG_SERVICE,
 } from '../../../domain/tokens';
-import { Inject } from '@nestjs/common';
+import { Inject, Optional } from '@nestjs/common';
 import type { MailerServicePort } from '../../../domain/services/mailer';
 import type { PasswordResetService } from '../../../domain/services/password-reset.service';
 import type { GoogleConfigService } from '../../../domain/services/google-config.service';
@@ -43,6 +43,7 @@ import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../domain/services/auth.service';
 import { AuthGuard } from '@nestjs/passport';
+import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
 
 const educationLevelMapPtToEn: Record<string, EducationLevel> = {
   FUNDAMENTAL: EducationLevel.ELEMENTARY,
@@ -79,6 +80,8 @@ export class AuthController {
     private readonly passwordResetService: PasswordResetService,
     @Inject(GOOGLE_CONFIG_SERVICE)
     private readonly googleConfig: GoogleConfigService,
+    @Optional()
+    private readonly chatGateway?: ChatGateway,
   ) {}
 
   @Post('register')
@@ -158,6 +161,21 @@ export class AuthController {
     };
   }> {
     const output: LoginOutput = await this.loginUser.execute(body);
+    
+    // Marcar usuário como online no Redis e notificar amigos
+    if (this.chatGateway) {
+      try {
+        await this.chatGateway.setUserOnline(output.user.id);
+        console.log('[AUTH_CONTROLLER] ✅ Usuário marcado como online após login', {
+          userId: output.user.id,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('[AUTH_CONTROLLER] ❌ Erro ao marcar usuário como online:', error);
+        // Não falhar o login se houver erro ao marcar como online
+      }
+    }
+    
     return {
       accessToken: output.accessToken,
       user: {
@@ -168,6 +186,42 @@ export class AuthController {
           ? roleMapEnToPt[output.user.role as UserRole]
           : 'Não definido',
       },
+    };
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Fazer logout do usuário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout realizado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Logout realizado com sucesso',
+      },
+    },
+  })
+  async logout(@CurrentUser() user: JwtPayload) {
+    // Marcar usuário como offline no Redis e notificar amigos
+    if (this.chatGateway) {
+      try {
+        await this.chatGateway.setUserOffline(user.sub);
+        console.log('[AUTH_CONTROLLER] ❌ Usuário marcado como offline após logout', {
+          userId: user.sub,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('[AUTH_CONTROLLER] ❌ Erro ao marcar usuário como offline:', error);
+        // Não falhar o logout se houver erro ao marcar como offline
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Logout realizado com sucesso',
     };
   }
 

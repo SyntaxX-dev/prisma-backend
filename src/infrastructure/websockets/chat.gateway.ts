@@ -336,23 +336,56 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Quando um cliente se desconecta
+   * Este método é chamado automaticamente quando:
+   * - Usuário fecha a aba do navegador
+   * - Usuário navega para outra página
+   * - Conexão WebSocket é perdida
+   * - Cliente desconecta manualmente
    */
   async handleDisconnect(@ConnectedSocket() client: Socket) {
-    const user = client.data.user as JwtPayload;
-    if (user && user.sub) {
-      this.connectedUsers.delete(user.sub);
-      
-      // Limpar timer de ping
-      const timer = this.userPingTimers.get(user.sub);
-      if (timer) {
-        clearTimeout(timer);
-        this.userPingTimers.delete(user.sub);
+    try {
+      const user = client.data.user as JwtPayload;
+      if (user && user.sub) {
+        console.log('[CHAT_GATEWAY] 🔌 Iniciando desconexão...', {
+          userId: user.sub,
+          socketId: client.id,
+          disconnected: client.disconnected,
+          timestamp: new Date().toISOString(),
+        });
+
+        this.connectedUsers.delete(user.sub);
+        
+        // Limpar timer de ping
+        const timer = this.userPingTimers.get(user.sub);
+        if (timer) {
+          clearTimeout(timer);
+          this.userPingTimers.delete(user.sub);
+        }
+
+        // Marcar como offline no Redis e notificar amigos
+        // Isso garante que amigos vejam a mudança de status imediatamente
+        await this.setUserOffline(user.sub);
+
+        console.log('[CHAT_GATEWAY] ✅ Usuário desconectado e marcado como offline', {
+          userId: user.sub,
+          socketId: client.id,
+          timestamp: new Date().toISOString(),
+        });
+
+        this.logger.log(`❌ Usuário desconectado do chat: ${user.sub}`);
+      } else {
+        console.warn('[CHAT_GATEWAY] ⚠️ Desconexão sem usuário identificado', {
+          socketId: client.id,
+          timestamp: new Date().toISOString(),
+        });
       }
-
-      // Marcar como offline no Redis e notificar amigos
-      await this.setUserOffline(user.sub);
-
-      this.logger.log(`❌ Usuário desconectado do chat: ${user.sub}`);
+    } catch (error) {
+      this.logger.error('Erro ao processar desconexão:', error);
+      console.error('[CHAT_GATEWAY] ❌ Erro ao processar desconexão:', {
+        error: error.message,
+        socketId: client.id,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 
@@ -586,8 +619,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Marca usuário como online no Redis e notifica amigos
+   * Método público para ser chamado de controllers (ex: login)
    */
-  private async setUserOnline(userId: string): Promise<void> {
+  async setUserOnline(userId: string): Promise<void> {
     if (!this.redisService) return;
 
     const statusKey = `user:status:${userId}`;
@@ -613,7 +647,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.notifyFriendsStatusChange(userId, 'online');
 
     // Configurar timer para marcar como offline se não receber heartbeat
-    this.setupPingTimeout(userId);
+    // Apenas se o usuário estiver conectado via WebSocket
+    if (this.connectedUsers.has(userId)) {
+      this.setupPingTimeout(userId);
+    }
 
     console.log('[CHAT_GATEWAY] ✅ Usuário marcado como online', {
       userId,
@@ -623,8 +660,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Marca usuário como offline no Redis e notifica amigos
+   * Método público para ser chamado de controllers (ex: logout)
    */
-  private async setUserOffline(userId: string): Promise<void> {
+  async setUserOffline(userId: string): Promise<void> {
     if (!this.redisService) return;
 
     const statusKey = `user:status:${userId}`;
@@ -724,8 +762,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       // Notificar cada amigo online sobre a mudança de status
+      // Usar isUserOnlineCached para verificar também no Redis (não apenas nesta instância)
       for (const friendId of friendIds) {
-        const isFriendOnline = this.isUserOnline(friendId);
+        const isFriendOnline = await this.isUserOnlineCached(friendId);
         if (isFriendOnline) {
           this.emitToUser(friendId, 'user_status_changed', {
             userId,
