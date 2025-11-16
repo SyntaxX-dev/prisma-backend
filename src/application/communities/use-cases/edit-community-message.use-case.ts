@@ -1,6 +1,9 @@
-import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { COMMUNITY_MESSAGE_REPOSITORY } from '../../../domain/tokens';
+import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException, Optional } from '@nestjs/common';
+import { COMMUNITY_MESSAGE_REPOSITORY, COMMUNITY_REPOSITORY, COMMUNITY_MEMBER_REPOSITORY } from '../../../domain/tokens';
 import type { CommunityMessageRepository } from '../../../domain/repositories/community-message.repository';
+import type { CommunityRepository } from '../../../domain/repositories/community.repository';
+import type { CommunityMemberRepository } from '../../../domain/repositories/community-member.repository';
+import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
 
 export interface EditCommunityMessageInput {
   messageId: string;
@@ -27,6 +30,12 @@ export class EditCommunityMessageUseCase {
   constructor(
     @Inject(COMMUNITY_MESSAGE_REPOSITORY)
     private readonly communityMessageRepository: CommunityMessageRepository,
+    @Inject(COMMUNITY_REPOSITORY)
+    private readonly communityRepository: CommunityRepository,
+    @Inject(COMMUNITY_MEMBER_REPOSITORY)
+    private readonly communityMemberRepository: CommunityMemberRepository,
+    @Optional()
+    private readonly chatGateway?: ChatGateway,
   ) {}
 
   async execute(input: EditCommunityMessageInput): Promise<EditCommunityMessageOutput> {
@@ -65,6 +74,65 @@ export class EditCommunityMessageUseCase {
 
     // Atualizar mensagem
     const updatedMessage = await this.communityMessageRepository.update(messageId, newContent.trim());
+
+    // Notificar todos os membros via WebSocket/Redis em tempo real
+    if (this.chatGateway) {
+      const community = await this.communityRepository.findById(updatedMessage.communityId);
+      if (community) {
+        // Buscar todos os membros da comunidade
+        const members = await this.communityMemberRepository.findByCommunityId(updatedMessage.communityId);
+        const memberIds = members.map((m) => m.userId);
+        
+        // Incluir o dono se não estiver na lista de membros
+        if (!memberIds.includes(community.ownerId)) {
+          memberIds.push(community.ownerId);
+        }
+
+        console.log('[EDIT_COMMUNITY_MESSAGE] 📡 Notificando membros sobre edição...', {
+          messageId,
+          communityId: updatedMessage.communityId,
+          senderId: userId,
+          totalMembers: memberIds.length,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Enviar para todos os membros online via WebSocket
+        for (const memberId of memberIds) {
+          const isOnline = this.chatGateway.isUserOnline(memberId);
+          if (isOnline) {
+            this.chatGateway.emitToUser(memberId, 'community_message_edited', {
+              id: updatedMessage.id,
+              communityId: updatedMessage.communityId,
+              senderId: updatedMessage.senderId,
+              content: updatedMessage.content,
+              updatedAt: updatedMessage.updatedAt,
+            });
+          }
+        }
+
+        // Publicar no Redis para outras instâncias do servidor
+        await this.chatGateway.publishToRedis({
+          type: 'community_message_edited',
+          communityId: updatedMessage.communityId,
+          messageId: updatedMessage.id,
+          senderId: userId,
+          receiverIds: memberIds,
+          data: {
+            id: updatedMessage.id,
+            communityId: updatedMessage.communityId,
+            senderId: updatedMessage.senderId,
+            content: updatedMessage.content,
+            updatedAt: updatedMessage.updatedAt,
+          },
+        });
+
+        console.log('[EDIT_COMMUNITY_MESSAGE] ✅ Notificação de edição enviada', {
+          messageId,
+          communityId: updatedMessage.communityId,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
 
     return {
       success: true,

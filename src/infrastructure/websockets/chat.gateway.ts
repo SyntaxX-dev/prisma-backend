@@ -121,6 +121,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             }
           }
         }
+      } else if (message.type === 'message_edited') {
+        // Notifica que mensagem foi editada (chat normal)
+        const receiverSocketId = this.connectedUsers.get(message.receiverId);
+        if (receiverSocketId) {
+          this.server.to(receiverSocketId).emit('message_edited', message.data);
+        }
+        // Também notificar o sender (caso tenha múltiplas abas/dispositivos)
+        const senderSocketId = this.connectedUsers.get(message.senderId);
+        if (senderSocketId) {
+          this.server.to(senderSocketId).emit('message_edited', message.data);
+        }
+      } else if (message.type === 'community_message_edited') {
+        // Notifica que mensagem de comunidade foi editada
+        if (message.receiverIds && Array.isArray(message.receiverIds)) {
+          for (const receiverId of message.receiverIds) {
+            const socketId = this.connectedUsers.get(receiverId);
+            if (socketId) {
+              this.server.to(socketId).emit('community_message_edited', message.data);
+            }
+          }
+        }
       }
     } catch (error) {
       this.logger.error('Erro ao processar mensagem do Redis:', error);

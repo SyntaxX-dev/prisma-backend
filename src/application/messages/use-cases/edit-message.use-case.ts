@@ -1,6 +1,7 @@
-import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException, Optional } from '@nestjs/common';
 import { MESSAGE_REPOSITORY } from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
+import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
 
 export interface EditMessageInput {
   messageId: string;
@@ -28,6 +29,8 @@ export class EditMessageUseCase {
   constructor(
     @Inject(MESSAGE_REPOSITORY)
     private readonly messageRepository: MessageRepository,
+    @Optional()
+    private readonly chatGateway?: ChatGateway,
   ) {}
 
   async execute(input: EditMessageInput): Promise<EditMessageOutput> {
@@ -97,6 +100,58 @@ export class EditMessageUseCase {
       newContentLength: updatedMessage.content.length,
       timestamp: new Date().toISOString(),
     });
+
+    // 6. Notificar o outro usuário via WebSocket/Redis em tempo real
+    if (this.chatGateway) {
+      const receiverId = updatedMessage.receiverId;
+      
+      console.log('[EDIT_MESSAGE] 📡 Notificando outro usuário sobre edição...', {
+        messageId,
+        senderId: userId,
+        receiverId,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Publicar evento de edição no Redis para distribuir entre instâncias
+      await this.chatGateway.publishToRedis({
+        type: 'message_edited',
+        messageId: updatedMessage.id,
+        senderId: userId,
+        receiverId: receiverId,
+        data: {
+          id: updatedMessage.id,
+          senderId: updatedMessage.senderId,
+          receiverId: updatedMessage.receiverId,
+          content: updatedMessage.content,
+          updatedAt: (updatedMessage as any).updatedAt || null,
+        },
+      });
+
+      // Enviar diretamente para ambos os usuários se estiverem online nesta instância
+      // Receiver (outro usuário) - precisa ser notificado
+      this.chatGateway.emitToUser(receiverId, 'message_edited', {
+        id: updatedMessage.id,
+        senderId: updatedMessage.senderId,
+        receiverId: updatedMessage.receiverId,
+        content: updatedMessage.content,
+        updatedAt: (updatedMessage as any).updatedAt || null,
+      });
+      
+      // Sender (quem editou) - também notificar caso tenha múltiplas abas/dispositivos
+      this.chatGateway.emitToUser(userId, 'message_edited', {
+        id: updatedMessage.id,
+        senderId: updatedMessage.senderId,
+        receiverId: updatedMessage.receiverId,
+        content: updatedMessage.content,
+        updatedAt: (updatedMessage as any).updatedAt || null,
+      });
+
+      console.log('[EDIT_MESSAGE] ✅ Notificação de edição enviada', {
+        messageId,
+        receiverId,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     return {
       success: true,
