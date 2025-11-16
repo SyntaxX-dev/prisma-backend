@@ -30,9 +30,10 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Inject, Optional } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { JwtPayload } from '../services/auth.service';
-import { REDIS_SERVICE, MESSAGE_REPOSITORY } from '../../domain/tokens';
+import { REDIS_SERVICE, MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY } from '../../domain/tokens';
 import type { RedisService } from '../redis/services/redis.service';
 import type { MessageRepository } from '../../domain/repositories/message.repository';
+import type { FriendshipRepository } from '../../domain/repositories/friendship.repository';
 
 @WebSocketGateway({
   cors: {
@@ -53,6 +54,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(ChatGateway.name);
   private readonly connectedUsers = new Map<string, string>(); // userId -> socketId
+  private readonly userPingTimers = new Map<string, NodeJS.Timeout>(); // userId -> timer para timeout
+  private readonly HEARTBEAT_INTERVAL_MS = 30 * 1000; // 30 segundos
+  private readonly OFFLINE_TIMEOUT_MS = 60 * 1000; // 60 segundos
 
   constructor(
     private readonly wsJwtGuard: WsJwtGuard,
@@ -62,6 +66,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(MESSAGE_REPOSITORY)
     @Optional()
     private readonly messageRepository?: MessageRepository,
+    @Inject(FRIENDSHIP_REPOSITORY)
+    @Optional()
+    private readonly friendshipRepository?: FriendshipRepository,
   ) {
     // Assina canais Redis para receber mensagens de outras instâncias
     if (this.redisService) {
@@ -88,6 +95,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Assina canal para eventos de exclusão de mensagens
     await this.redisService.subscribe('chat:message_deleted', (message) => {
       this.handleRedisMessageDeleted(message);
+    });
+
+    // Assina canal para mudanças de status online
+    await this.redisService.subscribe('chat:user_status', (message) => {
+      this.handleRedisUserStatus(message);
     });
 
     this.logger.log('✅ Assinando canais Redis para chat');
@@ -264,6 +276,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Entra em uma sala com o ID do usuário (para enviar mensagens direcionadas)
         client.join(`user:${user.sub}`);
 
+        // Marcar como online no Redis e notificar amigos
+        await this.setUserOnline(user.sub);
+
         // Confirma conexão
         client.emit('connected', { userId: user.sub });
 
@@ -326,6 +341,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = client.data.user as JwtPayload;
     if (user && user.sub) {
       this.connectedUsers.delete(user.sub);
+      
+      // Limpar timer de ping
+      const timer = this.userPingTimers.get(user.sub);
+      if (timer) {
+        clearTimeout(timer);
+        this.userPingTimers.delete(user.sub);
+      }
+
+      // Marcar como offline no Redis e notificar amigos
+      await this.setUserOffline(user.sub);
+
       this.logger.log(`❌ Usuário desconectado do chat: ${user.sub}`);
     }
   }
@@ -336,6 +362,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('ping')
   handlePing(@ConnectedSocket() client: Socket) {
     return { event: 'pong', data: { timestamp: new Date().toISOString() } };
+  }
+
+  /**
+   * Handler para heartbeat - atualiza status online do usuário
+   * Cliente deve enviar este evento a cada 30 segundos
+   */
+  @SubscribeMessage('heartbeat')
+  async handleHeartbeat(@ConnectedSocket() client: Socket) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      return { event: 'error', data: { message: 'Não autenticado' } };
+    }
+
+    // Atualizar último ping no Redis (renova TTL de 60s)
+    await this.updateUserPing(user.sub);
+
+    return { event: 'heartbeat_ack', data: { timestamp: new Date().toISOString() } };
   }
 
   /**
@@ -539,6 +582,257 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   getSocketId(userId: string): string | undefined {
     return this.connectedUsers.get(userId);
+  }
+
+  /**
+   * Marca usuário como online no Redis e notifica amigos
+   */
+  private async setUserOnline(userId: string): Promise<void> {
+    if (!this.redisService) return;
+
+    const statusKey = `user:status:${userId}`;
+    const statusData = {
+      status: 'online',
+      lastSeen: new Date().toISOString(),
+      lastPing: new Date().toISOString(),
+    };
+
+    // Armazenar no Redis com TTL de 60 segundos
+    // Se não receber heartbeat em 60s, expira automaticamente
+    await this.redisService.set(statusKey, statusData, 60);
+
+    // Publicar mudança de status no Redis para outras instâncias
+    await this.redisService.publish('chat:user_status', {
+      type: 'status_changed',
+      userId,
+      status: 'online',
+      timestamp: new Date().toISOString(),
+    });
+
+    // Notificar amigos sobre mudança de status
+    await this.notifyFriendsStatusChange(userId, 'online');
+
+    // Configurar timer para marcar como offline se não receber heartbeat
+    this.setupPingTimeout(userId);
+
+    console.log('[CHAT_GATEWAY] ✅ Usuário marcado como online', {
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Marca usuário como offline no Redis e notifica amigos
+   */
+  private async setUserOffline(userId: string): Promise<void> {
+    if (!this.redisService) return;
+
+    const statusKey = `user:status:${userId}`;
+    const statusData = {
+      status: 'offline',
+      lastSeen: new Date().toISOString(),
+      lastPing: null,
+    };
+
+    // Armazenar no Redis (sem TTL, fica offline até conectar novamente)
+    await this.redisService.set(statusKey, statusData);
+
+    // Publicar mudança de status no Redis para outras instâncias
+    await this.redisService.publish('chat:user_status', {
+      type: 'status_changed',
+      userId,
+      status: 'offline',
+      timestamp: new Date().toISOString(),
+    });
+
+    // Notificar amigos sobre mudança de status
+    await this.notifyFriendsStatusChange(userId, 'offline');
+
+    console.log('[CHAT_GATEWAY] ❌ Usuário marcado como offline', {
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Atualiza último ping do usuário (renova TTL)
+   */
+  private async updateUserPing(userId: string): Promise<void> {
+    if (!this.redisService) return;
+
+    const statusKey = `user:status:${userId}`;
+    const currentStatus = await this.redisService.get<any>(statusKey);
+
+    if (currentStatus) {
+      // Atualizar lastPing e renovar TTL de 60s
+      const updatedStatus = {
+        ...currentStatus,
+        lastPing: new Date().toISOString(),
+        status: 'online',
+      };
+      await this.redisService.set(statusKey, updatedStatus, 60);
+
+      // Renovar timer de timeout
+      this.setupPingTimeout(userId);
+    } else {
+      // Se não existe status, criar como online
+      await this.setUserOnline(userId);
+    }
+  }
+
+  /**
+   * Configura timer para marcar usuário como offline se não receber heartbeat
+   */
+  private setupPingTimeout(userId: string): void {
+    // Limpar timer anterior se existir
+    const existingTimer = this.userPingTimers.get(userId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    // Criar novo timer de 60s
+    const timer = setTimeout(async () => {
+      // Verificar se ainda está conectado
+      if (this.connectedUsers.has(userId)) {
+        // Se ainda está conectado mas não enviou heartbeat, marcar como offline
+        console.log('[CHAT_GATEWAY] ⏰ Timeout de heartbeat - marcando como offline', {
+          userId,
+          timestamp: new Date().toISOString(),
+        });
+        await this.setUserOffline(userId);
+        this.connectedUsers.delete(userId);
+      }
+      this.userPingTimers.delete(userId);
+    }, this.OFFLINE_TIMEOUT_MS);
+
+    this.userPingTimers.set(userId, timer);
+  }
+
+  /**
+   * Notifica amigos sobre mudança de status
+   */
+  private async notifyFriendsStatusChange(userId: string, status: 'online' | 'offline'): Promise<void> {
+    if (!this.friendshipRepository) return;
+
+    try {
+      // Buscar todos os amigos do usuário
+      const friendships = await this.friendshipRepository.findByUserId(userId);
+      
+      // Extrair IDs dos amigos
+      const friendIds = friendships.map((friendship) =>
+        friendship.userId1 === userId ? friendship.userId2 : friendship.userId1,
+      );
+
+      // Notificar cada amigo online sobre a mudança de status
+      for (const friendId of friendIds) {
+        const isFriendOnline = this.isUserOnline(friendId);
+        if (isFriendOnline) {
+          this.emitToUser(friendId, 'user_status_changed', {
+            userId,
+            status,
+            lastSeen: new Date().toISOString(),
+          });
+        }
+      }
+
+      console.log('[CHAT_GATEWAY] 📢 Status notificado para amigos', {
+        userId,
+        status,
+        friendsCount: friendIds.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger.error(`Erro ao notificar amigos sobre status de ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Processa mudanças de status recebidas do Redis (de outras instâncias)
+   */
+  private handleRedisUserStatus(message: any): void {
+    try {
+      if (message.type === 'status_changed') {
+        // Notificar amigos locais sobre mudança de status
+        // (já foi notificado na instância original, mas precisamos notificar amigos desta instância)
+        if (this.friendshipRepository) {
+          // Buscar amigos do usuário que mudou status
+          this.friendshipRepository
+            .findByUserId(message.userId)
+            .then((friendships) => {
+              const friendIds = friendships.map((friendship) =>
+                friendship.userId1 === message.userId ? friendship.userId2 : friendship.userId1,
+              );
+
+              // Notificar cada amigo online nesta instância
+              for (const friendId of friendIds) {
+                const isFriendOnline = this.isUserOnline(friendId);
+                if (isFriendOnline) {
+                  this.emitToUser(friendId, 'user_status_changed', {
+                    userId: message.userId,
+                    status: message.status,
+                    lastSeen: message.timestamp,
+                  });
+                }
+              }
+            })
+            .catch((error) => {
+              this.logger.error(`Erro ao processar status do Redis para ${message.userId}:`, error);
+            });
+        }
+      }
+    } catch (error) {
+      this.logger.error('Erro ao processar status do Redis:', error);
+    }
+  }
+
+  /**
+   * Verifica se um usuário está online (consulta Redis)
+   */
+  async isUserOnlineCached(userId: string): Promise<boolean> {
+    if (!this.redisService) {
+      // Fallback: verificar apenas se está conectado nesta instância
+      return this.isUserOnline(userId);
+    }
+
+    try {
+      const statusKey = `user:status:${userId}`;
+      const status = await this.redisService.get<any>(statusKey);
+      return status?.status === 'online';
+    } catch (error) {
+      // Fallback: verificar apenas se está conectado nesta instância
+      return this.isUserOnline(userId);
+    }
+  }
+
+  /**
+   * Obtém status completo de um usuário
+   */
+  async getUserStatus(userId: string): Promise<{ status: 'online' | 'offline'; lastSeen: string } | null> {
+    if (!this.redisService) {
+      return this.isUserOnline(userId)
+        ? { status: 'online', lastSeen: new Date().toISOString() }
+        : { status: 'offline', lastSeen: new Date().toISOString() };
+    }
+
+    try {
+      const statusKey = `user:status:${userId}`;
+      const status = await this.redisService.get<any>(statusKey);
+      
+      if (status) {
+        return {
+          status: status.status === 'online' ? 'online' : 'offline',
+          lastSeen: status.lastSeen || new Date().toISOString(),
+        };
+      }
+
+      // Se não existe no Redis, verificar se está conectado nesta instância
+      return this.isUserOnline(userId)
+        ? { status: 'online', lastSeen: new Date().toISOString() }
+        : { status: 'offline', lastSeen: new Date().toISOString() };
+    } catch (error) {
+      this.logger.error(`Erro ao buscar status de ${userId}:`, error);
+      return null;
+    }
   }
 }
 

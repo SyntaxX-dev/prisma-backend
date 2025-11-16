@@ -9,6 +9,7 @@ import { ProgressModule } from '../application/progress/progress.module';
 import { CommunitiesModule } from '../application/communities/communities.module';
 import { FriendshipsModule } from '../application/friendships/friendships.module';
 import { MessagesModule } from '../application/messages/messages.module';
+import { WebSocketsModule } from '../infrastructure/websockets/websockets.module';
 import { AppController } from './http/controllers/app.controller';
 import { AuthController } from './http/controllers/auth.controller';
 import { UserController } from './http/controllers/user.controller';
@@ -37,6 +38,7 @@ import { PushController } from './http/controllers/push.controller';
     CommunitiesModule,
     FriendshipsModule,
     MessagesModule,
+    WebSocketsModule,
   ],
   controllers: [
     AppController,

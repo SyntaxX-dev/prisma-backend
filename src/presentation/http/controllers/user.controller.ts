@@ -5,8 +5,9 @@ import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { GetUserProfileUseCase } from '../../../application/use-cases/get-user-profile.use-case';
 import { ListNotificationsUseCase } from '../../../application/use-cases/list-notifications.use-case';
 import { NOTIFICATION_REPOSITORY } from '../../../domain/tokens';
-import { Inject } from '@nestjs/common';
+import { Inject, Optional } from '@nestjs/common';
 import type { NotificationRepository } from '../../../domain/repositories/notification.repository';
+import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
 
 @ApiTags('Users')
 @Controller('users')
@@ -16,6 +17,8 @@ export class UserController {
     private readonly listNotificationsUseCase: ListNotificationsUseCase,
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepository: NotificationRepository,
+    @Optional()
+    private readonly chatGateway?: ChatGateway,
   ) {}
 
   @Get('notifications')
@@ -129,6 +132,111 @@ export class UserController {
     return {
       success: true,
       data: result,
+    };
+  }
+
+  @Get(':id/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Obter status online de um usuário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Status do usuário retornado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          userId: 'd99f095c-32e1-496e-b20e-73a554bb9538',
+          status: 'online',
+          lastSeen: '2025-11-16T20:00:00.000Z',
+        },
+      },
+    },
+  })
+  async getUserStatus(@Param('id') userId: string) {
+    if (!this.chatGateway) {
+      return {
+        success: true,
+        data: {
+          userId,
+          status: 'offline',
+          lastSeen: new Date().toISOString(),
+        },
+      };
+    }
+
+    const status = await this.chatGateway.getUserStatus(userId);
+
+    return {
+      success: true,
+      data: status || {
+        userId,
+        status: 'offline',
+        lastSeen: new Date().toISOString(),
+      },
+    };
+  }
+
+  @Get('status/batch')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Obter status online de múltiplos usuários' })
+  @ApiResponse({
+    status: 200,
+    description: 'Status dos usuários retornado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        data: [
+          {
+            userId: 'd99f095c-32e1-496e-b20e-73a554bb9538',
+            status: 'online',
+            lastSeen: '2025-11-16T20:00:00.000Z',
+          },
+          {
+            userId: '0ac70618-5f71-4eff-991a-d9d25799f9e0',
+            status: 'offline',
+            lastSeen: '2025-11-16T19:30:00.000Z',
+          },
+        ],
+      },
+    },
+  })
+  async getUsersStatus(@Query('userIds') userIds: string) {
+    if (!this.chatGateway) {
+      const userIdsArray = userIds.split(',').filter(Boolean);
+      return {
+        success: true,
+        data: userIdsArray.map((userId) => ({
+          userId,
+          status: 'offline',
+          lastSeen: new Date().toISOString(),
+        })),
+      };
+    }
+
+    const userIdsArray = userIds.split(',').filter(Boolean);
+    const statuses = await Promise.all(
+      userIdsArray.map(async (userId) => {
+        if (!this.chatGateway) {
+          return {
+            userId,
+            status: 'offline',
+            lastSeen: new Date().toISOString(),
+          };
+        }
+        const status = await this.chatGateway.getUserStatus(userId);
+        return status || {
+          userId,
+          status: 'offline',
+          lastSeen: new Date().toISOString(),
+        };
+      }),
+    );
+
+    return {
+      success: true,
+      data: statuses,
     };
   }
 }
