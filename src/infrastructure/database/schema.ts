@@ -514,6 +514,8 @@ export const messages = pgTable(
     isRead: text('is_read').notNull().default('false'), // 'true' ou 'false' como string
     readAt: timestamp('read_at', { withTimezone: false }), // Quando foi lida (null se não foi)
     updatedAt: timestamp('updated_at', { withTimezone: false }), // Quando foi editada (null se nunca foi editada)
+    isDeleted: text('is_deleted').notNull().default('false'), // 'true' ou 'false' como string - se a mensagem foi deletada
+    deletedAt: timestamp('deleted_at', { withTimezone: false }), // Quando foi deletada (null se não foi)
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),

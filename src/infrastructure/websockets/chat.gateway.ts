@@ -85,6 +85,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.handleRedisTyping(message);
     });
 
+    // Assina canal para eventos de exclusão de mensagens
+    await this.redisService.subscribe('chat:message_deleted', (message) => {
+      this.handleRedisMessageDeleted(message);
+    });
+
     this.logger.log('✅ Assinando canais Redis para chat');
   }
 
@@ -130,6 +135,60 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     } catch (error) {
       this.logger.error('Erro ao processar typing do Redis:', error);
+    }
+  }
+
+  /**
+   * Processa eventos de exclusão de mensagens recebidos do Redis (de outras instâncias)
+   */
+  private handleRedisMessageDeleted(message: any) {
+    try {
+      if (message.type === 'message_deleted') {
+        // Notificar o receiver (outro usuário)
+        const receiverSocketId = this.connectedUsers.get(message.receiverId);
+        if (receiverSocketId) {
+          this.server.to(receiverSocketId).emit('message_deleted', {
+            messageId: message.messageId,
+            message: message.message, // Mensagem com conteúdo "Mensagem apagada"
+          });
+          console.log('[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando receiver via WebSocket', {
+            messageId: message.messageId,
+            receiverId: message.receiverId,
+            socketId: receiverSocketId,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        // Notificar o sender (quem deletou) - caso tenha múltiplas abas/dispositivos
+        const senderSocketId = this.connectedUsers.get(message.senderId);
+        if (senderSocketId) {
+          this.server.to(senderSocketId).emit('message_deleted', {
+            messageId: message.messageId,
+            message: message.message, // Mensagem com conteúdo "Mensagem apagada"
+          });
+          console.log('[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando sender via WebSocket', {
+            messageId: message.messageId,
+            senderId: message.senderId,
+            socketId: senderSocketId,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        if (!receiverSocketId && !senderSocketId) {
+          console.log('[CHAT_GATEWAY] ℹ️ Nenhum usuário conectado - Mensagem deletada mas não notificados', {
+            messageId: message.messageId,
+            receiverId: message.receiverId,
+            senderId: message.senderId,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error('Erro ao processar exclusão de mensagem do Redis:', error);
+      console.error('[CHAT_GATEWAY] ❌ Erro ao processar exclusão de mensagem:', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 
@@ -346,6 +405,65 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         error: error.message,
         messageType: message?.type,
         receiverId: message?.receiverId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Publica evento de exclusão de mensagem no Redis
+   * 
+   * @param messageId - ID da mensagem deletada
+   * @param senderId - ID do usuário que deletou
+   * @param receiverId - ID do usuário que deve ser notificado
+   * @param deletedMessage - Mensagem atualizada (com conteúdo "Mensagem apagada")
+   */
+  async publishMessageDeleted(
+    messageId: string,
+    senderId: string,
+    receiverId: string,
+    deletedMessage: any,
+  ): Promise<void> {
+    if (!this.redisService) {
+      console.warn('[CHAT_GATEWAY] ⚠️ REDIS não disponível - Exclusão não será distribuída', {
+        messageId,
+        receiverId,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    try {
+      const message = {
+        type: 'message_deleted',
+        messageId,
+        senderId,
+        receiverId,
+        message: {
+          id: deletedMessage.id,
+          content: deletedMessage.content, // "Mensagem apagada"
+          senderId: deletedMessage.senderId,
+          receiverId: deletedMessage.receiverId,
+          isRead: deletedMessage.isRead,
+          createdAt: deletedMessage.createdAt,
+          readAt: deletedMessage.readAt,
+        },
+      };
+
+      await this.redisService.publish('chat:message_deleted', message);
+      
+      console.log('[CHAT_GATEWAY] ✅ Evento de exclusão publicado no Redis', {
+        channel: 'chat:message_deleted',
+        messageId,
+        receiverId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger.error('Erro ao publicar exclusão no Redis:', error);
+      console.error('[CHAT_GATEWAY] ❌ Erro ao publicar exclusão no REDIS:', {
+        error: error.message,
+        messageId,
+        receiverId,
         timestamp: new Date().toISOString(),
       });
     }

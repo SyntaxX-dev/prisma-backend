@@ -207,15 +207,23 @@ export class MessageDrizzleRepository implements MessageRepository {
   }
 
   async delete(messageId: string): Promise<void> {
-    await this.db.delete(messages).where(eq(messages.id, messageId));
+    // Soft delete: marca como deletada e substitui conteúdo por "Mensagem apagada"
+    await this.db
+      .update(messages)
+      .set({
+        content: 'Mensagem apagada',
+        isDeleted: 'true',
+        deletedAt: new Date(),
+      })
+      .where(eq(messages.id, messageId));
   }
 
-  private mapToEntity(row: any): Message & { updatedAt?: Date | null } {
+  private mapToEntity(row: any): Message & { updatedAt?: Date | null; isDeleted?: boolean } {
     const message = new Message(
       row.id,
       row.senderId,
       row.receiverId,
-      row.content,
+      row.content, // Já vem como "Mensagem apagada" se foi deletada
       row.isRead === 'true',
       row.createdAt,
       row.readAt,
@@ -224,7 +232,11 @@ export class MessageDrizzleRepository implements MessageRepository {
     if (row.updatedAt) {
       (message as any).updatedAt = row.updatedAt;
     }
-    return message as Message & { updatedAt?: Date | null };
+    // Adicionar isDeleted se existir
+    if (row.isDeleted) {
+      (message as any).isDeleted = row.isDeleted === 'true';
+    }
+    return message as Message & { updatedAt?: Date | null; isDeleted?: boolean };
   }
 }
 
