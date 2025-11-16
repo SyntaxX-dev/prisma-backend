@@ -111,6 +111,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (socketId) {
           this.server.to(socketId).emit('message_read', message.data);
         }
+      } else if (message.type === 'new_community_message') {
+        // Envia mensagem de comunidade para todos os membros online
+        if (message.receiverIds && Array.isArray(message.receiverIds)) {
+          for (const receiverId of message.receiverIds) {
+            const socketId = this.connectedUsers.get(receiverId);
+            if (socketId) {
+              this.server.to(socketId).emit('new_community_message', message.data);
+            }
+          }
+        }
       }
     } catch (error) {
       this.logger.error('Erro ao processar mensagem do Redis:', error);
@@ -182,6 +192,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             timestamp: new Date().toISOString(),
           });
         }
+      } else if (message.type === 'community_message_deleted') {
+        // Notificar todos os membros da comunidade sobre a exclusão
+        const communityId = message.receiverId; // receiverId é na verdade communityId aqui
+        
+        // Emitir para todos os usuários conectados (frontend filtra por communityId)
+        this.server.emit('community_message_deleted', {
+          messageId: message.messageId,
+          communityId: communityId,
+          message: message.message, // Mensagem com conteúdo "Mensagem apagada"
+        });
+        
+        console.log('[CHAT_GATEWAY] 🗑️ Mensagem de comunidade deletada - Notificando todos os membros', {
+          messageId: message.messageId,
+          communityId: communityId,
+          timestamp: new Date().toISOString(),
+        });
       }
     } catch (error) {
       this.logger.error('Erro ao processar exclusão de mensagem do Redis:', error);
@@ -415,14 +441,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * 
    * @param messageId - ID da mensagem deletada
    * @param senderId - ID do usuário que deletou
-   * @param receiverId - ID do usuário que deve ser notificado
+   * @param receiverId - ID do usuário que deve ser notificado (ou communityId para comunidades)
    * @param deletedMessage - Mensagem atualizada (com conteúdo "Mensagem apagada")
+   * @param isCommunity - Se true, receiverId é na verdade communityId
    */
   async publishMessageDeleted(
     messageId: string,
     senderId: string,
     receiverId: string,
     deletedMessage: any,
+    isCommunity: boolean = false,
   ): Promise<void> {
     if (!this.redisService) {
       console.warn('[CHAT_GATEWAY] ⚠️ REDIS não disponível - Exclusão não será distribuída', {
@@ -434,20 +462,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      const message = {
-        type: 'message_deleted',
+      const message: any = {
+        type: isCommunity ? 'community_message_deleted' : 'message_deleted',
         messageId,
         senderId,
         receiverId,
-        message: {
-          id: deletedMessage.id,
-          content: deletedMessage.content, // "Mensagem apagada"
-          senderId: deletedMessage.senderId,
-          receiverId: deletedMessage.receiverId,
-          isRead: deletedMessage.isRead,
-          createdAt: deletedMessage.createdAt,
-          readAt: deletedMessage.readAt,
-        },
+        isCommunity,
+        message: isCommunity
+          ? {
+              id: deletedMessage.id,
+              content: deletedMessage.content, // "Mensagem apagada"
+              communityId: deletedMessage.communityId,
+              senderId: deletedMessage.senderId,
+              createdAt: deletedMessage.createdAt,
+            }
+          : {
+              id: deletedMessage.id,
+              content: deletedMessage.content, // "Mensagem apagada"
+              senderId: deletedMessage.senderId,
+              receiverId: deletedMessage.receiverId,
+              isRead: deletedMessage.isRead,
+              createdAt: deletedMessage.createdAt,
+              readAt: deletedMessage.readAt,
+            },
       };
 
       await this.redisService.publish('chat:message_deleted', message);

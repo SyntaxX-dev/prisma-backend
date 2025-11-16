@@ -583,6 +583,80 @@ export const pinnedMessages = pgTable(
 );
 
 /**
+ * Tabela community_messages - Armazena mensagens em comunidades
+ * 
+ * Esta tabela armazena mensagens enviadas em comunidades (chat de grupo).
+ * Similar à tabela messages, mas para contexto de comunidades.
+ */
+export const communityMessages = pgTable(
+  'community_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    communityId: uuid('community_id')
+      .notNull()
+      .references(() => communities.id, { onDelete: 'cascade' }),
+    senderId: uuid('sender_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(), // Conteúdo da mensagem
+    updatedAt: timestamp('updated_at', { withTimezone: false }), // Quando foi editada (null se nunca foi editada)
+    isDeleted: text('is_deleted').notNull().default('false'), // 'true' ou 'false' como string - se a mensagem foi deletada
+    deletedAt: timestamp('deleted_at', { withTimezone: false }), // Quando foi deletada (null se não foi)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar mensagens de uma comunidade rapidamente
+    communityIdIdx: index('community_messages_community_id_idx').on(table.communityId),
+    // Índice para ordenar por data de criação
+    createdAtIdx: index('community_messages_created_at_idx').on(table.createdAt),
+    // Índice para buscar por sender
+    senderIdIdx: index('community_messages_sender_id_idx').on(table.senderId),
+    // Índice composto para buscar mensagens de uma comunidade ordenadas por data
+    communityCreatedIdx: index('community_messages_community_created_idx').on(
+      table.communityId,
+      table.createdAt,
+    ),
+  }),
+);
+
+/**
+ * Tabela pinned_community_messages - Armazena mensagens fixadas em comunidades
+ * 
+ * Esta tabela permite que usuários fixem mensagens importantes em uma comunidade.
+ * Cada comunidade pode ter múltiplas mensagens fixadas.
+ */
+export const pinnedCommunityMessages = pgTable(
+  'pinned_community_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => communityMessages.id, { onDelete: 'cascade' }),
+    communityId: uuid('community_id')
+      .notNull()
+      .references(() => communities.id, { onDelete: 'cascade' }),
+    pinnedBy: uuid('pinned_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    pinnedAt: timestamp('pinned_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar mensagens fixadas de uma comunidade
+    communityIdIdx: index('pinned_community_messages_community_id_idx').on(table.communityId),
+    // Índice para buscar por mensagem
+    messageIdIdx: index('pinned_community_messages_message_id_idx').on(table.messageId),
+    // Índice para ordenar por data de fixação
+    pinnedAtIdx: index('pinned_community_messages_pinned_at_idx').on(table.pinnedAt),
+    // Índice único: uma mensagem só pode ser fixada uma vez
+    messageIdUniqueIdx: uniqueIndex('pinned_community_messages_message_id_unique').on(table.messageId),
+  }),
+);
+
+/**
  * Tabela user_push_subscriptions - Armazena subscriptions de Web Push
  * 
  * Esta tabela armazena as subscriptions de push notifications dos usuários.

@@ -7,9 +7,18 @@ import { InviteToCommunityUseCase } from './use-cases/invite-to-community.use-ca
 import { ListCommunitiesUseCase } from './use-cases/list-communities.use-case';
 import { GetCommunityUseCase } from './use-cases/get-community.use-case';
 import { ListCommunityMembersUseCase } from './use-cases/list-community-members.use-case';
+import { SendCommunityMessageUseCase } from './use-cases/send-community-message.use-case';
+import { GetCommunityMessagesUseCase } from './use-cases/get-community-messages.use-case';
+import { EditCommunityMessageUseCase } from './use-cases/edit-community-message.use-case';
+import { DeleteCommunityMessageUseCase } from './use-cases/delete-community-message.use-case';
+import { PinCommunityMessageUseCase } from './use-cases/pin-community-message.use-case';
+import { UnpinCommunityMessageUseCase } from './use-cases/unpin-community-message.use-case';
+import { GetPinnedCommunityMessagesUseCase } from './use-cases/get-pinned-community-messages.use-case';
+import { WebSocketsModule } from '../../infrastructure/websockets/websockets.module';
+import { forwardRef } from '@nestjs/common';
 
 @Module({
-  imports: [InfrastructureModule],
+  imports: [InfrastructureModule, forwardRef(() => WebSocketsModule)],
   providers: [
     CreateCommunityUseCase,
     JoinCommunityUseCase,
@@ -18,6 +27,13 @@ import { ListCommunityMembersUseCase } from './use-cases/list-community-members.
     ListCommunitiesUseCase,
     GetCommunityUseCase,
     ListCommunityMembersUseCase,
+    SendCommunityMessageUseCase,
+    GetCommunityMessagesUseCase,
+    EditCommunityMessageUseCase,
+    DeleteCommunityMessageUseCase,
+    PinCommunityMessageUseCase,
+    UnpinCommunityMessageUseCase,
+    GetPinnedCommunityMessagesUseCase,
   ],
   exports: [
     CreateCommunityUseCase,
@@ -27,6 +43,13 @@ import { ListCommunityMembersUseCase } from './use-cases/list-community-members.
     ListCommunitiesUseCase,
     GetCommunityUseCase,
     ListCommunityMembersUseCase,
+    SendCommunityMessageUseCase,
+    GetCommunityMessagesUseCase,
+    EditCommunityMessageUseCase,
+    DeleteCommunityMessageUseCase,
+    PinCommunityMessageUseCase,
+    UnpinCommunityMessageUseCase,
+    GetPinnedCommunityMessagesUseCase,
   ],
 })
 export class CommunitiesModule {}

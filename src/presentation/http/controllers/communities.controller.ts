@@ -31,6 +31,13 @@ import { InviteToCommunityUseCase } from '../../../application/communities/use-c
 import { ListCommunitiesUseCase } from '../../../application/communities/use-cases/list-communities.use-case';
 import { GetCommunityUseCase } from '../../../application/communities/use-cases/get-community.use-case';
 import { ListCommunityMembersUseCase } from '../../../application/communities/use-cases/list-community-members.use-case';
+import { SendCommunityMessageUseCase } from '../../../application/communities/use-cases/send-community-message.use-case';
+import { GetCommunityMessagesUseCase } from '../../../application/communities/use-cases/get-community-messages.use-case';
+import { EditCommunityMessageUseCase } from '../../../application/communities/use-cases/edit-community-message.use-case';
+import { DeleteCommunityMessageUseCase } from '../../../application/communities/use-cases/delete-community-message.use-case';
+import { PinCommunityMessageUseCase } from '../../../application/communities/use-cases/pin-community-message.use-case';
+import { UnpinCommunityMessageUseCase } from '../../../application/communities/use-cases/unpin-community-message.use-case';
+import { GetPinnedCommunityMessagesUseCase } from '../../../application/communities/use-cases/get-pinned-community-messages.use-case';
 import { CreateCommunityDto } from '../dtos/create-community.dto';
 import { JoinCommunityDto } from '../dtos/join-community.dto';
 import { InviteToCommunityDto } from '../dtos/invite-to-community.dto';
@@ -50,6 +57,13 @@ export class CommunitiesController {
     private readonly listCommunitiesUseCase: ListCommunitiesUseCase,
     private readonly getCommunityUseCase: GetCommunityUseCase,
     private readonly listCommunityMembersUseCase: ListCommunityMembersUseCase,
+    private readonly sendCommunityMessageUseCase: SendCommunityMessageUseCase,
+    private readonly getCommunityMessagesUseCase: GetCommunityMessagesUseCase,
+    private readonly editCommunityMessageUseCase: EditCommunityMessageUseCase,
+    private readonly deleteCommunityMessageUseCase: DeleteCommunityMessageUseCase,
+    private readonly pinCommunityMessageUseCase: PinCommunityMessageUseCase,
+    private readonly unpinCommunityMessageUseCase: UnpinCommunityMessageUseCase,
+    private readonly getPinnedCommunityMessagesUseCase: GetPinnedCommunityMessagesUseCase,
     private readonly cloudinaryService: CloudinaryService,
     @Inject(COMMUNITY_REPOSITORY)
     private readonly communityRepository: CommunityRepository,
@@ -473,6 +487,229 @@ export class CommunitiesController {
       throw new HttpException(
         `Erro ao fazer upload da imagem: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  // ========== MENSAGENS DE COMUNIDADE ==========
+
+  @Post(':id/messages')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Enviar mensagem em uma comunidade' })
+  @ApiResponse({ status: 201, description: 'Mensagem enviada com sucesso' })
+  async sendMessage(
+    @Request() req: any,
+    @Param('id') communityId: string,
+    @Body() body: { content: string },
+  ) {
+    try {
+      const result = await this.sendCommunityMessageUseCase.execute({
+        communityId,
+        senderId: req.user.sub,
+        content: body.content,
+      });
+
+      return {
+        success: result.success,
+        data: result.message,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get(':id/messages')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Listar mensagens de uma comunidade' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'offset', required: false, type: Number })
+  async getMessages(
+    @Request() req: any,
+    @Param('id') communityId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    try {
+      const result = await this.getCommunityMessagesUseCase.execute({
+        userId: req.user.sub,
+        communityId,
+        limit: limit ? parseInt(limit, 10) : undefined,
+        offset: offset ? parseInt(offset, 10) : undefined,
+      });
+
+      return {
+        success: true,
+        data: result.messages,
+        total: result.total,
+        hasMore: result.hasMore,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Put(':id/messages/:messageId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Editar mensagem em uma comunidade' })
+  async editMessage(
+    @Request() req: any,
+    @Param('id') communityId: string,
+    @Param('messageId') messageId: string,
+    @Body() body: { content: string },
+  ) {
+    try {
+      const result = await this.editCommunityMessageUseCase.execute({
+        messageId,
+        userId: req.user.sub,
+        newContent: body.content,
+      });
+
+      return {
+        success: result.success,
+        data: result.message,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Delete(':id/messages/:messageId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Excluir mensagem de uma comunidade' })
+  async deleteMessage(
+    @Request() req: any,
+    @Param('id') communityId: string,
+    @Param('messageId') messageId: string,
+  ) {
+    try {
+      const result = await this.deleteCommunityMessageUseCase.execute({
+        messageId,
+        userId: req.user.sub,
+      });
+
+      return {
+        success: result.success,
+        message: result.message,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post(':id/messages/:messageId/pin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Fixar mensagem em uma comunidade' })
+  async pinMessage(
+    @Request() req: any,
+    @Param('id') communityId: string,
+    @Param('messageId') messageId: string,
+  ) {
+    try {
+      const result = await this.pinCommunityMessageUseCase.execute({
+        messageId,
+        userId: req.user.sub,
+        communityId,
+      });
+
+      return {
+        success: result.success,
+        data: result.pinnedMessage,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Delete(':id/messages/:messageId/unpin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Desfixar mensagem de uma comunidade' })
+  async unpinMessage(
+    @Request() req: any,
+    @Param('id') communityId: string,
+    @Param('messageId') messageId: string,
+  ) {
+    try {
+      const result = await this.unpinCommunityMessageUseCase.execute({
+        messageId,
+        userId: req.user.sub,
+      });
+
+      return {
+        success: result.success,
+        message: result.message,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get(':id/messages/pinned')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Listar mensagens fixadas de uma comunidade' })
+  async getPinnedMessages(
+    @Request() req: any,
+    @Param('id') communityId: string,
+  ) {
+    try {
+      const result = await this.getPinnedCommunityMessagesUseCase.execute({
+        userId: req.user.sub,
+        communityId,
+      });
+
+      return {
+        success: true,
+        data: result.pinnedMessages,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.BAD_REQUEST,
       );
     }
   }
