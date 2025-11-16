@@ -32,6 +32,7 @@ export interface ConversationOutput {
     isRead: boolean;
     createdAt: Date;
     readAt: Date | null;
+    edited: boolean; // Se a mensagem foi editada
   };
   unreadCount: number;
   isFromMe: boolean; // Se a última mensagem foi enviada por mim
@@ -83,6 +84,9 @@ export class ListConversationsUseCase {
           return null; // Não mostrar conversas com usuários que não são mais amigos
         }
 
+        // Verificar se a mensagem foi editada (tem updatedAt)
+        const edited = !!(conv.lastMessage as any).updatedAt;
+
         return {
           otherUser: {
             id: otherUser.id,
@@ -98,6 +102,7 @@ export class ListConversationsUseCase {
             isRead: conv.lastMessage.isRead,
             createdAt: conv.lastMessage.createdAt,
             readAt: conv.lastMessage.readAt,
+            edited: edited,
           },
           unreadCount: conv.unreadCount,
           isFromMe: conv.lastMessage.senderId === userId,

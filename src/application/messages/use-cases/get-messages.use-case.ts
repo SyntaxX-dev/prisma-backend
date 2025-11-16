@@ -27,6 +27,7 @@ export interface GetMessagesOutput {
     isRead: boolean;
     createdAt: Date;
     readAt: Date | null;
+    edited: boolean; // Se a mensagem foi editada
   }>;
   total: number;
   hasMore: boolean;
@@ -71,15 +72,21 @@ export class GetMessagesUseCase {
     const hasMore = messages.length === limit;
 
     return {
-      messages: messages.map((msg) => ({
-        id: msg.id,
-        senderId: msg.senderId,
-        receiverId: msg.receiverId,
-        content: msg.content,
-        isRead: msg.isRead,
-        createdAt: msg.createdAt,
-        readAt: msg.readAt,
-      })),
+      messages: messages.map((msg) => {
+        // Verificar se a mensagem foi editada (tem updatedAt)
+        const edited = !!(msg as any).updatedAt;
+        
+        return {
+          id: msg.id,
+          senderId: msg.senderId,
+          receiverId: msg.receiverId,
+          content: msg.content,
+          isRead: msg.isRead,
+          createdAt: msg.createdAt,
+          readAt: msg.readAt,
+          edited: edited,
+        };
+      }),
       total,
       hasMore,
     };

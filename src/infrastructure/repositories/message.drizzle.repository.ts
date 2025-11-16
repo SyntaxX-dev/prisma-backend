@@ -210,8 +210,8 @@ export class MessageDrizzleRepository implements MessageRepository {
     await this.db.delete(messages).where(eq(messages.id, messageId));
   }
 
-  private mapToEntity(row: any): Message {
-    return new Message(
+  private mapToEntity(row: any): Message & { updatedAt?: Date | null } {
+    const message = new Message(
       row.id,
       row.senderId,
       row.receiverId,
@@ -220,6 +220,11 @@ export class MessageDrizzleRepository implements MessageRepository {
       row.createdAt,
       row.readAt,
     );
+    // Adicionar updatedAt se existir
+    if (row.updatedAt) {
+      (message as any).updatedAt = row.updatedAt;
+    }
+    return message as Message & { updatedAt?: Date | null };
   }
 }
 
