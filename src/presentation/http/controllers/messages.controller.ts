@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -18,6 +19,9 @@ import { GetMessagesUseCase } from '../../../application/messages/use-cases/get-
 import { MarkMessagesAsReadUseCase } from '../../../application/messages/use-cases/mark-messages-as-read.use-case';
 import { GetUnreadCountUseCase } from '../../../application/messages/use-cases/get-unread-count.use-case';
 import { ListConversationsUseCase } from '../../../application/messages/use-cases/list-conversations.use-case';
+import { PinMessageUseCase } from '../../../application/messages/use-cases/pin-message.use-case';
+import { UnpinMessageUseCase } from '../../../application/messages/use-cases/unpin-message.use-case';
+import { GetPinnedMessagesUseCase } from '../../../application/messages/use-cases/get-pinned-messages.use-case';
 
 @ApiTags('Messages')
 @Controller('messages')
@@ -30,6 +34,9 @@ export class MessagesController {
     private readonly markMessagesAsReadUseCase: MarkMessagesAsReadUseCase,
     private readonly getUnreadCountUseCase: GetUnreadCountUseCase,
     private readonly listConversationsUseCase: ListConversationsUseCase,
+    private readonly pinMessageUseCase: PinMessageUseCase,
+    private readonly unpinMessageUseCase: UnpinMessageUseCase,
+    private readonly getPinnedMessagesUseCase: GetPinnedMessagesUseCase,
   ) {}
 
   @Post()
@@ -196,6 +203,136 @@ export class MessagesController {
     try {
       const result = await this.listConversationsUseCase.execute({
         userId: req.user.sub,
+      });
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post(':messageId/pin')
+  @ApiOperation({ summary: 'Fixar uma mensagem em uma conversa' })
+  @ApiResponse({ status: 200, description: 'Mensagem fixada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Erro ao fixar mensagem' })
+  @ApiResponse({ status: 404, description: 'Mensagem não encontrada' })
+  async pinMessage(
+    @Request() req: any,
+    @Param('messageId') messageId: string,
+    @Body() body: { friendId: string },
+  ) {
+    try {
+      const result = await this.pinMessageUseCase.execute({
+        messageId,
+        userId: req.user.sub,
+        friendId: body.friendId,
+      });
+
+      return {
+        success: result.success,
+        data: result.pinnedMessage,
+      };
+    } catch (error) {
+      const status =
+        error instanceof HttpException
+          ? error.getStatus()
+          : error.message.includes('não encontrada') || error.message.includes('não encontrado')
+            ? HttpStatus.NOT_FOUND
+            : HttpStatus.BAD_REQUEST;
+
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        status,
+      );
+    }
+  }
+
+  @Delete(':messageId/unpin')
+  @ApiOperation({ summary: 'Desfixar uma mensagem' })
+  @ApiResponse({ status: 200, description: 'Mensagem desfixada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Mensagem não está fixada' })
+  async unpinMessage(@Request() req: any, @Param('messageId') messageId: string) {
+    try {
+      const result = await this.unpinMessageUseCase.execute({
+        messageId,
+        userId: req.user.sub,
+      });
+
+      return {
+        success: result.success,
+        message: result.message,
+      };
+    } catch (error) {
+      const status =
+        error instanceof HttpException
+          ? error.getStatus()
+          : error.message.includes('não encontrada') || error.message.includes('não está fixada')
+            ? HttpStatus.NOT_FOUND
+            : HttpStatus.BAD_REQUEST;
+
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        status,
+      );
+    }
+  }
+
+  @Get('conversation/:friendId/pinned')
+  @ApiOperation({ summary: 'Listar mensagens fixadas de uma conversa' })
+  @ApiResponse({
+    status: 200,
+    description: 'Mensagens fixadas retornadas com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              messageId: { type: 'string' },
+              pinnedBy: { type: 'string' },
+              pinnedByUserName: { type: 'string' },
+              pinnedAt: { type: 'string', format: 'date-time' },
+              timeSincePinned: { type: 'string' },
+              message: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  content: { type: 'string' },
+                  senderId: { type: 'string' },
+                  receiverId: { type: 'string' },
+                  createdAt: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getPinnedMessages(@Request() req: any, @Param('friendId') friendId: string) {
+    try {
+      const result = await this.getPinnedMessagesUseCase.execute({
+        userId: req.user.sub,
+        friendId,
       });
 
       return {

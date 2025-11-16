@@ -538,6 +538,48 @@ export const messages = pgTable(
 );
 
 /**
+ * Tabela pinned_messages - Armazena mensagens fixadas em conversas
+ * 
+ * Esta tabela permite que usuários fixem mensagens importantes em uma conversa.
+ * Cada conversa pode ter múltiplas mensagens fixadas.
+ */
+export const pinnedMessages = pgTable(
+  'pinned_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    pinnedBy: uuid('pinned_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // IDs dos dois usuários da conversa (para facilitar busca)
+    userId1: uuid('user_id_1')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    userId2: uuid('user_id_2')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    pinnedAt: timestamp('pinned_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar mensagens fixadas de uma conversa
+    conversationIdx: index('pinned_messages_conversation_idx').on(
+      table.userId1,
+      table.userId2,
+    ),
+    // Índice para buscar por mensagem
+    messageIdIdx: index('pinned_messages_message_id_idx').on(table.messageId),
+    // Índice para ordenar por data de fixação
+    pinnedAtIdx: index('pinned_messages_pinned_at_idx').on(table.pinnedAt),
+    // Índice único: uma mensagem só pode ser fixada uma vez
+    messageIdUniqueIdx: uniqueIndex('pinned_messages_message_id_unique').on(table.messageId),
+  }),
+);
+
+/**
  * Tabela user_push_subscriptions - Armazena subscriptions de Web Push
  * 
  * Esta tabela armazena as subscriptions de push notifications dos usuários.
