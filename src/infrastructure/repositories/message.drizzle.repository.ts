@@ -189,6 +189,27 @@ export class MessageDrizzleRepository implements MessageRepository {
     return conversations;
   }
 
+  async update(messageId: string, content: string): Promise<Message> {
+    await this.db
+      .update(messages)
+      .set({
+        content,
+        updatedAt: new Date(),
+      })
+      .where(eq(messages.id, messageId));
+
+    const updated = await this.findById(messageId);
+    if (!updated) {
+      throw new Error('Mensagem não encontrada após atualização');
+    }
+
+    return updated;
+  }
+
+  async delete(messageId: string): Promise<void> {
+    await this.db.delete(messages).where(eq(messages.id, messageId));
+  }
+
   private mapToEntity(row: any): Message {
     return new Message(
       row.id,

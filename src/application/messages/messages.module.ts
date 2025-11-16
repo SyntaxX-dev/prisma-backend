@@ -5,6 +5,8 @@ import { SendMessageUseCase } from './use-cases/send-message.use-case';
 import { PinMessageUseCase } from './use-cases/pin-message.use-case';
 import { UnpinMessageUseCase } from './use-cases/unpin-message.use-case';
 import { GetPinnedMessagesUseCase } from './use-cases/get-pinned-messages.use-case';
+import { EditMessageUseCase } from './use-cases/edit-message.use-case';
+import { DeleteMessageUseCase } from './use-cases/delete-message.use-case';
 import { GetMessagesUseCase } from './use-cases/get-messages.use-case';
 import { MarkMessagesAsReadUseCase } from './use-cases/mark-messages-as-read.use-case';
 import { GetUnreadCountUseCase } from './use-cases/get-unread-count.use-case';
@@ -24,6 +26,8 @@ import { ListConversationsUseCase } from './use-cases/list-conversations.use-cas
     PinMessageUseCase,
     UnpinMessageUseCase,
     GetPinnedMessagesUseCase,
+    EditMessageUseCase,
+    DeleteMessageUseCase,
   ],
   exports: [
     SendMessageUseCase,
@@ -34,6 +38,8 @@ import { ListConversationsUseCase } from './use-cases/list-conversations.use-cas
     PinMessageUseCase,
     UnpinMessageUseCase,
     GetPinnedMessagesUseCase,
+    EditMessageUseCase,
+    DeleteMessageUseCase,
   ],
 })
 export class MessagesModule {}

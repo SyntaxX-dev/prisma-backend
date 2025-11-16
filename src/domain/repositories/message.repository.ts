@@ -66,5 +66,15 @@ export interface MessageRepository {
    * Conta mensagens não lidas de uma conversa específica
    */
   countUnreadByConversation(receiverId: string, senderId: string): Promise<number>;
+
+  /**
+   * Atualiza o conteúdo de uma mensagem
+   */
+  update(messageId: string, content: string): Promise<Message>;
+
+  /**
+   * Deleta uma mensagem (remove do banco de dados)
+   */
+  delete(messageId: string): Promise<void>;
 }
 

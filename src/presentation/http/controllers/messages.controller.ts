@@ -22,6 +22,8 @@ import { ListConversationsUseCase } from '../../../application/messages/use-case
 import { PinMessageUseCase } from '../../../application/messages/use-cases/pin-message.use-case';
 import { UnpinMessageUseCase } from '../../../application/messages/use-cases/unpin-message.use-case';
 import { GetPinnedMessagesUseCase } from '../../../application/messages/use-cases/get-pinned-messages.use-case';
+import { EditMessageUseCase } from '../../../application/messages/use-cases/edit-message.use-case';
+import { DeleteMessageUseCase } from '../../../application/messages/use-cases/delete-message.use-case';
 
 @ApiTags('Messages')
 @Controller('messages')
@@ -37,6 +39,8 @@ export class MessagesController {
     private readonly pinMessageUseCase: PinMessageUseCase,
     private readonly unpinMessageUseCase: UnpinMessageUseCase,
     private readonly getPinnedMessagesUseCase: GetPinnedMessagesUseCase,
+    private readonly editMessageUseCase: EditMessageUseCase,
+    private readonly deleteMessageUseCase: DeleteMessageUseCase,
   ) {}
 
   @Post()
@@ -346,6 +350,84 @@ export class MessagesController {
           message: error.message,
         },
         HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Put(':messageId')
+  @ApiOperation({ summary: 'Editar uma mensagem' })
+  @ApiResponse({ status: 200, description: 'Mensagem editada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Erro ao editar mensagem (tempo limite excedido, conteúdo inválido)' })
+  @ApiResponse({ status: 403, description: 'Você não pode editar mensagens de outros usuários' })
+  @ApiResponse({ status: 404, description: 'Mensagem não encontrada' })
+  async editMessage(
+    @Request() req: any,
+    @Param('messageId') messageId: string,
+    @Body() body: { content: string },
+  ) {
+    try {
+      const result = await this.editMessageUseCase.execute({
+        messageId,
+        userId: req.user.sub,
+        newContent: body.content,
+      });
+
+      return {
+        success: result.success,
+        data: result.message,
+      };
+    } catch (error) {
+      const status =
+        error instanceof HttpException
+          ? error.getStatus()
+          : error.message.includes('não encontrada') || error.message.includes('não encontrado')
+            ? HttpStatus.NOT_FOUND
+            : error.message.includes('só pode editar') || error.message.includes('não pode')
+              ? HttpStatus.FORBIDDEN
+              : HttpStatus.BAD_REQUEST;
+
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        status,
+      );
+    }
+  }
+
+  @Delete(':messageId')
+  @ApiOperation({ summary: 'Excluir uma mensagem' })
+  @ApiResponse({ status: 200, description: 'Mensagem excluída com sucesso' })
+  @ApiResponse({ status: 403, description: 'Você não pode excluir mensagens de outros usuários' })
+  @ApiResponse({ status: 404, description: 'Mensagem não encontrada' })
+  async deleteMessage(@Request() req: any, @Param('messageId') messageId: string) {
+    try {
+      const result = await this.deleteMessageUseCase.execute({
+        messageId,
+        userId: req.user.sub,
+      });
+
+      return {
+        success: result.success,
+        message: result.message,
+      };
+    } catch (error) {
+      const status =
+        error instanceof HttpException
+          ? error.getStatus()
+          : error.message.includes('não encontrada') || error.message.includes('não encontrado')
+            ? HttpStatus.NOT_FOUND
+            : error.message.includes('só pode excluir') || error.message.includes('não pode')
+              ? HttpStatus.FORBIDDEN
+              : HttpStatus.BAD_REQUEST;
+
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        status,
       );
     }
   }
