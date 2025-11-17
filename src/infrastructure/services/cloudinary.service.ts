@@ -121,28 +121,20 @@ export class CloudinaryService {
     apiKey: string;
     cloudName: string;
   } {
-    const {
-      folder,
-      publicId,
-      resourceType = 'auto',
-      allowedFormats,
-      maxFileSize = 10 * 1024 * 1024, // 10MB padrão
-    } = params;
+    const { folder, publicId, resourceType = 'auto' } = params;
 
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const uploadParams: Record<string, any> = {
+
+    // Cloudinary exige que apenas os parâmetros realmente enviados no formulário
+    // sejam utilizados para montar o string_to_sign. Como o frontend envia apenas
+    // folder, public_id (opcional) e timestamp, assinamos somente esses campos.
+    const uploadParams: Record<string, string | number> = {
       folder,
-      resource_type: resourceType,
       timestamp,
-      max_file_size: maxFileSize,
     };
 
     if (publicId) {
       uploadParams.public_id = publicId;
-    }
-
-    if (allowedFormats && allowedFormats.length > 0) {
-      uploadParams.allowed_formats = allowedFormats.join(',');
     }
 
     // Gerar assinatura usando a API secret
