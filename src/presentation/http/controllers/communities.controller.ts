@@ -40,6 +40,7 @@ import { DeleteCommunityMessageUseCase } from '../../../application/communities/
 import { PinCommunityMessageUseCase } from '../../../application/communities/use-cases/pin-community-message.use-case';
 import { UnpinCommunityMessageUseCase } from '../../../application/communities/use-cases/unpin-community-message.use-case';
 import { GetPinnedCommunityMessagesUseCase } from '../../../application/communities/use-cases/get-pinned-community-messages.use-case';
+import { GetCommunityAttachmentsUseCase } from '../../../application/communities/use-cases/get-community-attachments.use-case';
 import { CreateCommunityDto } from '../dtos/create-community.dto';
 import { JoinCommunityDto } from '../dtos/join-community.dto';
 import { InviteToCommunityDto } from '../dtos/invite-to-community.dto';
@@ -66,6 +67,7 @@ export class CommunitiesController {
     private readonly pinCommunityMessageUseCase: PinCommunityMessageUseCase,
     private readonly unpinCommunityMessageUseCase: UnpinCommunityMessageUseCase,
     private readonly getPinnedCommunityMessagesUseCase: GetPinnedCommunityMessagesUseCase,
+    private readonly getCommunityAttachmentsUseCase: GetCommunityAttachmentsUseCase,
     private readonly cloudinaryService: CloudinaryService,
     @Inject(COMMUNITY_REPOSITORY)
     private readonly communityRepository: CommunityRepository,
@@ -785,6 +787,67 @@ export class CommunitiesController {
           message: error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get(':id/messages/attachments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Listar todos os arquivos/anexos de uma comunidade' })
+  @ApiResponse({
+    status: 200,
+    description: 'Arquivos retornados com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        data: {
+          type: 'object',
+          properties: {
+            attachments: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  messageId: { type: 'string' },
+                  fileUrl: { type: 'string' },
+                  fileName: { type: 'string' },
+                  fileType: { type: 'string' },
+                  fileSize: { type: 'number' },
+                  thumbnailUrl: { type: 'string', nullable: true },
+                  width: { type: 'number', nullable: true },
+                  height: { type: 'number', nullable: true },
+                  duration: { type: 'number', nullable: true },
+                  createdAt: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+            total: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  async getCommunityAttachments(@Request() req: any, @Param('id') communityId: string) {
+    try {
+      const result = await this.getCommunityAttachmentsUseCase.execute({
+        userId: req.user.sub,
+        communityId,
+      });
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
       );
     }
   }

@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm';
-import { communityMessageAttachments } from '../database/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { communityMessageAttachments, communityMessages } from '../database/schema';
 import type { CommunityMessageAttachmentRepository } from '../../domain/repositories/community-message-attachment.repository';
 import { CommunityMessageAttachment } from '../../domain/entities/community-message-attachment';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -45,6 +45,36 @@ export class CommunityMessageAttachmentDrizzleRepository
       .select()
       .from(communityMessageAttachments)
       .where(eq(communityMessageAttachments.messageId, messageId));
+
+    return results.map((row) => this.mapToEntity(row));
+  }
+
+  async findByCommunityId(communityId: string): Promise<CommunityMessageAttachment[]> {
+    // Buscar attachments de mensagens da comunidade
+    const results = await this.db
+      .select({
+        id: communityMessageAttachments.id,
+        messageId: communityMessageAttachments.messageId,
+        fileUrl: communityMessageAttachments.fileUrl,
+        fileName: communityMessageAttachments.fileName,
+        fileType: communityMessageAttachments.fileType,
+        fileSize: communityMessageAttachments.fileSize,
+        cloudinaryPublicId: communityMessageAttachments.cloudinaryPublicId,
+        thumbnailUrl: communityMessageAttachments.thumbnailUrl,
+        width: communityMessageAttachments.width,
+        height: communityMessageAttachments.height,
+        duration: communityMessageAttachments.duration,
+        createdAt: communityMessageAttachments.createdAt,
+      })
+      .from(communityMessageAttachments)
+      .innerJoin(communityMessages, eq(communityMessageAttachments.messageId, communityMessages.id))
+      .where(
+        and(
+          eq(communityMessages.communityId, communityId),
+          eq(communityMessages.isDeleted, 'false'), // Apenas mensagens não deletadas
+        ),
+      )
+      .orderBy(desc(communityMessageAttachments.createdAt));
 
     return results.map((row) => this.mapToEntity(row));
   }

@@ -11,6 +11,7 @@ import { GetMessagesUseCase } from './use-cases/get-messages.use-case';
 import { MarkMessagesAsReadUseCase } from './use-cases/mark-messages-as-read.use-case';
 import { GetUnreadCountUseCase } from './use-cases/get-unread-count.use-case';
 import { ListConversationsUseCase } from './use-cases/list-conversations.use-case';
+import { GetConversationAttachmentsUseCase } from './use-cases/get-conversation-attachments.use-case';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ListConversationsUseCase } from './use-cases/list-conversations.use-cas
     GetPinnedMessagesUseCase,
     EditMessageUseCase,
     DeleteMessageUseCase,
+    GetConversationAttachmentsUseCase,
   ],
   exports: [
     SendMessageUseCase,
@@ -40,6 +42,7 @@ import { ListConversationsUseCase } from './use-cases/list-conversations.use-cas
     GetPinnedMessagesUseCase,
     EditMessageUseCase,
     DeleteMessageUseCase,
+    GetConversationAttachmentsUseCase,
   ],
 })
 export class MessagesModule {}
