@@ -35,9 +35,9 @@ import {
     },
     {
       provide: GetInProgressVideosUseCase,
-      useFactory: (videoProgressRepository, videoRepository) =>
-        new GetInProgressVideosUseCase(videoProgressRepository, videoRepository),
-      inject: [VIDEO_PROGRESS_REPOSITORY, VIDEO_REPOSITORY],
+      useFactory: (videoProgressRepository, videoRepository, subCourseRepository) =>
+        new GetInProgressVideosUseCase(videoProgressRepository, videoRepository, subCourseRepository),
+      inject: [VIDEO_PROGRESS_REPOSITORY, VIDEO_REPOSITORY, SUB_COURSE_REPOSITORY],
     },
     {
       provide: TestVideoCompletionUseCase,

@@ -17,6 +17,7 @@ import { RemoveVideoFromModuleUseCase } from './use-cases/remove-video-from-modu
 import { ListModulesWithVideosUseCase } from './use-cases/list-modules-with-videos.use-case';
 import { ProcessYouTubePlaylistUseCase } from './use-cases/process-youtube-playlist.use-case';
 import { BulkProcessPlaylistsUseCase } from './use-cases/bulk-process-playlists.use-case';
+import { GenerateMindMapUseCase } from './use-cases/generate-mind-map.use-case';
 import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
 import { GeminiService } from '../../infrastructure/services/gemini.service';
@@ -115,6 +116,11 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
         new BulkProcessPlaylistsUseCase(courseRepository, subCourseRepository, moduleRepository, videoRepository, geminiService, youtubeService),
       inject: [COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, GeminiService, YouTubeService],
     },
+    {
+      provide: GenerateMindMapUseCase,
+      useFactory: (geminiService) => new GenerateMindMapUseCase(geminiService),
+      inject: [GeminiService],
+    },
     GeminiService,
   ],
   exports: [
@@ -134,6 +140,7 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     ListModulesWithVideosUseCase,
     ProcessYouTubePlaylistUseCase,
     BulkProcessPlaylistsUseCase,
+    GenerateMindMapUseCase,
   ],
 })
 export class CoursesModule {}

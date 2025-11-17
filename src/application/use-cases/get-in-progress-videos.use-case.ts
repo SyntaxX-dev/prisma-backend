@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { VideoProgressRepository } from '../../domain/repositories/video-progress.repository';
 import type { VideoRepository } from '../../domain/repositories/video.repository';
+import type { SubCourseRepository } from '../../domain/repositories/sub-course.repository';
 
 export interface InProgressVideo {
   videoId: string;
@@ -8,6 +9,7 @@ export interface InProgressVideo {
   videoUrl: string;
   thumbnailUrl: string | null;
   subCourseId: string;
+  courseId: string;
   currentTimestamp: number; // Em segundos
   duration: number | null; // Duração total do vídeo em segundos
   progressPercentage: number; // (currentTimestamp / duration) * 100
@@ -27,6 +29,7 @@ export class GetInProgressVideosUseCase {
   constructor(
     private readonly videoProgressRepository: VideoProgressRepository,
     private readonly videoRepository: VideoRepository,
+    private readonly subCourseRepository: SubCourseRepository,
   ) {}
 
   async execute(input: GetInProgressVideosInput): Promise<GetInProgressVideosOutput> {
@@ -54,6 +57,13 @@ export class GetInProgressVideosUseCase {
           return null;
         }
 
+        // Buscar o SubCourse para obter o courseId
+        const subCourse = await this.subCourseRepository.findById(video.subCourseId);
+        if (!subCourse) {
+          console.warn('[GetInProgressVideos] SubCourse não encontrado para ID:', video.subCourseId);
+          return null;
+        }
+
         const progressPercentage = video.duration && video.duration > 0
           ? Math.round((progress.currentTimestamp! / video.duration) * 100)
           : 0;
@@ -64,6 +74,7 @@ export class GetInProgressVideosUseCase {
           videoUrl: video.url,
           thumbnailUrl: video.thumbnailUrl,
           subCourseId: video.subCourseId,
+          courseId: subCourse.courseId,
           currentTimestamp: progress.currentTimestamp!,
           duration: video.duration,
           progressPercentage,

@@ -366,7 +366,7 @@ Responda APENAS com um JSON no seguinte formato:
   private extractCourseNameFromPlaylist(playlistTitle: string): string {
     // Tentar extrair tema geral do título
     const title = playlistTitle.toLowerCase();
-    
+
     // Palavras-chave comuns de cursos
     const keywords: Record<string, string> = {
       'biologia': 'Biologia',
@@ -398,5 +398,82 @@ Responda APENAS com um JSON no seguinte formato:
     // Se não encontrar, usar primeira palavra capitalizada
     const firstWord = playlistTitle.split(/\s+/)[0];
     return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+  }
+
+  /**
+   * Gera um mapa mental detalhado sobre um vídeo usando Gemini AI
+   */
+  async generateMindMap(
+    videoTitle: string,
+    videoDescription: string,
+    videoUrl: string
+  ): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('GEMINI_API_KEY não configurada');
+    }
+
+    try {
+      const prompt = this.buildMindMapPrompt(videoTitle, videoDescription, videoUrl);
+      const response = await this.callGeminiAPI(prompt);
+      return response;
+    } catch (error) {
+      console.error('Erro ao gerar mapa mental:', error);
+      throw error;
+    }
+  }
+
+  private buildMindMapPrompt(
+    videoTitle: string,
+    videoDescription: string,
+    videoUrl: string
+  ): string {
+    return `
+Crie um mapa mental detalhado e estruturado sobre o seguinte vídeo educacional do YouTube:
+
+**Título do Vídeo:** ${videoTitle}
+**Descrição:** ${videoDescription}
+**URL:** ${videoUrl}
+
+**INSTRUÇÕES:**
+1. Analise o título e a descrição do vídeo para entender o conteúdo
+2. Organize o mapa mental em formato hierárquico com:
+   - Tema Central (baseado no título do vídeo)
+   - 3-5 Tópicos Principais
+   - 2-4 Subtópicos para cada tópico principal
+   - Pontos-chave e conceitos importantes
+
+3. Formate a resposta em **Markdown** com estrutura clara:
+   - # para o tema central
+   - ## para tópicos principais
+   - ### para subtópicos
+   - - para pontos-chave
+   - **negrito** para conceitos importantes
+
+4. Mantenha o conteúdo:
+   - Conciso e direto
+   - Educativo e bem organizado
+   - Focado nos principais conceitos
+   - Em português brasileiro
+
+**EXEMPLO DE FORMATO:**
+
+# Tema Central do Vídeo
+
+## Tópico Principal 1
+### Subtópico 1.1
+- Ponto-chave importante
+- Outro conceito **relevante**
+
+### Subtópico 1.2
+- Informação adicional
+- Detalhes importantes
+
+## Tópico Principal 2
+### Subtópico 2.1
+- Conceito fundamental
+- Aplicação prática
+
+Gere agora o mapa mental seguindo exatamente este formato:
+`;
   }
 }

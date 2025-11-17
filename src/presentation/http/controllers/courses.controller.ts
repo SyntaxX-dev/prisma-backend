@@ -25,12 +25,14 @@ import { ListVideosUseCase } from '../../../application/courses/use-cases/list-v
 import { UpdateCourseSubscriptionUseCase } from '../../../application/courses/use-cases/update-course-subscription.use-case';
 import { ProcessYouTubePlaylistUseCase } from '../../../application/courses/use-cases/process-youtube-playlist.use-case';
 import { BulkProcessPlaylistsUseCase } from '../../../application/courses/use-cases/bulk-process-playlists.use-case';
+import { GenerateMindMapUseCase } from '../../../application/courses/use-cases/generate-mind-map.use-case';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
 import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
 import { ProcessYouTubePlaylistDto } from '../dtos/process-youtube-playlist.dto';
 import { BulkProcessPlaylistsDto } from '../dtos/bulk-process-playlists.dto';
+import { GenerateMindMapDto } from '../dtos/generate-mind-map.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
@@ -51,6 +53,7 @@ export class CoursesController {
     private readonly updateCourseSubscriptionUseCase: UpdateCourseSubscriptionUseCase,
     private readonly processYouTubePlaylistUseCase: ProcessYouTubePlaylistUseCase,
     private readonly bulkProcessPlaylistsUseCase: BulkProcessPlaylistsUseCase,
+    private readonly generateMindMapUseCase: GenerateMindMapUseCase,
   ) {}
 
   @Post()
@@ -680,6 +683,63 @@ export class CoursesController {
         {
           success: false,
           message: error instanceof Error ? error.message : 'Erro ao processar playlists',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('generate-mind-map')
+  @ApiOperation({ summary: 'Gerar mapa mental de um vídeo usando IA Gemini' })
+  @ApiBody({ type: GenerateMindMapDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Mapa mental gerado com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            mindMap: {
+              type: 'string',
+              example: '# Tema Central\n\n## Tópico Principal 1\n### Subtópico 1.1\n- Ponto-chave importante',
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Erro ao gerar mapa mental',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: 'Erro ao gerar mapa mental' },
+      },
+    },
+  })
+  async generateMindMap(@Body() generateMindMapDto: GenerateMindMapDto) {
+    try {
+      const result = await this.generateMindMapUseCase.execute({
+        videoTitle: generateMindMapDto.videoTitle,
+        videoDescription: generateMindMapDto.videoDescription,
+        videoUrl: generateMindMapDto.videoUrl,
+      });
+      return {
+        success: true,
+        data: {
+          mindMap: result.mindMap,
+        },
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error instanceof Error ? error.message : 'Erro ao gerar mapa mental',
         },
         HttpStatus.BAD_REQUEST,
       );
