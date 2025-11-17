@@ -10,17 +10,30 @@
  */
 
 import { Injectable, Inject, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, USER_REPOSITORY, PUSH_NOTIFICATION_SERVICE } from '../../../domain/tokens';
+import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, USER_REPOSITORY, PUSH_NOTIFICATION_SERVICE, MESSAGE_ATTACHMENT_REPOSITORY } from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
 import type { PushNotificationService } from '../../../domain/services/push-notification.service';
+import type { MessageAttachmentRepository } from '../../../domain/repositories/message-attachment.repository';
 import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
+import { CloudinaryService } from '../../../infrastructure/services/cloudinary.service';
 
 export interface SendMessageInput {
   senderId: string;
   receiverId: string;
   content: string;
+  attachments?: Array<{
+    fileUrl: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    cloudinaryPublicId: string;
+    thumbnailUrl?: string;
+    width?: number;
+    height?: number;
+    duration?: number;
+  }>;
 }
 
 export interface SendMessageOutput {
@@ -44,27 +57,73 @@ export class SendMessageUseCase {
     private readonly friendshipRepository: FriendshipRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
+    @Inject(MESSAGE_ATTACHMENT_REPOSITORY)
+    @Optional()
+    private readonly messageAttachmentRepository?: MessageAttachmentRepository,
     @Optional()
     private readonly chatGateway?: ChatGateway,
     @Inject(PUSH_NOTIFICATION_SERVICE)
     @Optional()
     private readonly pushNotificationService?: PushNotificationService,
+    @Optional()
+    private readonly cloudinaryService?: CloudinaryService,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
-    const { senderId, receiverId, content } = input;
+    const { senderId, receiverId, content, attachments = [] } = input;
 
     // Validações
     if (senderId === receiverId) {
       throw new BadRequestException('Você não pode enviar mensagem para si mesmo');
     }
 
-    if (!content || content.trim().length === 0) {
-      throw new BadRequestException('Mensagem não pode estar vazia');
+    // Mensagem deve ter conteúdo OU anexos
+    if ((!content || content.trim().length === 0) && attachments.length === 0) {
+      throw new BadRequestException('Mensagem deve ter conteúdo ou anexos');
     }
 
-    if (content.length > 5000) {
+    if (content && content.length > 5000) {
       throw new BadRequestException('Mensagem muito longa (máximo 5000 caracteres)');
+    }
+
+    // Validar anexos
+    if (attachments.length > 0) {
+      if (attachments.length > 10) {
+        throw new BadRequestException('Máximo de 10 anexos por mensagem');
+      }
+
+      // Validar cada anexo
+      for (const attachment of attachments) {
+        // Validar se arquivo existe no Cloudinary
+        if (this.cloudinaryService) {
+          const exists = await this.cloudinaryService.validateFileExists(
+            attachment.cloudinaryPublicId,
+            attachment.fileType.startsWith('image/') ? 'image' : 'raw',
+          );
+          if (!exists) {
+            throw new BadRequestException(`Arquivo ${attachment.fileName} não encontrado no Cloudinary`);
+          }
+        }
+
+        // Validar tamanho (10MB máximo)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        if (attachment.fileSize > MAX_FILE_SIZE) {
+          throw new BadRequestException(`Arquivo ${attachment.fileName} muito grande (máximo 10MB)`);
+        }
+
+        // Validar tipo
+        const allowedTypes = [
+          'image/jpeg',
+          'image/jpg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+        ];
+        if (!allowedTypes.includes(attachment.fileType)) {
+          throw new BadRequestException(`Tipo de arquivo não permitido: ${attachment.fileType}`);
+        }
+      }
     }
 
     // Verificar se o destinatário existe
@@ -81,7 +140,26 @@ export class SendMessageUseCase {
 
     // Criar mensagem no banco de dados (FONTE DA VERDADE)
     // Sempre salva primeiro - padrão moderno de mensagens
-    const message = await this.messageRepository.create(senderId, receiverId, content);
+    const messageContent = content || (attachments.length > 0 ? '📎 Arquivo anexado' : '');
+    const message = await this.messageRepository.create(senderId, receiverId, messageContent);
+
+    // Criar anexos se houver
+    if (attachments.length > 0 && this.messageAttachmentRepository) {
+      for (const attachment of attachments) {
+        await this.messageAttachmentRepository.create({
+          messageId: message.id,
+          fileUrl: attachment.fileUrl,
+          fileName: attachment.fileName,
+          fileType: attachment.fileType,
+          fileSize: attachment.fileSize,
+          cloudinaryPublicId: attachment.cloudinaryPublicId,
+          thumbnailUrl: attachment.thumbnailUrl || null,
+          width: attachment.width || null,
+          height: attachment.height || null,
+          duration: attachment.duration || null,
+        });
+      }
+    }
     
     console.log('[SEND_MESSAGE] 💾 Mensagem salva no banco de dados (fonte da verdade)', {
       messageId: message.id,

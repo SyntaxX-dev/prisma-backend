@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { cloudinary } from '../config/cloudinary.config';
+import { cloudinary, cloudinaryConfig } from '../config/cloudinary.config';
 
 @Injectable()
 export class CloudinaryService {
@@ -99,6 +99,106 @@ export class CloudinaryService {
       return matches ? matches[1] : null;
     } catch (error) {
       return null;
+    }
+  }
+
+  /**
+   * Gera uma assinatura (signature) para upload seguro do frontend
+   * Isso permite que o frontend faça upload direto para Cloudinary sem expor as credenciais
+   */
+  generateUploadSignature(params: {
+    folder: string;
+    publicId?: string;
+    resourceType?: 'image' | 'raw' | 'video' | 'auto';
+    allowedFormats?: string[];
+    maxFileSize?: number;
+  }): {
+    signature: string;
+    timestamp: number;
+    folder: string;
+    publicId?: string;
+    resourceType: string;
+    apiKey: string;
+    cloudName: string;
+  } {
+    const {
+      folder,
+      publicId,
+      resourceType = 'auto',
+      allowedFormats,
+      maxFileSize = 10 * 1024 * 1024, // 10MB padrão
+    } = params;
+
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const uploadParams: Record<string, any> = {
+      folder,
+      resource_type: resourceType,
+      timestamp,
+      max_file_size: maxFileSize,
+    };
+
+    if (publicId) {
+      uploadParams.public_id = publicId;
+    }
+
+    if (allowedFormats && allowedFormats.length > 0) {
+      uploadParams.allowed_formats = allowedFormats.join(',');
+    }
+
+    // Gerar assinatura usando a API secret
+    const signature = cloudinary.utils.api_sign_request(
+      uploadParams,
+      cloudinaryConfig.api_secret!,
+    );
+
+    return {
+      signature,
+      timestamp,
+      folder,
+      publicId,
+      resourceType,
+      apiKey: cloudinaryConfig.api_key!,
+      cloudName: cloudinaryConfig.cloud_name!,
+    };
+  }
+
+  /**
+   * Valida se um arquivo existe no Cloudinary
+   */
+  async validateFileExists(publicId: string, resourceType: string = 'auto'): Promise<boolean> {
+    try {
+      const result = await cloudinary.api.resource(publicId, {
+        resource_type: resourceType,
+      });
+      return !!result;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Gera URL de thumbnail para uma imagem
+   */
+  generateThumbnailUrl(publicId: string, width: number = 200, height: number = 200): string {
+    return cloudinary.url(publicId, {
+      width,
+      height,
+      crop: 'fill',
+      quality: 'auto',
+      format: 'auto',
+    });
+  }
+
+  /**
+   * Deleta arquivo do Cloudinary usando publicId
+   */
+  async deleteFile(publicId: string, resourceType: string = 'auto'): Promise<void> {
+    try {
+      await cloudinary.uploader.destroy(publicId, {
+        resource_type: resourceType,
+      });
+    } catch (error) {
+      throw new Error(`Erro ao deletar arquivo: ${error.message}`);
     }
   }
 }

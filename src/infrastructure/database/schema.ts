@@ -657,6 +657,73 @@ export const pinnedCommunityMessages = pgTable(
 );
 
 /**
+ * Tabela message_attachments - Armazena anexos de mensagens pessoais
+ * 
+ * Esta tabela armazena arquivos (imagens, PDFs, etc) anexados a mensagens.
+ * Os arquivos são armazenados no Cloudinary, apenas a URL e metadados ficam no banco.
+ */
+export const messageAttachments = pgTable(
+  'message_attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    fileUrl: text('file_url').notNull(), // URL do arquivo no Cloudinary
+    fileName: text('file_name').notNull(), // Nome original do arquivo
+    fileType: text('file_type').notNull(), // MIME type (ex: image/jpeg, application/pdf)
+    fileSize: integer('file_size').notNull(), // Tamanho em bytes
+    cloudinaryPublicId: text('cloudinary_public_id').notNull(), // Public ID no Cloudinary (para deletar)
+    thumbnailUrl: text('thumbnail_url'), // URL do thumbnail (para imagens/vídeos)
+    width: integer('width'), // Largura (para imagens/vídeos)
+    height: integer('height'), // Altura (para imagens/vídeos)
+    duration: integer('duration'), // Duração em segundos (para vídeos/áudio)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar anexos de uma mensagem
+    messageIdIdx: index('message_attachments_message_id_idx').on(table.messageId),
+    // Índice para ordenar por data
+    createdAtIdx: index('message_attachments_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
+ * Tabela community_message_attachments - Armazena anexos de mensagens de comunidades
+ * 
+ * Esta tabela armazena arquivos anexados a mensagens de comunidades.
+ */
+export const communityMessageAttachments = pgTable(
+  'community_message_attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => communityMessages.id, { onDelete: 'cascade' }),
+    fileUrl: text('file_url').notNull(), // URL do arquivo no Cloudinary
+    fileName: text('file_name').notNull(), // Nome original do arquivo
+    fileType: text('file_type').notNull(), // MIME type
+    fileSize: integer('file_size').notNull(), // Tamanho em bytes
+    cloudinaryPublicId: text('cloudinary_public_id').notNull(), // Public ID no Cloudinary
+    thumbnailUrl: text('thumbnail_url'), // URL do thumbnail
+    width: integer('width'), // Largura
+    height: integer('height'), // Altura
+    duration: integer('duration'), // Duração em segundos
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar anexos de uma mensagem
+    messageIdIdx: index('community_message_attachments_message_id_idx').on(table.messageId),
+    // Índice para ordenar por data
+    createdAtIdx: index('community_message_attachments_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
  * Tabela user_push_subscriptions - Armazena subscriptions de Web Push
  * 
  * Esta tabela armazena as subscriptions de push notifications dos usuários.

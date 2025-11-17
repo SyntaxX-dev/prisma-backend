@@ -5,11 +5,12 @@
  * com suporte a paginação.
  */
 
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, USER_REPOSITORY } from '../../../domain/tokens';
+import { Injectable, Inject, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
+import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, USER_REPOSITORY, MESSAGE_ATTACHMENT_REPOSITORY } from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
+import type { MessageAttachmentRepository } from '../../../domain/repositories/message-attachment.repository';
 
 export interface GetMessagesInput {
   userId: string; // Usuário que está fazendo a requisição
@@ -28,6 +29,17 @@ export interface GetMessagesOutput {
     createdAt: Date;
     readAt: Date | null;
     edited: boolean; // Se a mensagem foi editada
+    attachments?: Array<{
+      id: string;
+      fileUrl: string;
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+      thumbnailUrl: string | null;
+      width: number | null;
+      height: number | null;
+      duration: number | null;
+    }>;
   }>;
   total: number;
   hasMore: boolean;
@@ -42,6 +54,9 @@ export class GetMessagesUseCase {
     private readonly friendshipRepository: FriendshipRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
+    @Inject(MESSAGE_ATTACHMENT_REPOSITORY)
+    @Optional()
+    private readonly messageAttachmentRepository?: MessageAttachmentRepository,
   ) {}
 
   async execute(input: GetMessagesInput): Promise<GetMessagesOutput> {
@@ -71,10 +86,28 @@ export class GetMessagesUseCase {
     const total = messages.length + offset;
     const hasMore = messages.length === limit;
 
-    return {
-      messages: messages.map((msg) => {
+    // Buscar attachments para todas as mensagens
+    const messagesWithAttachments = await Promise.all(
+      messages.map(async (msg) => {
         // Verificar se a mensagem foi editada (tem updatedAt)
         const edited = !!(msg as any).updatedAt;
+        
+        // Buscar attachments da mensagem
+        let attachments: any[] = [];
+        if (this.messageAttachmentRepository) {
+          const messageAttachments = await this.messageAttachmentRepository.findByMessageId(msg.id);
+          attachments = messageAttachments.map((att) => ({
+            id: att.id,
+            fileUrl: att.fileUrl,
+            fileName: att.fileName,
+            fileType: att.fileType,
+            fileSize: att.fileSize,
+            thumbnailUrl: att.thumbnailUrl,
+            width: att.width,
+            height: att.height,
+            duration: att.duration,
+          }));
+        }
         
         return {
           id: msg.id,
@@ -85,8 +118,13 @@ export class GetMessagesUseCase {
           createdAt: msg.createdAt,
           readAt: msg.readAt,
           edited: edited,
+          attachments: attachments.length > 0 ? attachments : undefined,
         };
       }),
+    );
+
+    return {
+      messages: messagesWithAttachments,
       total,
       hasMore,
     };

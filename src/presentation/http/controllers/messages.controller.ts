@@ -24,6 +24,7 @@ import { UnpinMessageUseCase } from '../../../application/messages/use-cases/unp
 import { GetPinnedMessagesUseCase } from '../../../application/messages/use-cases/get-pinned-messages.use-case';
 import { EditMessageUseCase } from '../../../application/messages/use-cases/edit-message.use-case';
 import { DeleteMessageUseCase } from '../../../application/messages/use-cases/delete-message.use-case';
+import { CloudinaryService } from '../../../infrastructure/services/cloudinary.service';
 
 @ApiTags('Messages')
 @Controller('messages')
@@ -41,7 +42,63 @@ export class MessagesController {
     private readonly getPinnedMessagesUseCase: GetPinnedMessagesUseCase,
     private readonly editMessageUseCase: EditMessageUseCase,
     private readonly deleteMessageUseCase: DeleteMessageUseCase,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  @Post('upload-signature')
+  @ApiOperation({ summary: 'Gerar assinatura para upload de arquivo' })
+  @ApiResponse({ status: 200, description: 'Assinatura gerada com sucesso' })
+  async getUploadSignature(
+    @Request() req: any,
+    @Body() body: { fileType: string; fileSize: number; resourceType?: 'image' | 'raw' | 'video' | 'auto' },
+  ) {
+    const userId = req.user.sub;
+    const { fileType, fileSize, resourceType = 'auto' } = body;
+
+    // Validações
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (fileSize > MAX_FILE_SIZE) {
+      throw new HttpException('Arquivo muito grande (máximo 10MB)', HttpStatus.BAD_REQUEST);
+    }
+
+    // Tipos permitidos
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedPdfTypes = ['application/pdf'];
+    const allowedTypes = [...allowedImageTypes, ...allowedPdfTypes];
+
+    if (!allowedTypes.includes(fileType)) {
+      throw new HttpException('Tipo de arquivo não permitido', HttpStatus.BAD_REQUEST);
+    }
+
+    // Determinar formato e resource type
+    let finalResourceType: 'image' | 'raw' | 'video' | 'auto' = resourceType;
+    let allowedFormats: string[] = [];
+
+    if (fileType.startsWith('image/')) {
+      finalResourceType = 'image';
+      allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    } else if (fileType === 'application/pdf') {
+      finalResourceType = 'raw';
+      allowedFormats = ['pdf'];
+    }
+
+    // Gerar publicId único
+    const publicId = `messages/${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+    // Gerar signature
+    const signature = this.cloudinaryService.generateUploadSignature({
+      folder: `messages/${userId}`,
+      publicId,
+      resourceType: finalResourceType,
+      allowedFormats,
+      maxFileSize: MAX_FILE_SIZE,
+    });
+
+    return {
+      success: true,
+      data: signature,
+    };
+  }
 
   @Post()
   @ApiOperation({ summary: 'Enviar mensagem' })
@@ -49,13 +106,29 @@ export class MessagesController {
   @ApiResponse({ status: 400, description: 'Erro ao enviar mensagem' })
   async sendMessage(
     @Request() req: any,
-    @Body() body: { receiverId: string; content: string },
+    @Body()
+    body: {
+      receiverId: string;
+      content?: string;
+      attachments?: Array<{
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+        cloudinaryPublicId: string;
+        thumbnailUrl?: string;
+        width?: number;
+        height?: number;
+        duration?: number;
+      }>;
+    },
   ) {
     try {
       const result = await this.sendMessageUseCase.execute({
         senderId: req.user.sub,
         receiverId: body.receiverId,
-        content: body.content,
+        content: body.content || '',
+        attachments: body.attachments || [],
       });
 
       return {

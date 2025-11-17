@@ -1,8 +1,10 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, PINNED_MESSAGE_REPOSITORY } from '../../../domain/tokens';
+import { MESSAGE_REPOSITORY, PINNED_MESSAGE_REPOSITORY, MESSAGE_ATTACHMENT_REPOSITORY } from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { PinnedMessageRepository } from '../../../domain/repositories/pinned-message.repository';
+import type { MessageAttachmentRepository } from '../../../domain/repositories/message-attachment.repository';
 import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
+import { CloudinaryService } from '../../../infrastructure/services/cloudinary.service';
 
 export interface DeleteMessageInput {
   messageId: string;
@@ -21,8 +23,13 @@ export class DeleteMessageUseCase {
     private readonly messageRepository: MessageRepository,
     @Inject(PINNED_MESSAGE_REPOSITORY)
     private readonly pinnedMessageRepository: PinnedMessageRepository,
+    @Inject(MESSAGE_ATTACHMENT_REPOSITORY)
+    @Optional()
+    private readonly messageAttachmentRepository?: MessageAttachmentRepository,
     @Optional()
     private readonly chatGateway?: ChatGateway,
+    @Optional()
+    private readonly cloudinaryService?: CloudinaryService,
   ) {}
 
   async execute(input: DeleteMessageInput): Promise<DeleteMessageOutput> {
@@ -59,6 +66,41 @@ export class DeleteMessageUseCase {
       });
       await this.pinnedMessageRepository.unpinMessage(messageId);
       console.log('[DELETE_MESSAGE] ✅ Mensagem desfixada', { messageId });
+    }
+
+    // 3.5. Deletar arquivos do Cloudinary se houver attachments
+    if (this.messageAttachmentRepository) {
+      const attachments = await this.messageAttachmentRepository.findByMessageId(messageId);
+      
+      if (attachments.length > 0 && this.cloudinaryService) {
+        console.log('[DELETE_MESSAGE] 🗑️ Deletando arquivos do Cloudinary...', {
+          messageId,
+          attachmentsCount: attachments.length,
+        });
+
+        for (const attachment of attachments) {
+          try {
+            // Determinar resource type baseado no fileType
+            const resourceType = attachment.fileType.startsWith('image/') ? 'image' : 'raw';
+            
+            await this.cloudinaryService.deleteFile(attachment.cloudinaryPublicId, resourceType);
+            console.log('[DELETE_MESSAGE] ✅ Arquivo deletado do Cloudinary', {
+              attachmentId: attachment.id,
+              publicId: attachment.cloudinaryPublicId,
+            });
+          } catch (error) {
+            console.error('[DELETE_MESSAGE] ❌ Erro ao deletar arquivo do Cloudinary', {
+              attachmentId: attachment.id,
+              publicId: attachment.cloudinaryPublicId,
+              error: error.message,
+            });
+            // Não falhar a exclusão da mensagem se houver erro ao deletar arquivo
+          }
+        }
+
+        // Deletar attachments do banco (será deletado em cascade, mas vamos garantir)
+        await this.messageAttachmentRepository.deleteByMessageId(messageId);
+      }
     }
 
     // 4. Soft delete: marca como deletada e substitui conteúdo por "Mensagem apagada"
