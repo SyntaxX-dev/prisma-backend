@@ -30,10 +30,12 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Inject, Optional } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { JwtPayload } from '../services/auth.service';
-import { REDIS_SERVICE, MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY } from '../../domain/tokens';
+import { REDIS_SERVICE, MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, COMMUNITY_REPOSITORY, COMMUNITY_MEMBER_REPOSITORY } from '../../domain/tokens';
 import type { RedisService } from '../redis/services/redis.service';
 import type { MessageRepository } from '../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../domain/repositories/friendship.repository';
+import type { CommunityRepository } from '../../domain/repositories/community.repository';
+import type { CommunityMemberRepository } from '../../domain/repositories/community-member.repository';
 
 @WebSocketGateway({
   cors: {
@@ -69,6 +71,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(FRIENDSHIP_REPOSITORY)
     @Optional()
     private readonly friendshipRepository?: FriendshipRepository,
+    @Inject(COMMUNITY_REPOSITORY)
+    @Optional()
+    private readonly communityRepository?: CommunityRepository,
+    @Inject(COMMUNITY_MEMBER_REPOSITORY)
+    @Optional()
+    private readonly communityMemberRepository?: CommunityMemberRepository,
   ) {
     // Assina canais Redis para receber mensagens de outras instâncias
     if (this.redisService) {
@@ -90,6 +98,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Assina canal para eventos de typing
     await this.redisService.subscribe('chat:typing', (message) => {
       this.handleRedisTyping(message);
+    });
+
+    // Assina canal para eventos de typing em comunidades
+    await this.redisService.subscribe('chat:community_typing', (message) => {
+      this.handleRedisCommunityTyping(message);
     });
 
     // Assina canal para eventos de exclusão de mensagens
@@ -178,6 +191,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     } catch (error) {
       this.logger.error('Erro ao processar typing do Redis:', error);
+    }
+  }
+
+  /**
+   * Processa eventos de typing em comunidades recebidos do Redis (de outras instâncias)
+   */
+  private handleRedisCommunityTyping(message: any) {
+    try {
+      if (message.type === 'community_typing') {
+        // Envia evento de typing para todos os membros online da comunidade
+        if (message.memberIds && Array.isArray(message.memberIds)) {
+          for (const memberId of message.memberIds) {
+            // Não enviar para o próprio usuário que está digitando
+            if (memberId === message.userId) continue;
+
+            const socketId = this.connectedUsers.get(memberId);
+            if (socketId) {
+              this.server.to(socketId).emit('community_typing', {
+                communityId: message.communityId,
+                userId: message.userId,
+                isTyping: message.isTyping,
+              });
+            }
+          }
+          this.logger.debug(`⌨️  Community typing do Redis enviado para membros da comunidade ${message.communityId}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Erro ao processar community typing do Redis:', error);
     }
   }
 
@@ -460,6 +502,91 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       } catch (error) {
         this.logger.error('Erro ao publicar typing no Redis:', error);
       }
+    }
+  }
+
+  /**
+   * Handler para quando o usuário está digitando em uma comunidade
+   * 
+   * Formato recebido do frontend: { communityId: string, isTyping: boolean }
+   * Formato enviado para os membros: { communityId: string, userId: string, isTyping: boolean }
+   */
+  @SubscribeMessage('community_typing')
+  async handleCommunityTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { communityId: string; isTyping: boolean },
+  ) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      this.logger.warn('Tentativa de community typing sem autenticação');
+      return;
+    }
+
+    if (!data.communityId) {
+      this.logger.warn('Community typing sem communityId');
+      return;
+    }
+
+    // Verificar se a comunidade existe e se o usuário é membro
+    if (!this.communityRepository || !this.communityMemberRepository) {
+      this.logger.warn('Repositórios de comunidade não disponíveis');
+      return;
+    }
+
+    try {
+      const community = await this.communityRepository.findById(data.communityId);
+      if (!community) {
+        this.logger.warn(`Comunidade ${data.communityId} não encontrada`);
+        return;
+      }
+
+      // Buscar todos os membros da comunidade
+      const members = await this.communityMemberRepository.findByCommunityId(data.communityId);
+      const memberIds = members.map((m) => m.userId);
+      
+      // Incluir o dono se não estiver na lista de membros
+      if (!memberIds.includes(community.ownerId)) {
+        memberIds.push(community.ownerId);
+      }
+
+      // Remover o sender da lista (não precisa receber seu próprio typing)
+      const receiverIds = memberIds.filter((id) => id !== user.sub);
+
+      // Enviar para todos os membros online nesta instância
+      let onlineCount = 0;
+      for (const memberId of receiverIds) {
+        const isOnline = this.isUserOnline(memberId);
+        if (isOnline) {
+          this.server.to(this.connectedUsers.get(memberId)!).emit('community_typing', {
+            communityId: data.communityId,
+            userId: user.sub,
+            isTyping: data.isTyping,
+          });
+          onlineCount++;
+        }
+      }
+
+      this.logger.debug(
+        `⌨️  Community typing enviado para ${onlineCount} membros online da comunidade ${data.communityId}: ${data.isTyping ? 'digitando' : 'parou'}`,
+      );
+
+      // Publica no Redis para outras instâncias do servidor
+      if (this.redisService) {
+        try {
+          await this.redisService.publish('chat:community_typing', {
+            type: 'community_typing',
+            communityId: data.communityId,
+            userId: user.sub,
+            memberIds: receiverIds, // Lista de IDs dos membros que devem receber
+            isTyping: data.isTyping,
+          });
+          this.logger.debug('📤 Community typing publicado no Redis');
+        } catch (error) {
+          this.logger.error('Erro ao publicar community typing no Redis:', error);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Erro ao processar community typing:', error);
     }
   }
 
