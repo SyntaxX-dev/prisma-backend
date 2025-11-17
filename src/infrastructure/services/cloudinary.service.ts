@@ -127,9 +127,8 @@ export class CloudinaryService {
 
     // Cloudinary exige que apenas os parâmetros realmente enviados no formulário
     // sejam utilizados para montar o string_to_sign. Como o frontend envia apenas
-    // folder, public_id (opcional) e timestamp, assinamos somente esses campos.
+    // public_id (opcional) e timestamp, assinamos somente esses campos.
     const uploadParams: Record<string, string | number> = {
-      folder,
       timestamp,
     };
 
