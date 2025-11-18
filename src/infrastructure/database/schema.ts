@@ -267,7 +267,9 @@ export const videoProgress = pgTable(
     ),
     userIdIdx: index('video_progress_user_id_idx').on(table.userId),
     videoIdIdx: index('video_progress_video_id_idx').on(table.videoId),
-    subCourseIdIdx: index('video_progress_sub_course_id_idx').on(table.subCourseId),
+    subCourseIdIdx: index('video_progress_sub_course_id_idx').on(
+      table.subCourseId,
+    ),
     createdAtIdx: index('video_progress_created_at_idx').on(table.createdAt),
   }),
 );
@@ -281,7 +283,9 @@ export const offensives = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     type: offensiveTypeEnum('type').notNull().default('NORMAL'),
     consecutiveDays: integer('consecutive_days').notNull().default(0),
-    lastVideoCompletedAt: timestamp('last_video_completed_at', { withTimezone: false })
+    lastVideoCompletedAt: timestamp('last_video_completed_at', {
+      withTimezone: false,
+    })
       .notNull()
       .defaultNow(),
     streakStartDate: timestamp('streak_start_date', { withTimezone: false })
@@ -298,7 +302,9 @@ export const offensives = pgTable(
   (table) => ({
     userIdIdx: uniqueIndex('offensives_user_id_unique').on(table.userId),
     typeIdx: index('offensives_type_idx').on(table.type),
-    consecutiveDaysIdx: index('offensives_consecutive_days_idx').on(table.consecutiveDays),
+    consecutiveDaysIdx: index('offensives_consecutive_days_idx').on(
+      table.consecutiveDays,
+    ),
     createdAtIdx: index('offensives_created_at_idx').on(table.createdAt),
   }),
 );
@@ -311,7 +317,9 @@ export const communities = pgTable(
     focus: text('focus').notNull(),
     description: text('description'),
     image: text('image'),
-    visibility: communityVisibilityEnum('visibility').notNull().default('PUBLIC'),
+    visibility: communityVisibilityEnum('visibility')
+      .notNull()
+      .default('PUBLIC'),
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -350,7 +358,9 @@ export const communityMembers = pgTable(
       table.communityId,
       table.userId,
     ),
-    communityIdIdx: index('community_members_community_id_idx').on(table.communityId),
+    communityIdIdx: index('community_members_community_id_idx').on(
+      table.communityId,
+    ),
     userIdIdx: index('community_members_user_id_idx').on(table.userId),
     joinedAtIdx: index('community_members_joined_at_idx').on(table.joinedAt),
   }),
@@ -367,7 +377,9 @@ export const communityInvites = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     inviteeUsername: text('invitee_username').notNull(),
-    inviteeId: uuid('invitee_id').references(() => users.id, { onDelete: 'cascade' }),
+    inviteeId: uuid('invitee_id').references(() => users.id, {
+      onDelete: 'cascade',
+    }),
     status: text('status').notNull().default('PENDING'),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
@@ -377,12 +389,15 @@ export const communityInvites = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    communityInviteeIdx: uniqueIndex('community_invites_community_invitee_unique').on(
+    communityInviteeIdx: uniqueIndex(
+      'community_invites_community_invitee_unique',
+    ).on(table.communityId, table.inviteeUsername),
+    communityIdIdx: index('community_invites_community_id_idx').on(
       table.communityId,
+    ),
+    inviteeUsernameIdx: index('community_invites_invitee_username_idx').on(
       table.inviteeUsername,
     ),
-    communityIdIdx: index('community_invites_community_id_idx').on(table.communityId),
-    inviteeUsernameIdx: index('community_invites_invitee_username_idx').on(table.inviteeUsername),
     inviteeIdIdx: index('community_invites_invitee_id_idx').on(table.inviteeId),
     statusIdx: index('community_invites_status_idx').on(table.status),
     createdAtIdx: index('community_invites_created_at_idx').on(table.createdAt),
@@ -408,12 +423,15 @@ export const friendRequests = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    requesterReceiverIdx: uniqueIndex('friend_requests_requester_receiver_unique').on(
+    requesterReceiverIdx: uniqueIndex(
+      'friend_requests_requester_receiver_unique',
+    ).on(table.requesterId, table.receiverId),
+    requesterIdIdx: index('friend_requests_requester_id_idx').on(
       table.requesterId,
+    ),
+    receiverIdIdx: index('friend_requests_receiver_id_idx').on(
       table.receiverId,
     ),
-    requesterIdIdx: index('friend_requests_requester_id_idx').on(table.requesterId),
-    receiverIdIdx: index('friend_requests_receiver_id_idx').on(table.receiverId),
     statusIdx: index('friend_requests_status_idx').on(table.status),
     createdAtIdx: index('friend_requests_created_at_idx').on(table.createdAt),
   }),
@@ -479,7 +497,9 @@ export const notifications = pgTable(
     type: notificationTypeEnum('type').notNull(),
     title: text('title').notNull(),
     message: text('message').notNull(),
-    relatedUserId: uuid('related_user_id').references(() => users.id, { onDelete: 'set null' }),
+    relatedUserId: uuid('related_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     relatedEntityId: uuid('related_entity_id'), // ID de outra entidade (pedido de amizade, etc)
     isRead: text('is_read').notNull().default('false'),
     createdAt: timestamp('created_at', { withTimezone: false })
@@ -496,7 +516,7 @@ export const notifications = pgTable(
 
 /**
  * Tabela messages - Armazena mensagens de chat entre usuários
- * 
+ *
  * Esta tabela armazena todas as mensagens trocadas entre usuários que são amigos.
  * Ela mantém o histórico completo de conversas e permite rastrear mensagens não lidas.
  */
@@ -542,7 +562,7 @@ export const messages = pgTable(
 
 /**
  * Tabela pinned_messages - Armazena mensagens fixadas em conversas
- * 
+ *
  * Esta tabela permite que usuários fixem mensagens importantes em uma conversa.
  * Cada conversa pode ter múltiplas mensagens fixadas.
  */
@@ -578,13 +598,15 @@ export const pinnedMessages = pgTable(
     // Índice para ordenar por data de fixação
     pinnedAtIdx: index('pinned_messages_pinned_at_idx').on(table.pinnedAt),
     // Índice único: uma mensagem só pode ser fixada uma vez
-    messageIdUniqueIdx: uniqueIndex('pinned_messages_message_id_unique').on(table.messageId),
+    messageIdUniqueIdx: uniqueIndex('pinned_messages_message_id_unique').on(
+      table.messageId,
+    ),
   }),
 );
 
 /**
  * Tabela community_messages - Armazena mensagens em comunidades
- * 
+ *
  * Esta tabela armazena mensagens enviadas em comunidades (chat de grupo).
  * Similar à tabela messages, mas para contexto de comunidades.
  */
@@ -608,9 +630,13 @@ export const communityMessages = pgTable(
   },
   (table) => ({
     // Índice para buscar mensagens de uma comunidade rapidamente
-    communityIdIdx: index('community_messages_community_id_idx').on(table.communityId),
+    communityIdIdx: index('community_messages_community_id_idx').on(
+      table.communityId,
+    ),
     // Índice para ordenar por data de criação
-    createdAtIdx: index('community_messages_created_at_idx').on(table.createdAt),
+    createdAtIdx: index('community_messages_created_at_idx').on(
+      table.createdAt,
+    ),
     // Índice para buscar por sender
     senderIdIdx: index('community_messages_sender_id_idx').on(table.senderId),
     // Índice composto para buscar mensagens de uma comunidade ordenadas por data
@@ -623,7 +649,7 @@ export const communityMessages = pgTable(
 
 /**
  * Tabela pinned_community_messages - Armazena mensagens fixadas em comunidades
- * 
+ *
  * Esta tabela permite que usuários fixem mensagens importantes em uma comunidade.
  * Cada comunidade pode ter múltiplas mensagens fixadas.
  */
@@ -646,19 +672,27 @@ export const pinnedCommunityMessages = pgTable(
   },
   (table) => ({
     // Índice para buscar mensagens fixadas de uma comunidade
-    communityIdIdx: index('pinned_community_messages_community_id_idx').on(table.communityId),
+    communityIdIdx: index('pinned_community_messages_community_id_idx').on(
+      table.communityId,
+    ),
     // Índice para buscar por mensagem
-    messageIdIdx: index('pinned_community_messages_message_id_idx').on(table.messageId),
+    messageIdIdx: index('pinned_community_messages_message_id_idx').on(
+      table.messageId,
+    ),
     // Índice para ordenar por data de fixação
-    pinnedAtIdx: index('pinned_community_messages_pinned_at_idx').on(table.pinnedAt),
+    pinnedAtIdx: index('pinned_community_messages_pinned_at_idx').on(
+      table.pinnedAt,
+    ),
     // Índice único: uma mensagem só pode ser fixada uma vez
-    messageIdUniqueIdx: uniqueIndex('pinned_community_messages_message_id_unique').on(table.messageId),
+    messageIdUniqueIdx: uniqueIndex(
+      'pinned_community_messages_message_id_unique',
+    ).on(table.messageId),
   }),
 );
 
 /**
  * Tabela message_attachments - Armazena anexos de mensagens pessoais
- * 
+ *
  * Esta tabela armazena arquivos (imagens, PDFs, etc) anexados a mensagens.
  * Os arquivos são armazenados no Cloudinary, apenas a URL e metadados ficam no banco.
  */
@@ -684,15 +718,19 @@ export const messageAttachments = pgTable(
   },
   (table) => ({
     // Índice para buscar anexos de uma mensagem
-    messageIdIdx: index('message_attachments_message_id_idx').on(table.messageId),
+    messageIdIdx: index('message_attachments_message_id_idx').on(
+      table.messageId,
+    ),
     // Índice para ordenar por data
-    createdAtIdx: index('message_attachments_created_at_idx').on(table.createdAt),
+    createdAtIdx: index('message_attachments_created_at_idx').on(
+      table.createdAt,
+    ),
   }),
 );
 
 /**
  * Tabela community_message_attachments - Armazena anexos de mensagens de comunidades
- * 
+ *
  * Esta tabela armazena arquivos anexados a mensagens de comunidades.
  */
 export const communityMessageAttachments = pgTable(
@@ -717,15 +755,19 @@ export const communityMessageAttachments = pgTable(
   },
   (table) => ({
     // Índice para buscar anexos de uma mensagem
-    messageIdIdx: index('community_message_attachments_message_id_idx').on(table.messageId),
+    messageIdIdx: index('community_message_attachments_message_id_idx').on(
+      table.messageId,
+    ),
     // Índice para ordenar por data
-    createdAtIdx: index('community_message_attachments_created_at_idx').on(table.createdAt),
+    createdAtIdx: index('community_message_attachments_created_at_idx').on(
+      table.createdAt,
+    ),
   }),
 );
 
 /**
  * Tabela user_push_subscriptions - Armazena subscriptions de Web Push
- * 
+ *
  * Esta tabela armazena as subscriptions de push notifications dos usuários.
  * Permite enviar notificações mesmo quando o usuário está offline.
  */
@@ -748,7 +790,9 @@ export const userPushSubscriptions = pgTable(
     // Índice para buscar subscriptions de um usuário
     userIdIdx: index('user_push_subscriptions_user_id_idx').on(table.userId),
     // Índice único para endpoint (um endpoint por subscription)
-    endpointIdx: uniqueIndex('user_push_subscriptions_endpoint_idx').on(table.endpoint),
+    endpointIdx: uniqueIndex('user_push_subscriptions_endpoint_idx').on(
+      table.endpoint,
+    ),
   }),
 );
 
@@ -782,8 +826,47 @@ export const mindMaps = pgTable(
     // Índice para buscar mapas mentais de um usuário
     userIdIdx: index('mind_maps_user_id_idx').on(table.userId),
     // Índice para buscar mapa mental de um vídeo específico de um usuário
-    userVideoIdx: index('mind_maps_user_video_idx').on(table.userId, table.videoId),
+    userVideoIdx: index('mind_maps_user_video_idx').on(
+      table.userId,
+      table.videoId,
+    ),
     // Índice para ordenar por data de criação
     createdAtIdx: index('mind_maps_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
+ * Tabela call_rooms - Armazena informações sobre chamadas de voz 1:1
+ *
+ * Esta tabela armazena metadados das chamadas (quem ligou, quando, duração, etc.)
+ * O áudio em si é transmitido via WebRTC P2P, não é armazenado.
+ */
+export const callRooms = pgTable(
+  'call_rooms',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    callerId: uuid('caller_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    receiverId: uuid('receiver_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: text('status').notNull().default('ringing'), // 'ringing', 'active', 'ended', 'rejected', 'missed'
+    startedAt: timestamp('started_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    answeredAt: timestamp('answered_at', { withTimezone: false }), // Quando foi atendida
+    endedAt: timestamp('ended_at', { withTimezone: false }), // Quando foi encerrada
+    duration: integer('duration'), // Duração em segundos (calculado após encerrar)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar chamadas de um usuário
+    callerIdIdx: index('call_rooms_caller_id_idx').on(table.callerId),
+    receiverIdIdx: index('call_rooms_receiver_id_idx').on(table.receiverId),
+    // Índice para buscar chamadas recentes
+    startedAtIdx: index('call_rooms_started_at_idx').on(table.startedAt),
   }),
 );

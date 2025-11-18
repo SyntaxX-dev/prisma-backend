@@ -24,6 +24,7 @@ import { UnpinMessageUseCase } from '../../../application/messages/use-cases/unp
 import { GetPinnedMessagesUseCase } from '../../../application/messages/use-cases/get-pinned-messages.use-case';
 import { EditMessageUseCase } from '../../../application/messages/use-cases/edit-message.use-case';
 import { DeleteMessageUseCase } from '../../../application/messages/use-cases/delete-message.use-case';
+import { GetConversationAttachmentsUseCase } from '../../../application/messages/use-cases/get-conversation-attachments.use-case';
 import { CloudinaryService } from '../../../infrastructure/services/cloudinary.service';
 
 @ApiTags('Messages')
@@ -42,6 +43,7 @@ export class MessagesController {
     private readonly getPinnedMessagesUseCase: GetPinnedMessagesUseCase,
     private readonly editMessageUseCase: EditMessageUseCase,
     private readonly deleteMessageUseCase: DeleteMessageUseCase,
+    private readonly getConversationAttachmentsUseCase: GetConversationAttachmentsUseCase,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -501,6 +503,65 @@ export class MessagesController {
           message: error.message,
         },
         status,
+      );
+    }
+  }
+
+  @Get('conversation/:friendId/attachments')
+  @ApiOperation({ summary: 'Listar todos os arquivos/anexos de uma conversa' })
+  @ApiResponse({
+    status: 200,
+    description: 'Arquivos retornados com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        data: {
+          type: 'object',
+          properties: {
+            attachments: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  messageId: { type: 'string' },
+                  fileUrl: { type: 'string' },
+                  fileName: { type: 'string' },
+                  fileType: { type: 'string' },
+                  fileSize: { type: 'number' },
+                  thumbnailUrl: { type: 'string', nullable: true },
+                  width: { type: 'number', nullable: true },
+                  height: { type: 'number', nullable: true },
+                  duration: { type: 'number', nullable: true },
+                  createdAt: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+            total: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  async getConversationAttachments(@Request() req: any, @Param('friendId') friendId: string) {
+    try {
+      const result = await this.getConversationAttachmentsUseCase.execute({
+        userId: req.user.sub,
+        friendId,
+      });
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
       );
     }
   }

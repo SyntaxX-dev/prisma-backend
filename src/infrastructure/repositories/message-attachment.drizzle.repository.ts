@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm';
-import { messageAttachments } from '../database/schema';
+import { eq, or, and, desc } from 'drizzle-orm';
+import { messageAttachments, messages } from '../database/schema';
 import type { MessageAttachmentRepository } from '../../domain/repositories/message-attachment.repository';
 import { MessageAttachment } from '../../domain/entities/message-attachment';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -43,6 +43,39 @@ export class MessageAttachmentDrizzleRepository implements MessageAttachmentRepo
       .select()
       .from(messageAttachments)
       .where(eq(messageAttachments.messageId, messageId));
+
+    return results.map((row) => this.mapToEntity(row));
+  }
+
+  async findByConversation(userId1: string, userId2: string): Promise<MessageAttachment[]> {
+    // Buscar attachments de mensagens entre os dois usuários
+    const results = await this.db
+      .select({
+        id: messageAttachments.id,
+        messageId: messageAttachments.messageId,
+        fileUrl: messageAttachments.fileUrl,
+        fileName: messageAttachments.fileName,
+        fileType: messageAttachments.fileType,
+        fileSize: messageAttachments.fileSize,
+        cloudinaryPublicId: messageAttachments.cloudinaryPublicId,
+        thumbnailUrl: messageAttachments.thumbnailUrl,
+        width: messageAttachments.width,
+        height: messageAttachments.height,
+        duration: messageAttachments.duration,
+        createdAt: messageAttachments.createdAt,
+      })
+      .from(messageAttachments)
+      .innerJoin(messages, eq(messageAttachments.messageId, messages.id))
+      .where(
+        and(
+          or(
+            and(eq(messages.senderId, userId1), eq(messages.receiverId, userId2)),
+            and(eq(messages.senderId, userId2), eq(messages.receiverId, userId1)),
+          ),
+          eq(messages.isDeleted, 'false'), // Apenas mensagens não deletadas
+        ),
+      )
+      .orderBy(desc(messageAttachments.createdAt));
 
     return results.map((row) => this.mapToEntity(row));
   }

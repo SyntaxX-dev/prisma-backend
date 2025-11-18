@@ -14,6 +14,7 @@ export interface CommunityMessageAttachmentRepository {
     duration?: number | null;
   }): Promise<CommunityMessageAttachment>;
   findByMessageId(messageId: string): Promise<CommunityMessageAttachment[]>;
+  findByCommunityId(communityId: string): Promise<CommunityMessageAttachment[]>;
   deleteByMessageId(messageId: string): Promise<void>;
   deleteById(id: string): Promise<void>;
 }

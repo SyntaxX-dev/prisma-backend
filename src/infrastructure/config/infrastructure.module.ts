@@ -28,6 +28,7 @@ import {
   MESSAGE_ATTACHMENT_REPOSITORY,
   COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
   MIND_MAP_REPOSITORY,
+  CALL_ROOM_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -59,6 +60,7 @@ import { PinnedCommunityMessageDrizzleRepository } from '../repositories/pinned-
 import { MessageAttachmentDrizzleRepository } from '../repositories/message-attachment.drizzle.repository';
 import { CommunityMessageAttachmentDrizzleRepository } from '../repositories/community-message-attachment.drizzle.repository';
 import { MindMapDrizzleRepository } from '../repositories/mind-map.drizzle.repository';
+import { CallRoomDrizzleRepository } from '../repositories/call-room.drizzle.repository';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -128,17 +130,20 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     },
     {
       provide: COMMUNITY_MEMBER_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new CommunityMemberDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new CommunityMemberDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     {
       provide: COMMUNITY_INVITE_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new CommunityInviteDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new CommunityInviteDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     {
       provide: FRIEND_REQUEST_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new FriendRequestDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new FriendRequestDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     {
@@ -163,7 +168,8 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     },
     {
       provide: PINNED_MESSAGE_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new PinnedMessageDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new PinnedMessageDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     {
@@ -172,27 +178,42 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     },
     {
       provide: PUSH_SUBSCRIPTION_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new PushSubscriptionDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new PushSubscriptionDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     {
       provide: COMMUNITY_MESSAGE_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new CommunityMessageDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new CommunityMessageDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     {
       provide: PINNED_COMMUNITY_MESSAGE_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new PinnedCommunityMessageDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new PinnedCommunityMessageDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     {
       provide: MESSAGE_ATTACHMENT_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new MessageAttachmentDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new MessageAttachmentDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     {
       provide: COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
-      useFactory: (db: NodePgDatabase) => new CommunityMessageAttachmentDrizzleRepository(db),
+      useFactory: (db: NodePgDatabase) =>
+        new CommunityMessageAttachmentDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: MIND_MAP_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new MindMapDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: CALL_ROOM_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new CallRoomDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
     CloudinaryService,
@@ -226,6 +247,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     MESSAGE_ATTACHMENT_REPOSITORY,
     COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
     MIND_MAP_REPOSITORY,
+    CALL_ROOM_REPOSITORY,
     CloudinaryService,
   ],
 })

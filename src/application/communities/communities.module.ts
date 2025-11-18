@@ -14,6 +14,7 @@ import { DeleteCommunityMessageUseCase } from './use-cases/delete-community-mess
 import { PinCommunityMessageUseCase } from './use-cases/pin-community-message.use-case';
 import { UnpinCommunityMessageUseCase } from './use-cases/unpin-community-message.use-case';
 import { GetPinnedCommunityMessagesUseCase } from './use-cases/get-pinned-community-messages.use-case';
+import { GetCommunityAttachmentsUseCase } from './use-cases/get-community-attachments.use-case';
 import { WebSocketsModule } from '../../infrastructure/websockets/websockets.module';
 import { forwardRef } from '@nestjs/common';
 
@@ -34,6 +35,7 @@ import { forwardRef } from '@nestjs/common';
     PinCommunityMessageUseCase,
     UnpinCommunityMessageUseCase,
     GetPinnedCommunityMessagesUseCase,
+    GetCommunityAttachmentsUseCase,
   ],
   exports: [
     CreateCommunityUseCase,
@@ -50,6 +52,7 @@ import { forwardRef } from '@nestjs/common';
     PinCommunityMessageUseCase,
     UnpinCommunityMessageUseCase,
     GetPinnedCommunityMessagesUseCase,
+    GetCommunityAttachmentsUseCase,
   ],
 })
 export class CommunitiesModule {}
