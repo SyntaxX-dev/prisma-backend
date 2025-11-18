@@ -702,8 +702,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           roomId: callRoom.id,
           answer: data.answer,
         });
-        this.logger.debug(`📞 Chamada aceita: ${callRoom.id} por ${user.sub}`);
       }
+
+      // Confirmar para o receiver que a chamada foi aceita
+      this.server.to(client.id).emit('call:accepted', {
+        roomId: callRoom.id,
+        answer: data.answer, // O receiver já tem, mas confirma
+      });
+
+      this.logger.debug(`📞 Chamada aceita: ${callRoom.id} por ${user.sub}`);
 
       return { success: true };
     } catch (error) {
