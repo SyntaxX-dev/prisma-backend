@@ -27,6 +27,7 @@ import {
   PINNED_COMMUNITY_MESSAGE_REPOSITORY,
   MESSAGE_ATTACHMENT_REPOSITORY,
   COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
+  CALL_ROOM_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -57,6 +58,7 @@ import { CommunityMessageDrizzleRepository } from '../repositories/community-mes
 import { PinnedCommunityMessageDrizzleRepository } from '../repositories/pinned-community-message.drizzle.repository';
 import { MessageAttachmentDrizzleRepository } from '../repositories/message-attachment.drizzle.repository';
 import { CommunityMessageAttachmentDrizzleRepository } from '../repositories/community-message-attachment.drizzle.repository';
+import { CallRoomDrizzleRepository } from '../repositories/call-room.drizzle.repository';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -189,6 +191,11 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       useFactory: (db: NodePgDatabase) => new CommunityMessageAttachmentDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
+    {
+      provide: CALL_ROOM_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new CallRoomDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
     CloudinaryService,
   ],
   exports: [
@@ -219,6 +226,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     PINNED_COMMUNITY_MESSAGE_REPOSITORY,
     MESSAGE_ATTACHMENT_REPOSITORY,
     COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
+    CALL_ROOM_REPOSITORY,
     CloudinaryService,
   ],
 })

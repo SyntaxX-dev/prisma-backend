@@ -30,12 +30,13 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Inject, Optional } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { JwtPayload } from '../services/auth.service';
-import { REDIS_SERVICE, MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, COMMUNITY_REPOSITORY, COMMUNITY_MEMBER_REPOSITORY } from '../../domain/tokens';
+import { REDIS_SERVICE, MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, COMMUNITY_REPOSITORY, COMMUNITY_MEMBER_REPOSITORY, CALL_ROOM_REPOSITORY } from '../../domain/tokens';
 import type { RedisService } from '../redis/services/redis.service';
 import type { MessageRepository } from '../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../domain/repositories/friendship.repository';
 import type { CommunityRepository } from '../../domain/repositories/community.repository';
 import type { CommunityMemberRepository } from '../../domain/repositories/community-member.repository';
+import type { CallRoomRepository } from '../../domain/repositories/call-room.repository';
 
 @WebSocketGateway({
   cors: {
@@ -77,6 +78,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(COMMUNITY_MEMBER_REPOSITORY)
     @Optional()
     private readonly communityMemberRepository?: CommunityMemberRepository,
+    @Inject(CALL_ROOM_REPOSITORY)
+    @Optional()
+    private readonly callRoomRepository?: CallRoomRepository,
   ) {
     // Assina canais Redis para receber mensagens de outras instâncias
     if (this.redisService) {
@@ -587,6 +591,367 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     } catch (error) {
       this.logger.error('Erro ao processar community typing:', error);
+    }
+  }
+
+  /**
+   * Handler para iniciar uma chamada de voz 1:1
+   * 
+   * Formato recebido: { receiverId: string }
+   * Formato enviado para receiver: { roomId: string, callerId: string, callerName?: string }
+   */
+  @SubscribeMessage('call:initiate')
+  async handleCallInitiate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { receiverId: string },
+  ) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      this.logger.warn('Tentativa de iniciar chamada sem autenticação');
+      return { error: 'Não autenticado' };
+    }
+
+    if (!data.receiverId) {
+      this.logger.warn('Chamada sem receiverId');
+      return { error: 'receiverId é obrigatório' };
+    }
+
+    // Validar que são amigos
+    if (this.friendshipRepository) {
+      const friendship = await this.friendshipRepository.findByUsers(user.sub, data.receiverId);
+      if (!friendship) {
+        this.logger.warn(`Usuário ${user.sub} tentou ligar para ${data.receiverId} sem serem amigos`);
+        return { error: 'Você não é amigo deste usuário' };
+      }
+    }
+
+    // Criar call room no banco
+    if (!this.callRoomRepository) {
+      return { error: 'Serviço de chamadas não disponível' };
+    }
+
+    try {
+      const callRoom = await this.callRoomRepository.create(user.sub, data.receiverId);
+
+      // Verificar se o receiver está online
+      const receiverSocketId = this.connectedUsers.get(data.receiverId);
+      if (receiverSocketId) {
+        // Enviar evento de chamada recebida
+        this.server.to(receiverSocketId).emit('call:incoming', {
+          roomId: callRoom.id,
+          callerId: user.sub,
+          type: 'personal',
+        });
+        this.logger.debug(`📞 Chamada iniciada: ${user.sub} → ${data.receiverId} (room: ${callRoom.id})`);
+      } else {
+        // Receiver offline - marcar como missed
+        await this.callRoomRepository.updateStatus(callRoom.id, 'missed');
+        this.logger.debug(`📞 Chamada perdida: ${user.sub} → ${data.receiverId} (offline)`);
+        return { error: 'Usuário offline' };
+      }
+
+      return {
+        success: true,
+        roomId: callRoom.id,
+      };
+    } catch (error) {
+      this.logger.error('Erro ao iniciar chamada:', error);
+      return { error: 'Erro ao iniciar chamada' };
+    }
+  }
+
+  /**
+   * Handler para aceitar uma chamada
+   * 
+   * Formato recebido: { roomId: string, answer: RTCSessionDescriptionInit }
+   * Formato enviado para caller: { roomId: string, answer: RTCSessionDescriptionInit }
+   */
+  @SubscribeMessage('call:accept')
+  async handleCallAccept(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; answer: RTCSessionDescriptionInit },
+  ) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      return { error: 'Não autenticado' };
+    }
+
+    if (!this.callRoomRepository) {
+      return { error: 'Serviço de chamadas não disponível' };
+    }
+
+    try {
+      const callRoom = await this.callRoomRepository.findById(data.roomId);
+      if (!callRoom) {
+        return { error: 'Chamada não encontrada' };
+      }
+
+      // Verificar se o usuário é o receiver
+      if (callRoom.receiverId !== user.sub) {
+        return { error: 'Você não pode aceitar esta chamada' };
+      }
+
+      // Atualizar status para active
+      await this.callRoomRepository.updateStatus(callRoom.id, 'active');
+      await this.callRoomRepository.updateAnsweredAt(callRoom.id, new Date());
+
+      // Enviar answer para o caller
+      const callerSocketId = this.connectedUsers.get(callRoom.callerId);
+      if (callerSocketId) {
+        this.server.to(callerSocketId).emit('call:accepted', {
+          roomId: callRoom.id,
+          answer: data.answer,
+        });
+        this.logger.debug(`📞 Chamada aceita: ${callRoom.id} por ${user.sub}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Erro ao aceitar chamada:', error);
+      return { error: 'Erro ao aceitar chamada' };
+    }
+  }
+
+  /**
+   * Handler para rejeitar uma chamada
+   * 
+   * Formato recebido: { roomId: string }
+   */
+  @SubscribeMessage('call:reject')
+  async handleCallReject(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string },
+  ) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      return { error: 'Não autenticado' };
+    }
+
+    if (!this.callRoomRepository) {
+      return { error: 'Serviço de chamadas não disponível' };
+    }
+
+    try {
+      const callRoom = await this.callRoomRepository.findById(data.roomId);
+      if (!callRoom) {
+        return { error: 'Chamada não encontrada' };
+      }
+
+      // Verificar se o usuário é o receiver
+      if (callRoom.receiverId !== user.sub) {
+        return { error: 'Você não pode rejeitar esta chamada' };
+      }
+
+      // Atualizar status para rejected
+      await this.callRoomRepository.updateStatus(callRoom.id, 'rejected');
+
+      // Notificar o caller
+      const callerSocketId = this.connectedUsers.get(callRoom.callerId);
+      if (callerSocketId) {
+        this.server.to(callerSocketId).emit('call:rejected', {
+          roomId: callRoom.id,
+        });
+        this.logger.debug(`📞 Chamada rejeitada: ${callRoom.id} por ${user.sub}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Erro ao rejeitar chamada:', error);
+      return { error: 'Erro ao rejeitar chamada' };
+    }
+  }
+
+  /**
+   * Handler para trocar SDP offer (do caller para receiver)
+   * 
+   * Formato recebido: { roomId: string, offer: RTCSessionDescriptionInit }
+   */
+  @SubscribeMessage('call:offer')
+  async handleCallOffer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; offer: RTCSessionDescriptionInit },
+  ) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      return { error: 'Não autenticado' };
+    }
+
+    if (!this.callRoomRepository) {
+      return { error: 'Serviço de chamadas não disponível' };
+    }
+
+    try {
+      const callRoom = await this.callRoomRepository.findById(data.roomId);
+      if (!callRoom) {
+        return { error: 'Chamada não encontrada' };
+      }
+
+      // Verificar se o usuário é o caller
+      if (callRoom.callerId !== user.sub) {
+        return { error: 'Você não pode enviar offer para esta chamada' };
+      }
+
+      // Enviar offer para o receiver
+      const receiverSocketId = this.connectedUsers.get(callRoom.receiverId);
+      if (receiverSocketId) {
+        this.server.to(receiverSocketId).emit('call:offer', {
+          roomId: callRoom.id,
+          offer: data.offer,
+        });
+        this.logger.debug(`📞 Offer enviado: ${callRoom.id}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Erro ao enviar offer:', error);
+      return { error: 'Erro ao enviar offer' };
+    }
+  }
+
+  /**
+   * Handler para trocar SDP answer (do receiver para caller)
+   * 
+   * Formato recebido: { roomId: string, answer: RTCSessionDescriptionInit }
+   */
+  @SubscribeMessage('call:answer')
+  async handleCallAnswer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; answer: RTCSessionDescriptionInit },
+  ) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      return { error: 'Não autenticado' };
+    }
+
+    if (!this.callRoomRepository) {
+      return { error: 'Serviço de chamadas não disponível' };
+    }
+
+    try {
+      const callRoom = await this.callRoomRepository.findById(data.roomId);
+      if (!callRoom) {
+        return { error: 'Chamada não encontrada' };
+      }
+
+      // Verificar se o usuário é o receiver
+      if (callRoom.receiverId !== user.sub) {
+        return { error: 'Você não pode enviar answer para esta chamada' };
+      }
+
+      // Enviar answer para o caller
+      const callerSocketId = this.connectedUsers.get(callRoom.callerId);
+      if (callerSocketId) {
+        this.server.to(callerSocketId).emit('call:answer', {
+          roomId: callRoom.id,
+          answer: data.answer,
+        });
+        this.logger.debug(`📞 Answer enviado: ${callRoom.id}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Erro ao enviar answer:', error);
+      return { error: 'Erro ao enviar answer' };
+    }
+  }
+
+  /**
+   * Handler para trocar ICE candidates
+   * 
+   * Formato recebido: { roomId: string, candidate: RTCIceCandidateInit }
+   */
+  @SubscribeMessage('call:ice-candidate')
+  async handleCallIceCandidate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; candidate: RTCIceCandidateInit },
+  ) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      return { error: 'Não autenticado' };
+    }
+
+    if (!this.callRoomRepository) {
+      return { error: 'Serviço de chamadas não disponível' };
+    }
+
+    try {
+      const callRoom = await this.callRoomRepository.findById(data.roomId);
+      if (!callRoom) {
+        return { error: 'Chamada não encontrada' };
+      }
+
+      // Determinar o destinatário (oposto do sender)
+      const targetId = callRoom.callerId === user.sub ? callRoom.receiverId : callRoom.callerId;
+      const targetSocketId = this.connectedUsers.get(targetId);
+
+      if (targetSocketId) {
+        this.server.to(targetSocketId).emit('call:ice-candidate', {
+          roomId: callRoom.id,
+          candidate: data.candidate,
+        });
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Erro ao enviar ICE candidate:', error);
+      return { error: 'Erro ao enviar ICE candidate' };
+    }
+  }
+
+  /**
+   * Handler para encerrar uma chamada
+   * 
+   * Formato recebido: { roomId: string }
+   */
+  @SubscribeMessage('call:end')
+  async handleCallEnd(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string },
+  ) {
+    const user = client.data.user as JwtPayload;
+    if (!user?.sub) {
+      return { error: 'Não autenticado' };
+    }
+
+    if (!this.callRoomRepository) {
+      return { error: 'Serviço de chamadas não disponível' };
+    }
+
+    try {
+      const callRoom = await this.callRoomRepository.findById(data.roomId);
+      if (!callRoom) {
+        return { error: 'Chamada não encontrada' };
+      }
+
+      // Verificar se o usuário é participante da chamada
+      if (callRoom.callerId !== user.sub && callRoom.receiverId !== user.sub) {
+        return { error: 'Você não é participante desta chamada' };
+      }
+
+      // Calcular duração se a chamada foi atendida
+      let duration: number | null = null;
+      if (callRoom.answeredAt) {
+        duration = Math.floor((new Date().getTime() - callRoom.answeredAt.getTime()) / 1000);
+      }
+
+      // Atualizar status e duração
+      await this.callRoomRepository.updateStatus(callRoom.id, 'ended');
+      await this.callRoomRepository.updateEndedAt(callRoom.id, new Date(), duration || 0);
+
+      // Notificar o outro participante
+      const otherUserId = callRoom.callerId === user.sub ? callRoom.receiverId : callRoom.callerId;
+      const otherSocketId = this.connectedUsers.get(otherUserId);
+      if (otherSocketId) {
+        this.server.to(otherSocketId).emit('call:ended', {
+          roomId: callRoom.id,
+        });
+        this.logger.debug(`📞 Chamada encerrada: ${callRoom.id} por ${user.sub}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Erro ao encerrar chamada:', error);
+      return { error: 'Erro ao encerrar chamada' };
     }
   }
 

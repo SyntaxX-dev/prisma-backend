@@ -751,3 +751,39 @@ export const userPushSubscriptions = pgTable(
     endpointIdx: uniqueIndex('user_push_subscriptions_endpoint_idx').on(table.endpoint),
   }),
 );
+
+/**
+ * Tabela call_rooms - Armazena informações sobre chamadas de voz 1:1
+ * 
+ * Esta tabela armazena metadados das chamadas (quem ligou, quando, duração, etc.)
+ * O áudio em si é transmitido via WebRTC P2P, não é armazenado.
+ */
+export const callRooms = pgTable(
+  'call_rooms',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    callerId: uuid('caller_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    receiverId: uuid('receiver_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: text('status').notNull().default('ringing'), // 'ringing', 'active', 'ended', 'rejected', 'missed'
+    startedAt: timestamp('started_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    answeredAt: timestamp('answered_at', { withTimezone: false }), // Quando foi atendida
+    endedAt: timestamp('ended_at', { withTimezone: false }), // Quando foi encerrada
+    duration: integer('duration'), // Duração em segundos (calculado após encerrar)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar chamadas de um usuário
+    callerIdIdx: index('call_rooms_caller_id_idx').on(table.callerId),
+    receiverIdIdx: index('call_rooms_receiver_id_idx').on(table.receiverId),
+    // Índice para buscar chamadas recentes
+    startedAtIdx: index('call_rooms_started_at_idx').on(table.startedAt),
+  }),
+);
