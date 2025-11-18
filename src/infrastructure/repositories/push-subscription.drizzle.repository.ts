@@ -8,7 +8,9 @@ import type {
 } from '../../domain/repositories/push-subscription.repository';
 
 @Injectable()
-export class PushSubscriptionDrizzleRepository implements PushSubscriptionRepository {
+export class PushSubscriptionDrizzleRepository
+  implements PushSubscriptionRepository
+{
   constructor(private readonly db: NodePgDatabase) {}
 
   private mapToEntity(row: any): PushSubscription {
@@ -64,7 +66,9 @@ export class PushSubscriptionDrizzleRepository implements PushSubscriptionReposi
   }
 
   async delete(id: string): Promise<void> {
-    await this.db.delete(userPushSubscriptions).where(eq(userPushSubscriptions.id, id));
+    await this.db
+      .delete(userPushSubscriptions)
+      .where(eq(userPushSubscriptions.id, id));
   }
 
   async deleteByEndpoint(endpoint: string): Promise<void> {
@@ -79,4 +83,3 @@ export class PushSubscriptionDrizzleRepository implements PushSubscriptionReposi
       .where(eq(userPushSubscriptions.userId, userId));
   }
 }
-

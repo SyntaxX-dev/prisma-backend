@@ -1,4 +1,10 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { FRIENDSHIP_REPOSITORY, USER_REPOSITORY } from '../../../domain/tokens';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
@@ -30,7 +36,9 @@ export class UnfriendUserUseCase {
 
     // Não pode desfazer amizade consigo mesmo
     if (userId === friendId) {
-      throw new BadRequestException('Você não pode desfazer amizade consigo mesmo');
+      throw new BadRequestException(
+        'Você não pode desfazer amizade consigo mesmo',
+      );
     }
 
     // Verificar se o usuário existe
@@ -46,7 +54,10 @@ export class UnfriendUserUseCase {
     }
 
     // Verificar se são amigos
-    const friendship = await this.friendshipRepository.findByUsers(userId, friendId);
+    const friendship = await this.friendshipRepository.findByUsers(
+      userId,
+      friendId,
+    );
     if (!friendship) {
       throw new BadRequestException('Vocês não são amigos');
     }
@@ -81,4 +92,3 @@ export class UnfriendUserUseCase {
     };
   }
 }
-

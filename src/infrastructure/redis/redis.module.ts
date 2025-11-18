@@ -4,7 +4,7 @@ import { REDIS_SERVICE } from '../../domain/tokens';
 
 /**
  * RedisModule - Módulo que fornece serviços Redis
- * 
+ *
  * @Global() - Torna o módulo global, permitindo usar RedisService em qualquer lugar
  */
 @Global()
@@ -19,4 +19,3 @@ import { REDIS_SERVICE } from '../../domain/tokens';
   exports: [REDIS_SERVICE, RedisService],
 })
 export class RedisModule {}
-

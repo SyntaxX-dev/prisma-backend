@@ -14,8 +14,10 @@ export interface MessageAttachmentRepository {
     duration?: number | null;
   }): Promise<MessageAttachment>;
   findByMessageId(messageId: string): Promise<MessageAttachment[]>;
-  findByConversation(userId1: string, userId2: string): Promise<MessageAttachment[]>;
+  findByConversation(
+    userId1: string,
+    userId2: string,
+  ): Promise<MessageAttachment[]>;
   deleteByMessageId(messageId: string): Promise<void>;
   deleteById(id: string): Promise<void>;
 }
-

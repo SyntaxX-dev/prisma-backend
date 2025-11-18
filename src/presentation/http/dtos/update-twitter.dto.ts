@@ -6,7 +6,7 @@ export class UpdateTwitterDto {
     description: 'URL do perfil do Twitter/X',
     example: 'https://twitter.com/usuario',
     required: false,
-    nullable: true
+    nullable: true,
   })
   @IsOptional()
   @IsString()

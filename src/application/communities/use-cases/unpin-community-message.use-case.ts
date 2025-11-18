@@ -1,5 +1,13 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PINNED_COMMUNITY_MESSAGE_REPOSITORY, COMMUNITY_REPOSITORY } from '../../../domain/tokens';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import {
+  PINNED_COMMUNITY_MESSAGE_REPOSITORY,
+  COMMUNITY_REPOSITORY,
+} from '../../../domain/tokens';
 import type { PinnedCommunityMessageRepository } from '../../../domain/repositories/pinned-community-message.repository';
 import type { CommunityRepository } from '../../../domain/repositories/community.repository';
 
@@ -22,17 +30,22 @@ export class UnpinCommunityMessageUseCase {
     private readonly communityRepository: CommunityRepository,
   ) {}
 
-  async execute(input: UnpinCommunityMessageInput): Promise<UnpinCommunityMessageOutput> {
+  async execute(
+    input: UnpinCommunityMessageInput,
+  ): Promise<UnpinCommunityMessageOutput> {
     const { messageId, userId } = input;
 
     // Verificar se a mensagem está fixada
-    const pinnedMessage = await this.pinnedMessageRepository.findByMessageId(messageId);
+    const pinnedMessage =
+      await this.pinnedMessageRepository.findByMessageId(messageId);
     if (!pinnedMessage) {
       throw new NotFoundException('Mensagem não está fixada');
     }
 
     // Verificar se o usuário tem permissão (é membro da comunidade)
-    const community = await this.communityRepository.findById(pinnedMessage.communityId);
+    const community = await this.communityRepository.findById(
+      pinnedMessage.communityId,
+    );
     if (!community) {
       throw new NotFoundException('Comunidade não encontrada');
     }
@@ -41,7 +54,9 @@ export class UnpinCommunityMessageUseCase {
     // Por enquanto, permitir que qualquer membro desfixe
     // Se quiser restringir apenas para quem fixou, adicione: pinnedMessage.pinnedBy !== userId
     if (!isOwner && pinnedMessage.pinnedBy !== userId) {
-      throw new ForbiddenException('Você não tem permissão para desfixar esta mensagem');
+      throw new ForbiddenException(
+        'Você não tem permissão para desfixar esta mensagem',
+      );
     }
 
     // Desfixar mensagem
@@ -53,4 +68,3 @@ export class UnpinCommunityMessageUseCase {
     };
   }
 }
-

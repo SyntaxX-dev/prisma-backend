@@ -26,7 +26,9 @@ export class ToggleVideoProgressUseCase {
     private readonly videoRepository: VideoRepository,
   ) {}
 
-  async execute(input: ToggleVideoProgressInput): Promise<ToggleVideoProgressOutput> {
+  async execute(
+    input: ToggleVideoProgressInput,
+  ): Promise<ToggleVideoProgressOutput> {
     // Verificar se o vídeo existe
     const video = await this.videoRepository.findByVideoId(input.videoId);
     if (!video) {
@@ -65,7 +67,7 @@ export class ToggleVideoProgressUseCase {
       const updatedProgress = input.isCompleted
         ? progress.markAsCompleted()
         : progress.markAsIncomplete();
-      
+
       await this.videoProgressRepository.update(updatedProgress);
       progress = updatedProgress;
     }

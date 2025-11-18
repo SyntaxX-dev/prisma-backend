@@ -18,4 +18,3 @@ export interface CommunityMessageAttachmentRepository {
   deleteByMessageId(messageId: string): Promise<void>;
   deleteById(id: string): Promise<void>;
 }
-

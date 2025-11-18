@@ -6,4 +6,3 @@ export class Friendship {
     public readonly createdAt: Date,
   ) {}
 }
-

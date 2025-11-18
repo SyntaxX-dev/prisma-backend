@@ -2,7 +2,10 @@ import { Module } from '../entities/module';
 
 export interface ModuleRepository {
   create(
-    module: Omit<Module, 'id' | 'videoCount' | 'createdAt' | 'updatedAt' | 'updateVideoCount'>,
+    module: Omit<
+      Module,
+      'id' | 'videoCount' | 'createdAt' | 'updatedAt' | 'updateVideoCount'
+    >,
   ): Promise<Module>;
   findById(id: string): Promise<Module | null>;
   findBySubCourseId(subCourseId: string): Promise<Module[]>;

@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   COMMUNITY_REPOSITORY,
   COMMUNITY_MEMBER_REPOSITORY,
@@ -54,7 +59,7 @@ export class GetCommunityUseCase {
 
       // Verificar se é o dono
       const isOwner = community.ownerId === input.userId;
-      
+
       // Se não for dono, verificar se é membro
       if (!isOwner) {
         const member =
@@ -78,10 +83,10 @@ export class GetCommunityUseCase {
 
     let isMember = false;
     let isOwner = false;
-    
+
     if (input.userId) {
       isOwner = community.ownerId === input.userId;
-      
+
       const member =
         await this.communityMemberRepository.findByCommunityAndUser(
           community.id,
@@ -105,4 +110,3 @@ export class GetCommunityUseCase {
     };
   }
 }
-

@@ -30,7 +30,9 @@ export class GetPinnedMessagesUseCase {
     private readonly pinnedMessageRepository: PinnedMessageRepository,
   ) {}
 
-  async execute(input: GetPinnedMessagesInput): Promise<PinnedMessageResponse[]> {
+  async execute(
+    input: GetPinnedMessagesInput,
+  ): Promise<PinnedMessageResponse[]> {
     const { userId, friendId } = input;
 
     console.log('[GET_PINNED_MESSAGES] 📋 Buscando mensagens fixadas...', {
@@ -39,7 +41,8 @@ export class GetPinnedMessagesUseCase {
       timestamp: new Date().toISOString(),
     });
 
-    const pinnedMessages = await this.pinnedMessageRepository.findByConversation(userId, friendId);
+    const pinnedMessages =
+      await this.pinnedMessageRepository.findByConversation(userId, friendId);
 
     console.log('[GET_PINNED_MESSAGES] ✅ Mensagens fixadas encontradas', {
       userId,
@@ -93,4 +96,3 @@ export class GetPinnedMessagesUseCase {
     }
   }
 }
-

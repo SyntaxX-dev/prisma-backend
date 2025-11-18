@@ -15,7 +15,9 @@ export interface UpdateCourseSubscriptionOutput {
 export class UpdateCourseSubscriptionUseCase {
   constructor(private readonly courseRepository: CourseRepository) {}
 
-  async execute(input: UpdateCourseSubscriptionInput): Promise<UpdateCourseSubscriptionOutput> {
+  async execute(
+    input: UpdateCourseSubscriptionInput,
+  ): Promise<UpdateCourseSubscriptionOutput> {
     // Verificar se o curso existe
     const existingCourse = await this.courseRepository.findById(input.courseId);
     if (!existingCourse) {

@@ -6,14 +6,18 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 /**
  * MessageDrizzleRepository - Implementação do repositório de mensagens usando Drizzle ORM
- * 
+ *
  * Este repositório implementa a interface MessageRepository usando Drizzle ORM
  * para acessar a tabela messages no PostgreSQL.
  */
 export class MessageDrizzleRepository implements MessageRepository {
   constructor(private readonly db: NodePgDatabase) {}
 
-  async create(senderId: string, receiverId: string, content: string): Promise<Message> {
+  async create(
+    senderId: string,
+    receiverId: string,
+    content: string,
+  ): Promise<Message> {
     const [created] = await this.db
       .insert(messages)
       .values({
@@ -28,7 +32,11 @@ export class MessageDrizzleRepository implements MessageRepository {
   }
 
   async findById(id: string): Promise<Message | null> {
-    const [found] = await this.db.select().from(messages).where(eq(messages.id, id)).limit(1);
+    const [found] = await this.db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, id))
+      .limit(1);
 
     if (!found) return null;
 
@@ -61,7 +69,9 @@ export class MessageDrizzleRepository implements MessageRepository {
     const results = await this.db
       .select()
       .from(messages)
-      .where(and(eq(messages.receiverId, receiverId), eq(messages.isRead, 'false')))
+      .where(
+        and(eq(messages.receiverId, receiverId), eq(messages.isRead, 'false')),
+      )
       .orderBy(desc(messages.createdAt));
 
     return results.map((row) => this.mapToEntity(row));
@@ -97,12 +107,17 @@ export class MessageDrizzleRepository implements MessageRepository {
     const [result] = await this.db
       .select({ count: count() })
       .from(messages)
-      .where(and(eq(messages.receiverId, receiverId), eq(messages.isRead, 'false')));
+      .where(
+        and(eq(messages.receiverId, receiverId), eq(messages.isRead, 'false')),
+      );
 
     return result?.count || 0;
   }
 
-  async countUnreadByConversation(receiverId: string, senderId: string): Promise<number> {
+  async countUnreadByConversation(
+    receiverId: string,
+    senderId: string,
+  ): Promise<number> {
     const [result] = await this.db
       .select({ count: count() })
       .from(messages)
@@ -117,18 +132,18 @@ export class MessageDrizzleRepository implements MessageRepository {
     return result?.count || 0;
   }
 
-  async findConversations(userId: string): Promise<Array<{
-    otherUserId: string;
-    lastMessage: Message;
-    unreadCount: number;
-  }>> {
+  async findConversations(userId: string): Promise<
+    Array<{
+      otherUserId: string;
+      lastMessage: Message;
+      unreadCount: number;
+    }>
+  > {
     // Buscar todas as mensagens do usuário ordenadas por data
     const allMessages = await this.db
       .select()
       .from(messages)
-      .where(
-        or(eq(messages.senderId, userId), eq(messages.receiverId, userId)),
-      )
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
       .orderBy(desc(messages.createdAt));
 
     // Buscar contagem de não lidas agrupadas por sender
@@ -138,12 +153,7 @@ export class MessageDrizzleRepository implements MessageRepository {
         count: count(),
       })
       .from(messages)
-      .where(
-        and(
-          eq(messages.receiverId, userId),
-          eq(messages.isRead, 'false'),
-        ),
-      )
+      .where(and(eq(messages.receiverId, userId), eq(messages.isRead, 'false')))
       .groupBy(messages.senderId);
 
     // Criar mapa de contagens não lidas
@@ -153,15 +163,19 @@ export class MessageDrizzleRepository implements MessageRepository {
     }
 
     // Agrupar por par de usuários e pegar a última mensagem de cada conversa
-    const conversationsMap = new Map<string, {
-      otherUserId: string;
-      lastMessage: Message;
-    }>();
+    const conversationsMap = new Map<
+      string,
+      {
+        otherUserId: string;
+        lastMessage: Message;
+      }
+    >();
 
     for (const msg of allMessages) {
       // Determinar qual é o outro usuário
-      const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
-      
+      const otherUserId =
+        msg.senderId === userId ? msg.receiverId : msg.senderId;
+
       // Se já não temos uma conversa com esse usuário, adicionar
       if (!conversationsMap.has(otherUserId)) {
         conversationsMap.set(otherUserId, {
@@ -182,8 +196,9 @@ export class MessageDrizzleRepository implements MessageRepository {
     });
 
     // Ordenar por data da última mensagem (mais recentes primeiro)
-    conversations.sort((a, b) => 
-      b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime()
+    conversations.sort(
+      (a, b) =>
+        b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime(),
     );
 
     return conversations;
@@ -218,7 +233,9 @@ export class MessageDrizzleRepository implements MessageRepository {
       .where(eq(messages.id, messageId));
   }
 
-  private mapToEntity(row: any): Message & { updatedAt?: Date | null; isDeleted?: boolean } {
+  private mapToEntity(
+    row: any,
+  ): Message & { updatedAt?: Date | null; isDeleted?: boolean } {
     const message = new Message(
       row.id,
       row.senderId,
@@ -236,7 +253,9 @@ export class MessageDrizzleRepository implements MessageRepository {
     if (row.isDeleted) {
       (message as any).isDeleted = row.isDeleted === 'true';
     }
-    return message as Message & { updatedAt?: Date | null; isDeleted?: boolean };
+    return message as Message & {
+      updatedAt?: Date | null;
+      isDeleted?: boolean;
+    };
   }
 }
-

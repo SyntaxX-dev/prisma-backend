@@ -39,7 +39,8 @@ export interface UpdateProfileOutput {
 export class UpdateUserProfileUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(NOTIFICATION_SERVICE) private readonly notificationService: NotificationService,
+    @Inject(NOTIFICATION_SERVICE)
+    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(input: UpdateProfileInput): Promise<UpdateProfileOutput> {
@@ -65,7 +66,7 @@ export class UpdateUserProfileUseCase {
       ...user,
       name: input.name ?? user.name,
       age: input.age ?? user.age,
-      educationLevel: input.educationLevel as any ?? user.educationLevel,
+      educationLevel: (input.educationLevel as any) ?? user.educationLevel,
       userFocus: input.userFocus ?? user.userFocus,
       contestType: input.contestType ?? user.contestType,
       collegeCourse: input.collegeCourse ?? user.collegeCourse,
@@ -82,7 +83,8 @@ export class UpdateUserProfileUseCase {
     };
 
     // Verificar se o perfil está completo
-    const notificationInfo = this.notificationService.checkUserNotifications(updatedUser);
+    const notificationInfo =
+      this.notificationService.checkUserNotifications(updatedUser);
     updatedUser.isProfileComplete = !notificationInfo.hasNotification;
 
     await this.userRepository.updateProfile(input.userId, updatedUser);

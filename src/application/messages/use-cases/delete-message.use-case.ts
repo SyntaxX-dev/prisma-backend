@@ -1,5 +1,15 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, PINNED_MESSAGE_REPOSITORY, MESSAGE_ATTACHMENT_REPOSITORY } from '../../../domain/tokens';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+  Optional,
+} from '@nestjs/common';
+import {
+  MESSAGE_REPOSITORY,
+  PINNED_MESSAGE_REPOSITORY,
+  MESSAGE_ATTACHMENT_REPOSITORY,
+} from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { PinnedMessageRepository } from '../../../domain/repositories/pinned-message.repository';
 import type { MessageAttachmentRepository } from '../../../domain/repositories/message-attachment.repository';
@@ -44,7 +54,9 @@ export class DeleteMessageUseCase {
     // 1. Buscar mensagem
     const message = await this.messageRepository.findById(messageId);
     if (!message) {
-      console.warn('[DELETE_MESSAGE] ❌ Mensagem não encontrada', { messageId });
+      console.warn('[DELETE_MESSAGE] ❌ Mensagem não encontrada', {
+        messageId,
+      });
       throw new NotFoundException('Mensagem não encontrada');
     }
 
@@ -55,7 +67,9 @@ export class DeleteMessageUseCase {
         userId,
         senderId: message.senderId,
       });
-      throw new ForbiddenException('Você só pode excluir suas próprias mensagens');
+      throw new ForbiddenException(
+        'Você só pode excluir suas próprias mensagens',
+      );
     }
 
     // 3. Verificar se a mensagem está fixada e desfixar se necessário
@@ -70,8 +84,9 @@ export class DeleteMessageUseCase {
 
     // 3.5. Deletar arquivos do Cloudinary se houver attachments
     if (this.messageAttachmentRepository) {
-      const attachments = await this.messageAttachmentRepository.findByMessageId(messageId);
-      
+      const attachments =
+        await this.messageAttachmentRepository.findByMessageId(messageId);
+
       if (attachments.length > 0 && this.cloudinaryService) {
         console.log('[DELETE_MESSAGE] 🗑️ Deletando arquivos do Cloudinary...', {
           messageId,
@@ -81,19 +96,27 @@ export class DeleteMessageUseCase {
         for (const attachment of attachments) {
           try {
             // Determinar resource type baseado no fileType
-            const resourceType = attachment.fileType.startsWith('image/') ? 'image' : 'raw';
-            
-            await this.cloudinaryService.deleteFile(attachment.cloudinaryPublicId, resourceType);
+            const resourceType = attachment.fileType.startsWith('image/')
+              ? 'image'
+              : 'raw';
+
+            await this.cloudinaryService.deleteFile(
+              attachment.cloudinaryPublicId,
+              resourceType,
+            );
             console.log('[DELETE_MESSAGE] ✅ Arquivo deletado do Cloudinary', {
               attachmentId: attachment.id,
               publicId: attachment.cloudinaryPublicId,
             });
           } catch (error) {
-            console.error('[DELETE_MESSAGE] ❌ Erro ao deletar arquivo do Cloudinary', {
-              attachmentId: attachment.id,
-              publicId: attachment.cloudinaryPublicId,
-              error: error.message,
-            });
+            console.error(
+              '[DELETE_MESSAGE] ❌ Erro ao deletar arquivo do Cloudinary',
+              {
+                attachmentId: attachment.id,
+                publicId: attachment.cloudinaryPublicId,
+                error: error.message,
+              },
+            );
             // Não falhar a exclusão da mensagem se houver erro ao deletar arquivo
           }
         }
@@ -109,22 +132,33 @@ export class DeleteMessageUseCase {
     // 5. Buscar mensagem atualizada (com conteúdo "Mensagem apagada")
     const deletedMessage = await this.messageRepository.findById(messageId);
     if (!deletedMessage) {
-      console.warn('[DELETE_MESSAGE] ⚠️ Mensagem não encontrada após soft delete', { messageId });
+      console.warn(
+        '[DELETE_MESSAGE] ⚠️ Mensagem não encontrada após soft delete',
+        { messageId },
+      );
     }
 
     // 6. Notificar o outro usuário via WebSocket/Redis (sem notificação push)
     if (this.chatGateway && deletedMessage) {
       const receiverId = message.receiverId;
-      
-      console.log('[DELETE_MESSAGE] 📡 Notificando outro usuário via WebSocket...', {
-        messageId,
-        senderId: userId,
-        receiverId,
-        timestamp: new Date().toISOString(),
-      });
+
+      console.log(
+        '[DELETE_MESSAGE] 📡 Notificando outro usuário via WebSocket...',
+        {
+          messageId,
+          senderId: userId,
+          receiverId,
+          timestamp: new Date().toISOString(),
+        },
+      );
 
       // Publicar evento de exclusão no Redis para distribuir entre instâncias
-      await this.chatGateway.publishMessageDeleted(messageId, userId, receiverId, deletedMessage);
+      await this.chatGateway.publishMessageDeleted(
+        messageId,
+        userId,
+        receiverId,
+        deletedMessage,
+      );
 
       // Enviar diretamente para ambos os usuários se estiverem online nesta instância
       // Receiver (outro usuário) - precisa ser notificado
@@ -140,7 +174,7 @@ export class DeleteMessageUseCase {
           readAt: deletedMessage.readAt,
         },
       });
-      
+
       // Sender (quem deletou) - também notificar caso tenha múltiplas abas/dispositivos
       this.chatGateway.emitToUser(userId, 'message_deleted', {
         messageId: messageId,
@@ -161,10 +195,13 @@ export class DeleteMessageUseCase {
         timestamp: new Date().toISOString(),
       });
     } else {
-      console.warn('[DELETE_MESSAGE] ⚠️ ChatGateway não disponível - Mensagem deletada mas outro usuário não foi notificado', {
-        messageId,
-        receiverId: message.receiverId,
-      });
+      console.warn(
+        '[DELETE_MESSAGE] ⚠️ ChatGateway não disponível - Mensagem deletada mas outro usuário não foi notificado',
+        {
+          messageId,
+          receiverId: message.receiverId,
+        },
+      );
     }
 
     console.log('[DELETE_MESSAGE] ✅ Mensagem excluída com sucesso', {
@@ -181,4 +218,3 @@ export class DeleteMessageUseCase {
     };
   }
 }
-

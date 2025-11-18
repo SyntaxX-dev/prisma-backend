@@ -14,4 +14,3 @@ export class CommunityMessageAttachment {
     public readonly createdAt: Date,
   ) {}
 }
-

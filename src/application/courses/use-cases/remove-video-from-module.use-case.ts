@@ -20,7 +20,9 @@ export class RemoveVideoFromModuleUseCase {
     private readonly videoRepository: VideoRepository,
   ) {}
 
-  async execute(input: RemoveVideoFromModuleInput): Promise<RemoveVideoFromModuleOutput> {
+  async execute(
+    input: RemoveVideoFromModuleInput,
+  ): Promise<RemoveVideoFromModuleOutput> {
     // Verificar se o módulo existe
     const module = await this.moduleRepository.findById(input.moduleId);
     if (!module) {
@@ -41,8 +43,13 @@ export class RemoveVideoFromModuleUseCase {
     await this.videoRepository.delete(input.videoId);
 
     // Atualizar contagem de vídeos no módulo
-    const videoCount = await this.moduleRepository.countVideosByModuleId(input.moduleId);
-    const updatedModule = await this.moduleRepository.updateVideoCount(input.moduleId, videoCount);
+    const videoCount = await this.moduleRepository.countVideosByModuleId(
+      input.moduleId,
+    );
+    const updatedModule = await this.moduleRepository.updateVideoCount(
+      input.moduleId,
+      videoCount,
+    );
 
     return { success: true, module: updatedModule };
   }

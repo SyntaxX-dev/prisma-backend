@@ -13,14 +13,20 @@ export class OptionsController {
 
   @Get('contests')
   @ApiOperation({ summary: 'Listar concursos disponíveis' })
-  @ApiResponse({ status: 200, description: 'Lista de concursos retornada com sucesso' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de concursos retornada com sucesso',
+  })
   async listContests() {
     return await this.listContestsUseCase.execute();
   }
 
   @Get('college-courses')
   @ApiOperation({ summary: 'Listar cursos de faculdade disponíveis' })
-  @ApiResponse({ status: 200, description: 'Lista de cursos retornada com sucesso' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de cursos retornada com sucesso',
+  })
   async listCollegeCourses() {
     return await this.listCollegeCoursesUseCase.execute();
   }

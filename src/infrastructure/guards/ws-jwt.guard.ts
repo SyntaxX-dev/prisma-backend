@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtConfiguration } from '../config/jwt.config';
 import type { Socket } from 'socket.io';
@@ -12,7 +17,10 @@ export class WsJwtGuard implements CanActivate {
     const token = this.extractTokenFromHeader(client);
 
     if (!token) {
-      console.log('[WsJwtGuard] Token não encontrado. Headers:', client.handshake.headers);
+      console.log(
+        '[WsJwtGuard] Token não encontrado. Headers:',
+        client.handshake.headers,
+      );
       console.log('[WsJwtGuard] Query:', client.handshake.query);
       console.log('[WsJwtGuard] Auth:', client.handshake.auth);
       throw new UnauthorizedException('Token não fornecido');
@@ -21,7 +29,7 @@ export class WsJwtGuard implements CanActivate {
     try {
       const config = JwtConfiguration.loadFromEnv();
       const payload = this.jwtService.verify(token, { secret: config.secret });
-      
+
       // Adicionar payload ao socket para uso posterior
       client.data.user = payload;
       console.log('[WsJwtGuard] ✅ Token válido para usuário:', payload.sub);
@@ -49,7 +57,9 @@ export class WsJwtGuard implements CanActivate {
     }
 
     // Tentar 3: Auth object do Socket.io
-    const authToken = (client.handshake.auth as any)?.token as string | undefined;
+    const authToken = (client.handshake.auth as any)?.token as
+      | string
+      | undefined;
     if (authToken) {
       return authToken;
     }
@@ -57,4 +67,3 @@ export class WsJwtGuard implements CanActivate {
     return undefined;
   }
 }
-

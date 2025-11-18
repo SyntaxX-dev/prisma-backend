@@ -20,4 +20,3 @@ export class InviteToCommunityDto {
   @IsNotEmpty()
   inviteeUsername: string;
 }
-

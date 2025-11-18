@@ -4,7 +4,9 @@ import type { MessageAttachmentRepository } from '../../domain/repositories/mess
 import { MessageAttachment } from '../../domain/entities/message-attachment';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
-export class MessageAttachmentDrizzleRepository implements MessageAttachmentRepository {
+export class MessageAttachmentDrizzleRepository
+  implements MessageAttachmentRepository
+{
   constructor(private readonly db: NodePgDatabase) {}
 
   async create(attachment: {
@@ -47,7 +49,10 @@ export class MessageAttachmentDrizzleRepository implements MessageAttachmentRepo
     return results.map((row) => this.mapToEntity(row));
   }
 
-  async findByConversation(userId1: string, userId2: string): Promise<MessageAttachment[]> {
+  async findByConversation(
+    userId1: string,
+    userId2: string,
+  ): Promise<MessageAttachment[]> {
     // Buscar attachments de mensagens entre os dois usuários
     const results = await this.db
       .select({
@@ -69,8 +74,14 @@ export class MessageAttachmentDrizzleRepository implements MessageAttachmentRepo
       .where(
         and(
           or(
-            and(eq(messages.senderId, userId1), eq(messages.receiverId, userId2)),
-            and(eq(messages.senderId, userId2), eq(messages.receiverId, userId1)),
+            and(
+              eq(messages.senderId, userId1),
+              eq(messages.receiverId, userId2),
+            ),
+            and(
+              eq(messages.senderId, userId2),
+              eq(messages.receiverId, userId1),
+            ),
           ),
           eq(messages.isDeleted, 'false'), // Apenas mensagens não deletadas
         ),
@@ -81,11 +92,15 @@ export class MessageAttachmentDrizzleRepository implements MessageAttachmentRepo
   }
 
   async deleteByMessageId(messageId: string): Promise<void> {
-    await this.db.delete(messageAttachments).where(eq(messageAttachments.messageId, messageId));
+    await this.db
+      .delete(messageAttachments)
+      .where(eq(messageAttachments.messageId, messageId));
   }
 
   async deleteById(id: string): Promise<void> {
-    await this.db.delete(messageAttachments).where(eq(messageAttachments.id, id));
+    await this.db
+      .delete(messageAttachments)
+      .where(eq(messageAttachments.id, id));
   }
 
   private mapToEntity(row: any): MessageAttachment {
@@ -105,4 +120,3 @@ export class MessageAttachmentDrizzleRepository implements MessageAttachmentRepo
     );
   }
 }
-

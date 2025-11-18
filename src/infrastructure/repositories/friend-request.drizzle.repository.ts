@@ -8,7 +8,10 @@ import { FriendRequestStatus } from '../../domain/enums/friend-request-status';
 export class FriendRequestDrizzleRepository implements FriendRequestRepository {
   constructor(private readonly db: NodePgDatabase) {}
 
-  async create(requesterId: string, receiverId: string): Promise<FriendRequest> {
+  async create(
+    requesterId: string,
+    receiverId: string,
+  ): Promise<FriendRequest> {
     const [created] = await this.db
       .insert(friendRequests)
       .values({
@@ -112,4 +115,3 @@ export class FriendRequestDrizzleRepository implements FriendRequestRepository {
     );
   }
 }
-

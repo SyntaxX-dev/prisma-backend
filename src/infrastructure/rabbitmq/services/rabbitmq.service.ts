@@ -1,30 +1,38 @@
 /**
  * RabbitMQService - Serviço para gerenciar conexão e operações com RabbitMQ
- * 
+ *
  * Este serviço encapsula todas as operações com RabbitMQ:
  * - Criar filas e exchanges
  * - Enviar mensagens para filas (Producer)
  * - Consumir mensagens de filas (Consumer)
- * 
+ *
  * Como funciona:
  * 1. Producer envia mensagem → RabbitMQ armazena na fila
  * 2. Consumer pega mensagem da fila → Processa → Confirma (ACK)
  * 3. Se Consumer não confirmar, mensagem volta para fila
- * 
+ *
  * Conceitos:
  * - Exchange: Roteador que decide para qual fila enviar a mensagem
  * - Queue: Fila onde mensagens ficam armazenadas
  * - Routing Key: Chave usada para rotear mensagens
  * - ACK: Confirmação de que mensagem foi processada
- * 
+ *
  * Exemplo:
  * - Enviar: rabbitmq.sendToQueue('chat_messages', { userId: '123', message: 'Olá' })
  * - Consumir: rabbitmq.consume('chat_messages', (msg) => { processar(msg) })
  */
 
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import * as amqp from 'amqplib';
-import { RabbitMQConfiguration, RabbitMQConfig } from '../config/rabbitmq.config';
+import {
+  RabbitMQConfiguration,
+  RabbitMQConfig,
+} from '../config/rabbitmq.config';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
@@ -46,9 +54,16 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       this.config.url.trim() === '' ||
       this.config.url.includes('${{') // Se ainda contém template não resolvido
     ) {
-      this.logger.warn('⚠️ RabbitMQ não configurado (RABBITMQ_URL não definida ou não resolvida). Continuando sem RabbitMQ.');
-      console.warn('[RABBITMQ] ⚠️ RabbitMQ não configurado. Aplicação continuará sem RabbitMQ.');
-      console.warn('[RABBITMQ] URL recebida:', this.config.url || 'não definida');
+      this.logger.warn(
+        '⚠️ RabbitMQ não configurado (RABBITMQ_URL não definida ou não resolvida). Continuando sem RabbitMQ.',
+      );
+      console.warn(
+        '[RABBITMQ] ⚠️ RabbitMQ não configurado. Aplicação continuará sem RabbitMQ.',
+      );
+      console.warn(
+        '[RABBITMQ] URL recebida:',
+        this.config.url || 'não definida',
+      );
       return;
     }
 
@@ -56,10 +71,16 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       // Timeout de conexão para não travar indefinidamente
       const connectPromise = amqp.connect(this.config.url);
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout ao conectar ao RabbitMQ')), 10000)
+        setTimeout(
+          () => reject(new Error('Timeout ao conectar ao RabbitMQ')),
+          10000,
+        ),
       );
 
-      const conn = await Promise.race([connectPromise, timeoutPromise]) as any;
+      const conn = (await Promise.race([
+        connectPromise,
+        timeoutPromise,
+      ])) as any;
       this.connection = conn;
       this.logger.log('✅ Conectado ao RabbitMQ');
       console.log('[RABBITMQ] ✅ Conectado ao RabbitMQ', {
@@ -94,7 +115,11 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`✅ Fila '${this.config.queue}' criada`);
 
       // Liga a fila ao exchange com routing key
-      await this.channel.bindQueue(this.config.queue, this.config.exchange, 'chat.message');
+      await this.channel.bindQueue(
+        this.config.queue,
+        this.config.exchange,
+        'chat.message',
+      );
       this.logger.log('✅ Fila ligada ao exchange');
 
       // Event listeners para reconexão
@@ -109,7 +134,10 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       });
     } catch (error) {
       this.logger.error('❌ Erro ao conectar ao RabbitMQ:', error);
-      console.error('[RABBITMQ] ❌ Erro ao conectar (continuando sem RabbitMQ):', error);
+      console.error(
+        '[RABBITMQ] ❌ Erro ao conectar (continuando sem RabbitMQ):',
+        error,
+      );
       // Não lança erro para não quebrar a aplicação se RabbitMQ não estiver disponível
       this.connection = null;
       this.channel = null;
@@ -134,41 +162,56 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Envia uma mensagem para uma fila
-   * 
+   *
    * @param queueName - Nome da fila
    * @param message - Mensagem a ser enviada (será convertida para Buffer)
    * @param options - Opções adicionais (persistência, etc)
-   * 
+   *
    * Exemplo:
    * rabbitmq.sendToQueue('chat_messages', { userId: '123', content: 'Olá' })
    */
-  async sendToQueue(queueName: string, message: any, options?: amqp.Options.Publish): Promise<boolean> {
-    console.log('[RABBITMQ_SERVICE] 🐰 Método sendToQueue() chamado - Verificando disponibilidade do RabbitMQ...', {
-      queueName,
-      messageType: message?.type,
-      channelExists: !!this.channel,
-      connectionExists: !!this.connection,
-      timestamp: new Date().toISOString(),
-    });
-
-    if (!this.channel) {
-      this.logger.warn(`⚠️ RabbitMQ não disponível. Mensagem não enviada para fila: ${queueName}`);
-      console.warn(`[RABBITMQ_SERVICE] ⚠️ RabbitMQ não disponível. Mensagem não enviada:`, { 
-        queueName, 
+  async sendToQueue(
+    queueName: string,
+    message: any,
+    options?: amqp.Options.Publish,
+  ): Promise<boolean> {
+    console.log(
+      '[RABBITMQ_SERVICE] 🐰 Método sendToQueue() chamado - Verificando disponibilidade do RabbitMQ...',
+      {
+        queueName,
         messageType: message?.type,
-        channelExists: false,
+        channelExists: !!this.channel,
         connectionExists: !!this.connection,
         timestamp: new Date().toISOString(),
-      });
+      },
+    );
+
+    if (!this.channel) {
+      this.logger.warn(
+        `⚠️ RabbitMQ não disponível. Mensagem não enviada para fila: ${queueName}`,
+      );
+      console.warn(
+        `[RABBITMQ_SERVICE] ⚠️ RabbitMQ não disponível. Mensagem não enviada:`,
+        {
+          queueName,
+          messageType: message?.type,
+          channelExists: false,
+          connectionExists: !!this.connection,
+          timestamp: new Date().toISOString(),
+        },
+      );
       return false;
     }
 
     try {
-      console.log('[RABBITMQ_SERVICE] 🐰 RabbitMQ disponível - Garantindo que fila existe e enviando mensagem...', {
-        queueName,
-        messageType: message?.type,
-        timestamp: new Date().toISOString(),
-      });
+      console.log(
+        '[RABBITMQ_SERVICE] 🐰 RabbitMQ disponível - Garantindo que fila existe e enviando mensagem...',
+        {
+          queueName,
+          messageType: message?.type,
+          timestamp: new Date().toISOString(),
+        },
+      );
 
       // Garante que a fila existe
       await this.channel.assertQueue(queueName, { durable: true });
@@ -178,58 +221,77 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       const messageBuffer = Buffer.from(JSON.stringify(message));
 
       // Envia mensagem com opções de persistência
-      const sent = this.channel.sendToQueue(
-        queueName,
-        messageBuffer,
-        {
-          persistent: true, // Mensagem persiste mesmo se RabbitMQ reiniciar
-          ...options,
-        },
-      );
+      const sent = this.channel.sendToQueue(queueName, messageBuffer, {
+        persistent: true, // Mensagem persiste mesmo se RabbitMQ reiniciar
+        ...options,
+      });
 
       if (sent) {
         this.logger.debug(`📤 Mensagem enviada para fila: ${queueName}`);
-        console.log(`[RABBITMQ_SERVICE] ✅ RABBITMQ usado com sucesso - Mensagem enviada para fila "${queueName}":`, {
-          queueName,
-          messageType: message?.type,
-          persistent: true,
-          timestamp: new Date().toISOString(),
-        });
+        console.log(
+          `[RABBITMQ_SERVICE] ✅ RABBITMQ usado com sucesso - Mensagem enviada para fila "${queueName}":`,
+          {
+            queueName,
+            messageType: message?.type,
+            persistent: true,
+            timestamp: new Date().toISOString(),
+          },
+        );
       } else {
-        this.logger.warn(`⚠️ Fila ${queueName} está cheia, mensagem não foi enviada`);
-        console.warn(`[RABBITMQ_SERVICE] ⚠️ Fila "${queueName}" está cheia, mensagem não foi enviada`, {
-          queueName,
-          messageType: message?.type,
-          timestamp: new Date().toISOString(),
-        });
+        this.logger.warn(
+          `⚠️ Fila ${queueName} está cheia, mensagem não foi enviada`,
+        );
+        console.warn(
+          `[RABBITMQ_SERVICE] ⚠️ Fila "${queueName}" está cheia, mensagem não foi enviada`,
+          {
+            queueName,
+            messageType: message?.type,
+            timestamp: new Date().toISOString(),
+          },
+        );
       }
 
       return sent;
     } catch (error) {
-      this.logger.error(`Erro ao enviar mensagem para fila ${queueName}:`, error);
-      console.error(`[RABBITMQ_SERVICE] ❌ Erro ao enviar mensagem para fila "${queueName}":`, {
-        error: error.message,
-        queueName,
-        messageType: message?.type,
-        timestamp: new Date().toISOString(),
-      });
+      this.logger.error(
+        `Erro ao enviar mensagem para fila ${queueName}:`,
+        error,
+      );
+      console.error(
+        `[RABBITMQ_SERVICE] ❌ Erro ao enviar mensagem para fila "${queueName}":`,
+        {
+          error: error.message,
+          queueName,
+          messageType: message?.type,
+          timestamp: new Date().toISOString(),
+        },
+      );
       throw error;
     }
   }
 
   /**
    * Publica uma mensagem no exchange (rota para múltiplas filas)
-   * 
+   *
    * @param routingKey - Chave de roteamento
    * @param message - Mensagem a ser publicada
-   * 
+   *
    * Exemplo:
    * rabbitmq.publish('chat.message', { userId: '123', content: 'Olá' })
    */
-  async publish(routingKey: string, message: any, options?: amqp.Options.Publish): Promise<boolean> {
+  async publish(
+    routingKey: string,
+    message: any,
+    options?: amqp.Options.Publish,
+  ): Promise<boolean> {
     if (!this.channel) {
-      this.logger.warn(`⚠️ RabbitMQ não disponível. Mensagem não publicada: ${routingKey}`);
-      console.warn(`[RABBITMQ] ⚠️ RabbitMQ não disponível. Mensagem não publicada:`, { routingKey, messageType: message?.type });
+      this.logger.warn(
+        `⚠️ RabbitMQ não disponível. Mensagem não publicada: ${routingKey}`,
+      );
+      console.warn(
+        `[RABBITMQ] ⚠️ RabbitMQ não disponível. Mensagem não publicada:`,
+        { routingKey, messageType: message?.type },
+      );
       return false;
     }
 
@@ -247,7 +309,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       );
 
       if (sent) {
-        this.logger.debug(`📤 Mensagem publicada no exchange com routing key: ${routingKey}`);
+        this.logger.debug(
+          `📤 Mensagem publicada no exchange com routing key: ${routingKey}`,
+        );
         console.log(`[RABBITMQ] ✅ Mensagem publicada no exchange:`, {
           exchange: this.config.exchange,
           routingKey,
@@ -267,14 +331,14 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Consome mensagens de uma fila
-   * 
+   *
    * @param queueName - Nome da fila
    * @param callback - Função chamada para cada mensagem recebida
    * @param options - Opções (autoAck, etc)
-   * 
+   *
    * IMPORTANTE: Sempre chame msg.ack() após processar a mensagem!
    * Se não chamar, a mensagem volta para a fila.
-   * 
+   *
    * Exemplo:
    * rabbitmq.consume('chat_messages', async (msg) => {
    *   const data = JSON.parse(msg.content.toString())
@@ -288,8 +352,13 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     options?: amqp.Options.Consume,
   ): Promise<void> {
     if (!this.channel) {
-      this.logger.warn(`⚠️ RabbitMQ não disponível. Não é possível consumir fila: ${queueName}`);
-      console.warn(`[RABBITMQ] ⚠️ RabbitMQ não disponível. Não é possível consumir:`, { queueName });
+      this.logger.warn(
+        `⚠️ RabbitMQ não disponível. Não é possível consumir fila: ${queueName}`,
+      );
+      console.warn(
+        `[RABBITMQ] ⚠️ RabbitMQ não disponível. Não é possível consumir:`,
+        { queueName },
+      );
       return;
     }
 
@@ -305,22 +374,33 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
           try {
             const messageContent = JSON.parse(msg.content.toString());
-            console.log(`[RABBITMQ] 📥 Mensagem recebida da fila "${queueName}":`, {
-              queueName,
-              messageType: messageContent?.type,
-              timestamp: new Date().toISOString(),
-            });
-            
+            console.log(
+              `[RABBITMQ] 📥 Mensagem recebida da fila "${queueName}":`,
+              {
+                queueName,
+                messageType: messageContent?.type,
+                timestamp: new Date().toISOString(),
+              },
+            );
+
             // Processa mensagem
             await callback(msg);
-            
+
             // Confirma que processou (ACK)
             // Se não chamar ack(), mensagem volta para fila
             this.channel!.ack(msg);
-            console.log(`[RABBITMQ] ✅ Mensagem processada e confirmada (ACK) da fila "${queueName}"`);
+            console.log(
+              `[RABBITMQ] ✅ Mensagem processada e confirmada (ACK) da fila "${queueName}"`,
+            );
           } catch (error) {
-            this.logger.error(`Erro ao processar mensagem da fila ${queueName}:`, error);
-            console.error(`[RABBITMQ] ❌ Erro ao processar mensagem da fila "${queueName}":`, error);
+            this.logger.error(
+              `Erro ao processar mensagem da fila ${queueName}:`,
+              error,
+            );
+            console.error(
+              `[RABBITMQ] ❌ Erro ao processar mensagem da fila "${queueName}":`,
+              error,
+            );
             // Rejeita mensagem e não volta para fila (ou volta, dependendo da opção)
             this.channel!.nack(msg, false, false);
           }
@@ -352,4 +432,3 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     return this.connection;
   }
 }
-

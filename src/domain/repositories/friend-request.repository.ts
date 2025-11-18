@@ -8,9 +8,14 @@ export interface FriendRequestRepository {
     requesterId: string,
     receiverId: string,
   ): Promise<FriendRequest | null>;
-  findByReceiverId(receiverId: string, status?: FriendRequestStatus): Promise<FriendRequest[]>;
-  findByRequesterId(requesterId: string, status?: FriendRequestStatus): Promise<FriendRequest[]>;
+  findByReceiverId(
+    receiverId: string,
+    status?: FriendRequestStatus,
+  ): Promise<FriendRequest[]>;
+  findByRequesterId(
+    requesterId: string,
+    status?: FriendRequestStatus,
+  ): Promise<FriendRequest[]>;
   updateStatus(id: string, status: FriendRequestStatus): Promise<void>;
   delete(id: string): Promise<void>;
 }
-

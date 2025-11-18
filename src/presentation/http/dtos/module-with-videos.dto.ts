@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsArray, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsArray,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 
 export class VideoProgressDto {
   @ApiProperty({ description: 'Se o vídeo foi completado' })
@@ -144,7 +150,10 @@ export class ModuleWithVideosDto {
   @IsNumber()
   videoCount: number;
 
-  @ApiProperty({ description: 'Vídeos do módulo', type: [VideoWithProgressDto] })
+  @ApiProperty({
+    description: 'Vídeos do módulo',
+    type: [VideoWithProgressDto],
+  })
   @IsArray()
   videos: VideoWithProgressDto[];
 

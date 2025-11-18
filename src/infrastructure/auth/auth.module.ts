@@ -20,8 +20,8 @@ import { AdminGuard } from '../guards/admin.guard';
         const config = JwtConfiguration.loadFromEnv();
         return {
           secret: config.secret,
-          signOptions: { 
-            expiresIn: config.expiresIn as any
+          signOptions: {
+            expiresIn: config.expiresIn as any,
           },
         };
       },

@@ -13,4 +13,3 @@ export class Community {
     public readonly updatedAt: Date = new Date(),
   ) {}
 }
-

@@ -74,10 +74,7 @@ export class CommunityDrizzleRepository implements CommunityRepository {
       .select()
       .from(communities)
       .where(
-        and(
-          eq(communities.visibility, 'PUBLIC'),
-          eq(communities.focus, focus),
-        ),
+        and(eq(communities.visibility, 'PUBLIC'), eq(communities.focus, focus)),
       )
       .orderBy(communities.createdAt);
 
@@ -98,7 +95,10 @@ export class CommunityDrizzleRepository implements CommunityRepository {
         updatedAt: communities.updatedAt,
       })
       .from(communities)
-      .innerJoin(communityMembers, eq(communityMembers.communityId, communities.id))
+      .innerJoin(
+        communityMembers,
+        eq(communityMembers.communityId, communities.id),
+      )
       .where(eq(communityMembers.userId, userId))
       .orderBy(communities.createdAt);
 
@@ -179,4 +179,3 @@ export class CommunityDrizzleRepository implements CommunityRepository {
     );
   }
 }
-

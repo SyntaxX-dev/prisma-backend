@@ -1,5 +1,8 @@
 import { Injectable, Inject, Optional } from '@nestjs/common';
-import { MESSAGE_ATTACHMENT_REPOSITORY, FRIENDSHIP_REPOSITORY } from '../../../domain/tokens';
+import {
+  MESSAGE_ATTACHMENT_REPOSITORY,
+  FRIENDSHIP_REPOSITORY,
+} from '../../../domain/tokens';
 import type { MessageAttachmentRepository } from '../../../domain/repositories/message-attachment.repository';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 
@@ -36,12 +39,17 @@ export class GetConversationAttachmentsUseCase {
     private readonly friendshipRepository?: FriendshipRepository,
   ) {}
 
-  async execute(input: GetConversationAttachmentsInput): Promise<GetConversationAttachmentsOutput> {
+  async execute(
+    input: GetConversationAttachmentsInput,
+  ): Promise<GetConversationAttachmentsOutput> {
     const { userId, friendId } = input;
 
     // Verificar se são amigos
     if (this.friendshipRepository) {
-      const friendship = await this.friendshipRepository.findByUsers(userId, friendId);
+      const friendship = await this.friendshipRepository.findByUsers(
+        userId,
+        friendId,
+      );
       if (!friendship) {
         throw new Error('Você não é amigo deste usuário');
       }
@@ -52,7 +60,11 @@ export class GetConversationAttachmentsUseCase {
     }
 
     // Buscar todos os attachments da conversa
-    const attachments = await this.messageAttachmentRepository.findByConversation(userId, friendId);
+    const attachments =
+      await this.messageAttachmentRepository.findByConversation(
+        userId,
+        friendId,
+      );
 
     return {
       attachments: attachments.map((att) => ({
@@ -72,4 +84,3 @@ export class GetConversationAttachmentsUseCase {
     };
   }
 }
-

@@ -62,7 +62,9 @@ export class ProcessYouTubePlaylistUseCase {
     private readonly geminiService: GeminiService,
   ) {}
 
-  async execute(input: ProcessYouTubePlaylistInput): Promise<ProcessYouTubePlaylistOutput> {
+  async execute(
+    input: ProcessYouTubePlaylistInput,
+  ): Promise<ProcessYouTubePlaylistOutput> {
     // Verificar se o curso existe
     const course = await this.courseRepository.findById(input.courseId);
     if (!course) {
@@ -78,16 +80,17 @@ export class ProcessYouTubePlaylistUseCase {
     });
 
     // Organizar vídeos em módulos usando IA (Gemini)
-    const moduleSuggestions = await this.geminiService.organizeVideosIntoModules(
-      input.videos.map(video => ({
-        videoId: video.videoId,
-        title: video.title,
-        description: video.description,
-        duration: video.duration,
-        tags: video.tags,
-      })),
-      input.aiPrompt
-    );
+    const moduleSuggestions =
+      await this.geminiService.organizeVideosIntoModules(
+        input.videos.map((video) => ({
+          videoId: video.videoId,
+          title: video.title,
+          description: video.description,
+          duration: video.duration,
+          tags: video.tags,
+        })),
+        input.aiPrompt,
+      );
 
     const createdModules: Array<{
       id: string;
@@ -136,7 +139,9 @@ export class ProcessYouTubePlaylistUseCase {
           channelTitle: videoData.channelTitle || null,
           channelId: videoData.channelId || null,
           channelThumbnailUrl: videoData.channelThumbnailUrl || null,
-          publishedAt: videoData.publishedAt ? new Date(videoData.publishedAt) : null,
+          publishedAt: videoData.publishedAt
+            ? new Date(videoData.publishedAt)
+            : null,
           viewCount: this.parseNumericValue(videoData.viewCount),
           tags: Array.isArray(videoData.tags) ? videoData.tags : null,
           category: videoData.category || null,
@@ -152,7 +157,10 @@ export class ProcessYouTubePlaylistUseCase {
       }
 
       // Atualizar contagem de vídeos do módulo
-      await this.moduleRepository.updateVideoCount(module.id, createdVideos.length);
+      await this.moduleRepository.updateVideoCount(
+        module.id,
+        createdVideos.length,
+      );
 
       createdModules.push({
         id: module.id,
@@ -178,7 +186,9 @@ export class ProcessYouTubePlaylistUseCase {
     };
   }
 
-  private organizeVideosIntoModules(videos: ProcessYouTubePlaylistInput['videos']) {
+  private organizeVideosIntoModules(
+    videos: ProcessYouTubePlaylistInput['videos'],
+  ) {
     const modules: Array<{
       name: string;
       description: string;
@@ -228,7 +238,11 @@ export class ProcessYouTubePlaylistUseCase {
     return modules;
   }
 
-  private detectNewModule(currentVideo: ProcessYouTubePlaylistInput['videos'][0], nextVideo: ProcessYouTubePlaylistInput['videos'][0] | undefined, index: number): boolean {
+  private detectNewModule(
+    currentVideo: ProcessYouTubePlaylistInput['videos'][0],
+    nextVideo: ProcessYouTubePlaylistInput['videos'][0] | undefined,
+    index: number,
+  ): boolean {
     // Se é o primeiro vídeo, não é novo módulo
     if (index === 0) return false;
 
@@ -260,7 +274,7 @@ export class ProcessYouTubePlaylistUseCase {
       },
     ];
 
-    return newModulePatterns.some(pattern => pattern());
+    return newModulePatterns.some((pattern) => pattern());
   }
 
   private extractVideoNumber(title: string): number | null {
@@ -271,41 +285,71 @@ export class ProcessYouTubePlaylistUseCase {
   private extractKeywords(title: string): string[] {
     // Palavras-chave comuns em cursos de programação
     const keywords = [
-      'introdução', 'introducao', 'introduction',
-      'instalando', 'instalacao', 'installation', 'setup',
-      'componentes', 'components',
-      'props', 'state', 'hooks',
-      'router', 'navegação', 'navigation',
-      'formulario', 'form', 'forms',
-      'api', 'backend', 'database',
-      'projeto', 'project', 'aplicação', 'application',
-      'css', 'styling', 'estilo',
-      'eventos', 'events',
-      'listas', 'lists', 'arrays',
-      'condicional', 'conditional',
-      'crud', 'create', 'read', 'update', 'delete',
+      'introdução',
+      'introducao',
+      'introduction',
+      'instalando',
+      'instalacao',
+      'installation',
+      'setup',
+      'componentes',
+      'components',
+      'props',
+      'state',
+      'hooks',
+      'router',
+      'navegação',
+      'navigation',
+      'formulario',
+      'form',
+      'forms',
+      'api',
+      'backend',
+      'database',
+      'projeto',
+      'project',
+      'aplicação',
+      'application',
+      'css',
+      'styling',
+      'estilo',
+      'eventos',
+      'events',
+      'listas',
+      'lists',
+      'arrays',
+      'condicional',
+      'conditional',
+      'crud',
+      'create',
+      'read',
+      'update',
+      'delete',
     ];
 
-    return keywords.filter(keyword => 
-      title.includes(keyword)
-    );
+    return keywords.filter((keyword) => title.includes(keyword));
   }
 
-  private hasSignificantTopicChange(currentKeywords: string[], nextKeywords: string[]): boolean {
+  private hasSignificantTopicChange(
+    currentKeywords: string[],
+    nextKeywords: string[],
+  ): boolean {
     // Se não há palavras-chave em comum, pode ser novo módulo
-    const commonKeywords = currentKeywords.filter(keyword => 
-      nextKeywords.includes(keyword)
+    const commonKeywords = currentKeywords.filter((keyword) =>
+      nextKeywords.includes(keyword),
     );
-    
-    return commonKeywords.length === 0 && 
-           (currentKeywords.length > 0 || nextKeywords.length > 0);
+
+    return (
+      commonKeywords.length === 0 &&
+      (currentKeywords.length > 0 || nextKeywords.length > 0)
+    );
   }
 
   private extractTopicFromTitle(title: string): string | null {
     // Extrair tópico principal do título
     const patterns = [
       /curso\s+\w+:\s*([^#-]+)/i, // "Curso React: Introdução"
-      /#\d+\s*-\s*([^#-]+)/i,     // "#01 - Introdução"
+      /#\d+\s*-\s*([^#-]+)/i, // "#01 - Introdução"
       /^([^#-]+?)(?:\s*#|\s*-)/i, // "Introdução #01"
     ];
 
@@ -323,7 +367,7 @@ export class ProcessYouTubePlaylistUseCase {
     // Extrair nome do módulo do título
     const patterns = [
       /curso\s+\w+:\s*([^#-]+)/i, // "Curso React: Introdução"
-      /#\d+\s*-\s*([^#-]+)/i,     // "#01 - Introdução"
+      /#\d+\s*-\s*([^#-]+)/i, // "#01 - Introdução"
       /^([^#-]+?)(?:\s*#|\s*-)/i, // "Introdução #01"
     ];
 
@@ -335,20 +379,25 @@ export class ProcessYouTubePlaylistUseCase {
     }
 
     // Se não conseguir extrair, usar parte do título
-    const cleanTitle = title.replace(/#\d+/g, '').replace(/^[^a-zA-Z]*/, '').trim();
-    return cleanTitle.length > 50 ? cleanTitle.substring(0, 50) + '...' : cleanTitle;
+    const cleanTitle = title
+      .replace(/#\d+/g, '')
+      .replace(/^[^a-zA-Z]*/, '')
+      .trim();
+    return cleanTitle.length > 50
+      ? cleanTitle.substring(0, 50) + '...'
+      : cleanTitle;
   }
 
   private parseNumericValue(value: any): number | null {
     if (value === null || value === undefined || value === '') {
       return null;
     }
-    
+
     const num = Number(value);
     if (isNaN(num) || num <= 0) {
       return null;
     }
-    
+
     return num;
   }
 }

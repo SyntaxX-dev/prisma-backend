@@ -10,4 +10,3 @@ export class FriendRequest {
     public updatedAt: Date,
   ) {}
 }
-

@@ -43,7 +43,10 @@ export class NotificationDrizzleRepository implements NotificationRepository {
     return this.mapToEntity(notification);
   }
 
-  async findByUserId(userId: string, isRead?: boolean): Promise<Notification[]> {
+  async findByUserId(
+    userId: string,
+    isRead?: boolean,
+  ): Promise<Notification[]> {
     const conditions = [eq(notifications.userId, userId)];
     if (isRead !== undefined) {
       conditions.push(eq(notifications.isRead, isRead ? 'true' : 'false'));
@@ -90,4 +93,3 @@ export class NotificationDrizzleRepository implements NotificationRepository {
     );
   }
 }
-

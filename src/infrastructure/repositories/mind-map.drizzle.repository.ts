@@ -2,17 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
 import { MindMapRepository } from '../../domain/repositories/mind-map.repository';
 import { MindMap } from '../../domain/entities/mind-map';
-import { DrizzleService } from '../config/providers/drizzle.service';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { mindMaps } from '../database/schema';
 
 @Injectable()
 export class MindMapDrizzleRepository implements MindMapRepository {
-  constructor(private readonly drizzleService: DrizzleService) {}
+  constructor(private readonly db: NodePgDatabase) {}
 
   async create(
     mindMap: Omit<MindMap, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<MindMap> {
-    const [created] = await this.drizzleService.db
+    const [created] = await this.db
       .insert(mindMaps)
       .values({
         userId: mindMap.userId,
@@ -36,7 +36,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
   }
 
   async findById(id: string): Promise<MindMap | null> {
-    const [mindMap] = await this.drizzleService.db
+    const [mindMap] = await this.db
       .select()
       .from(mindMaps)
       .where(eq(mindMaps.id, id));
@@ -59,7 +59,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
     videoId: string,
     userId: string,
   ): Promise<MindMap | null> {
-    const [mindMap] = await this.drizzleService.db
+    const [mindMap] = await this.db
       .select()
       .from(mindMaps)
       .where(and(eq(mindMaps.videoId, videoId), eq(mindMaps.userId, userId)));
@@ -79,7 +79,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
   }
 
   async findByUserId(userId: string): Promise<MindMap[]> {
-    const results = await this.drizzleService.db
+    const results = await this.db
       .select()
       .from(mindMaps)
       .where(eq(mindMaps.userId, userId))
@@ -104,11 +104,11 @@ export class MindMapDrizzleRepository implements MindMapRepository {
     id: string,
     data: Partial<Omit<MindMap, 'id' | 'createdAt' | 'updatedAt'>>,
   ): Promise<MindMap> {
-    const [updated] = await this.drizzleService.db
+    const [updated] = await this.db
       .update(mindMaps)
       .set({
         ...data,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       })
       .where(eq(mindMaps.id, id))
       .returning();
@@ -126,6 +126,6 @@ export class MindMapDrizzleRepository implements MindMapRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.drizzleService.db.delete(mindMaps).where(eq(mindMaps.id, id));
+    await this.db.delete(mindMaps).where(eq(mindMaps.id, id));
   }
 }

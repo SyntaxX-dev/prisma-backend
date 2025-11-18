@@ -7,4 +7,3 @@ export interface FriendshipRepository {
   findByUserId(userId: string): Promise<Friendship[]>;
   delete(userId1: string, userId2: string): Promise<void>;
 }
-

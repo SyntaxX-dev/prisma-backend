@@ -8,5 +8,4 @@ export class VerifyResetCodeDto {
   @MinLength(6)
   @MaxLength(6)
   code!: string;
-} 
- 
+}

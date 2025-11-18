@@ -18,7 +18,8 @@ export class GenerateMindMapDto {
 
   @ApiProperty({
     description: 'Descrição do vídeo',
-    example: 'Neste vídeo você aprenderá sobre as causas e consequências da Primeira Guerra Mundial',
+    example:
+      'Neste vídeo você aprenderá sobre as causas e consequências da Primeira Guerra Mundial',
   })
   @IsString()
   videoDescription: string;

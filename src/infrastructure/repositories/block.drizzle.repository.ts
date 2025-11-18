@@ -20,18 +20,26 @@ export class BlockDrizzleRepository implements BlockRepository {
   }
 
   async findById(id: string): Promise<Block | null> {
-    const [block] = await this.db.select().from(blocks).where(eq(blocks.id, id));
+    const [block] = await this.db
+      .select()
+      .from(blocks)
+      .where(eq(blocks.id, id));
 
     if (!block) return null;
 
     return this.mapToEntity(block);
   }
 
-  async findByBlockerAndBlocked(blockerId: string, blockedId: string): Promise<Block | null> {
+  async findByBlockerAndBlocked(
+    blockerId: string,
+    blockedId: string,
+  ): Promise<Block | null> {
     const [block] = await this.db
       .select()
       .from(blocks)
-      .where(and(eq(blocks.blockerId, blockerId), eq(blocks.blockedId, blockedId)));
+      .where(
+        and(eq(blocks.blockerId, blockerId), eq(blocks.blockedId, blockedId)),
+      );
 
     if (!block) return null;
 
@@ -61,11 +69,12 @@ export class BlockDrizzleRepository implements BlockRepository {
   async delete(blockerId: string, blockedId: string): Promise<void> {
     await this.db
       .delete(blocks)
-      .where(and(eq(blocks.blockerId, blockerId), eq(blocks.blockedId, blockedId)));
+      .where(
+        and(eq(blocks.blockerId, blockerId), eq(blocks.blockedId, blockedId)),
+      );
   }
 
   private mapToEntity(row: any): Block {
     return new Block(row.id, row.blockerId, row.blockedId, row.createdAt);
   }
 }
-

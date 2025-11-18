@@ -1,4 +1,10 @@
-import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   COMMUNITY_MESSAGE_REPOSITORY,
   PINNED_COMMUNITY_MESSAGE_REPOSITORY,
@@ -46,7 +52,9 @@ export class PinCommunityMessageUseCase {
     private readonly communityMemberRepository: CommunityMemberRepository,
   ) {}
 
-  async execute(input: PinCommunityMessageInput): Promise<PinCommunityMessageOutput> {
+  async execute(
+    input: PinCommunityMessageInput,
+  ): Promise<PinCommunityMessageOutput> {
     const { messageId, userId, communityId } = input;
 
     // Verificar se a comunidade existe
@@ -63,7 +71,9 @@ export class PinCommunityMessageUseCase {
     );
 
     if (!isOwner && !member) {
-      throw new ForbiddenException('Você precisa ser membro da comunidade para fixar mensagens');
+      throw new ForbiddenException(
+        'Você precisa ser membro da comunidade para fixar mensagens',
+      );
     }
 
     // Verificar se a mensagem existe e pertence à comunidade
@@ -107,4 +117,3 @@ export class PinCommunityMessageUseCase {
     };
   }
 }
-

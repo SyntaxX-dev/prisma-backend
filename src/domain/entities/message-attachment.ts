@@ -14,4 +14,3 @@ export class MessageAttachment {
     public readonly createdAt: Date,
   ) {}
 }
-

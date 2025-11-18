@@ -3,7 +3,12 @@ export class CallRoom {
     public readonly id: string,
     public readonly callerId: string,
     public readonly receiverId: string,
-    public readonly status: 'ringing' | 'active' | 'ended' | 'rejected' | 'missed',
+    public readonly status:
+      | 'ringing'
+      | 'active'
+      | 'ended'
+      | 'rejected'
+      | 'missed',
     public readonly startedAt: Date,
     public readonly answeredAt: Date | null,
     public readonly endedAt: Date | null,
@@ -11,4 +16,3 @@ export class CallRoom {
     public readonly createdAt: Date,
   ) {}
 }
-

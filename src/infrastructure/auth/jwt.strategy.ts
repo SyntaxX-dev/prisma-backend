@@ -10,7 +10,7 @@ export type { JwtPayload };
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     const config = JwtConfiguration.loadFromEnv();
-    
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -29,5 +29,4 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: payload.role,
     };
   }
-} 
- 
+}

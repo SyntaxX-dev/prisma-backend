@@ -1,6 +1,6 @@
 /**
  * Entidade CommunityMessage - Representa uma mensagem em uma comunidade
- * 
+ *
  * Esta entidade representa uma mensagem de chat em uma comunidade (chat de grupo).
  * Ela contém o conteúdo da mensagem, quem enviou, e em qual comunidade.
  */
@@ -16,4 +16,3 @@ export class CommunityMessage {
     public deletedAt: Date | null = null, // Quando foi deletada (null se não foi)
   ) {}
 }
-

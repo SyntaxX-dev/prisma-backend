@@ -45,7 +45,10 @@ export interface PinnedMessageRepository {
   /**
    * Busca todas as mensagens fixadas de uma conversa
    */
-  findByConversation(userId1: string, userId2: string): Promise<PinnedMessageWithDetails[]>;
+  findByConversation(
+    userId1: string,
+    userId2: string,
+  ): Promise<PinnedMessageWithDetails[]>;
 
   /**
    * Verifica se uma mensagem está fixada
@@ -57,4 +60,3 @@ export interface PinnedMessageRepository {
    */
   findByMessageId(messageId: string): Promise<PinnedMessage | null>;
 }
-

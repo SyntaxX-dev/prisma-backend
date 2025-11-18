@@ -11,4 +11,3 @@ export class JoinCommunityDto {
   @IsNotEmpty()
   communityId: string;
 }
-

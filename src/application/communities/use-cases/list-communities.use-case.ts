@@ -59,8 +59,9 @@ export class ListCommunitiesUseCase {
       }
     } else if (input.userId && input.includePrivate) {
       // Buscar todas as comunidades do usuário (públicas e privadas que ele é membro)
-      communities =
-        await this.communityRepository.findCommunitiesByUserId(input.userId);
+      communities = await this.communityRepository.findCommunitiesByUserId(
+        input.userId,
+      );
     } else {
       // Buscar comunidades públicas + comunidades privadas do dono (se autenticado)
       if (input.userId) {
@@ -84,10 +85,10 @@ export class ListCommunitiesUseCase {
 
         let isMember = false;
         let isOwner = false;
-        
+
         if (input.userId) {
           isOwner = community.ownerId === input.userId;
-          
+
           // Se for dono, sempre é membro
           if (isOwner) {
             isMember = true;
@@ -123,4 +124,3 @@ export class ListCommunitiesUseCase {
     };
   }
 }
-

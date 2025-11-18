@@ -71,7 +71,10 @@ export class ModulesController {
             id: { type: 'string', example: 'uuid-do-modulo' },
             subCourseId: { type: 'string', example: 'uuid-do-sub-curso' },
             name: { type: 'string', example: 'Módulo 1: Introdução' },
-            description: { type: 'string', example: 'Este módulo apresenta os conceitos básicos' },
+            description: {
+              type: 'string',
+              example: 'Este módulo apresenta os conceitos básicos',
+            },
             order: { type: 'number', example: 1 },
             videoCount: { type: 'number', example: 0 },
             createdAt: { type: 'string', format: 'date-time' },
@@ -127,7 +130,10 @@ export class ModulesController {
               id: { type: 'string', example: 'uuid-do-modulo' },
               subCourseId: { type: 'string', example: 'uuid-do-sub-curso' },
               name: { type: 'string', example: 'Módulo 1: Introdução' },
-              description: { type: 'string', example: 'Este módulo apresenta os conceitos básicos' },
+              description: {
+                type: 'string',
+                example: 'Este módulo apresenta os conceitos básicos',
+              },
               order: { type: 'number', example: 1 },
               videoCount: { type: 'number', example: 5 },
               createdAt: { type: 'string', format: 'date-time' },
@@ -157,7 +163,9 @@ export class ModulesController {
   }
 
   @Get('sub-course/:subCourseId/with-videos')
-  @ApiOperation({ summary: 'Listar módulos com vídeos de um sub-curso (Otimizado)' })
+  @ApiOperation({
+    summary: 'Listar módulos com vídeos de um sub-curso (Otimizado)',
+  })
   @ApiParam({
     name: 'subCourseId',
     description: 'ID do sub-curso',
@@ -187,7 +195,7 @@ export class ModulesController {
     @Param('subCourseId') subCourseId: string,
   ) {
     try {
-      const result = await this.listModulesWithVideosUseCase.execute({ 
+      const result = await this.listModulesWithVideosUseCase.execute({
         subCourseId,
         userId: user.sub,
       });
@@ -227,8 +235,14 @@ export class ModulesController {
           properties: {
             id: { type: 'string', example: 'uuid-do-modulo' },
             subCourseId: { type: 'string', example: 'uuid-do-sub-curso' },
-            name: { type: 'string', example: 'Módulo 1: Introdução Atualizada' },
-            description: { type: 'string', example: 'Este módulo apresenta os conceitos básicos atualizados' },
+            name: {
+              type: 'string',
+              example: 'Módulo 1: Introdução Atualizada',
+            },
+            description: {
+              type: 'string',
+              example: 'Este módulo apresenta os conceitos básicos atualizados',
+            },
             order: { type: 'number', example: 2 },
             videoCount: { type: 'number', example: 5 },
             createdAt: { type: 'string', format: 'date-time' },
@@ -333,7 +347,10 @@ export class ModulesController {
                   subCourseId: { type: 'string', example: 'uuid-do-sub-curso' },
                   videoId: { type: 'string', example: 'DsAJ18o6sco' },
                   title: { type: 'string', example: 'Aula 1: Introdução' },
-                  url: { type: 'string', example: 'https://www.youtube.com/watch?v=DsAJ18o6sco' },
+                  url: {
+                    type: 'string',
+                    example: 'https://www.youtube.com/watch?v=DsAJ18o6sco',
+                  },
                   order: { type: 'number', example: 1 },
                 },
               },
@@ -359,7 +376,9 @@ export class ModulesController {
         moduleId,
         videos: addVideoToModuleDto.videos.map((video) => ({
           ...video,
-          publishedAt: video.publishedAt ? new Date(video.publishedAt) : undefined,
+          publishedAt: video.publishedAt
+            ? new Date(video.publishedAt)
+            : undefined,
         })),
       });
       return {
@@ -436,5 +455,4 @@ export class ModulesController {
       );
     }
   }
-
 }

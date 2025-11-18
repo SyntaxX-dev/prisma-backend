@@ -1,11 +1,5 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  BLOCK_REPOSITORY,
-} from '../../../domain/tokens';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { BLOCK_REPOSITORY } from '../../../domain/tokens';
 import type { BlockRepository } from '../../../domain/repositories/block.repository';
 
 export interface UnblockUserInput {
@@ -29,7 +23,10 @@ export class UnblockUserUseCase {
     const { blockerId, blockedId } = input;
 
     // Verificar se o bloqueio existe
-    const block = await this.blockRepository.findByBlockerAndBlocked(blockerId, blockedId);
+    const block = await this.blockRepository.findByBlockerAndBlocked(
+      blockerId,
+      blockedId,
+    );
     if (!block) {
       throw new NotFoundException('Este usuário não está bloqueado');
     }
@@ -43,4 +40,3 @@ export class UnblockUserUseCase {
     };
   }
 }
-

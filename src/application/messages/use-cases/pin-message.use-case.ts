@@ -1,5 +1,13 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, PINNED_MESSAGE_REPOSITORY } from '../../../domain/tokens';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  MESSAGE_REPOSITORY,
+  PINNED_MESSAGE_REPOSITORY,
+} from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { PinnedMessageRepository } from '../../../domain/repositories/pinned-message.repository';
 
@@ -108,4 +116,3 @@ export class PinMessageUseCase {
     };
   }
 }
-

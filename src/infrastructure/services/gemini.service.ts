@@ -42,13 +42,15 @@ export class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('GEMINI_API_KEY não configurada. Usando algoritmo local como fallback.');
+      console.warn(
+        'GEMINI_API_KEY não configurada. Usando algoritmo local como fallback.',
+      );
     }
   }
 
   async organizeVideosIntoModules(
     videos: VideoData[],
-    customPrompt?: string
+    customPrompt?: string,
   ): Promise<ModuleSuggestion[]> {
     if (!this.apiKey) {
       // Fallback para algoritmo local se não tiver API key
@@ -80,9 +82,7 @@ INSTRUÇÕES:
 ${customPrompt ? `PROMPT PERSONALIZADO: ${customPrompt}` : ''}
 
 VÍDEOS PARA ORGANIZAR (apenas títulos):
-${videos.map((video, index) => 
-  `${index}: "${video.title}"`
-).join('\n')}
+${videos.map((video, index) => `${index}: "${video.title}"`).join('\n')}
 
 Responda APENAS com um JSON no seguinte formato:
 {
@@ -108,41 +108,51 @@ Responda APENAS com um JSON no seguinte formato:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
           generationConfig: {
             temperature: 0.3,
             topK: 40,
             topP: 0.95,
             maxOutputTokens: 8192,
-          }
-        })
-      }
+          },
+        }),
+      },
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Gemini API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
     console.log('Resposta bruta da API Gemini:', JSON.stringify(data, null, 2));
-    
+
     if (!data.candidates || data.candidates.length === 0) {
       throw new Error('Nenhum candidato encontrado na resposta da API');
     }
-    
+
     // Verificar se a resposta foi cortada por limite de tokens
     if (data.candidates[0].finishReason === 'MAX_TOKENS') {
       throw new Error('Resposta cortada por limite de tokens - use fallback');
     }
-    
-    if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+
+    if (
+      !data.candidates[0].content ||
+      !data.candidates[0].content.parts ||
+      data.candidates[0].content.parts.length === 0
+    ) {
       throw new Error('Estrutura de resposta inválida da API');
     }
-    
+
     return data.candidates[0].content.parts[0].text;
   }
 
@@ -155,7 +165,10 @@ Responda APENAS com um JSON no seguinte formato:
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      console.log('Resposta parseada do Gemini:', JSON.stringify(parsed, null, 2));
+      console.log(
+        'Resposta parseada do Gemini:',
+        JSON.stringify(parsed, null, 2),
+      );
       return parsed.modules || [];
     } catch (error) {
       console.error('Erro ao parsear resposta do Gemini:', error);
@@ -172,11 +185,11 @@ Responda APENAS com um JSON no seguinte formato:
     for (let i = 0; i < videos.length; i += videosPerModule) {
       const moduleVideos = videos.slice(i, i + videosPerModule);
       const moduleNumber = Math.floor(i / videosPerModule) + 1;
-      
+
       modules.push({
         name: `Módulo ${moduleNumber}`,
         description: `Conteúdo do módulo ${moduleNumber} com ${moduleVideos.length} vídeos`,
-        videoIndices: moduleVideos.map((_, index) => i + index)
+        videoIndices: moduleVideos.map((_, index) => i + index),
       });
     }
 
@@ -189,14 +202,18 @@ Responda APENAS com um JSON no seguinte formato:
   async analyzePlaylistsForCourses(
     playlists: PlaylistAnalysisData[],
     existingCourseNames: string[],
-    customPrompt?: string
+    customPrompt?: string,
   ): Promise<CourseSuggestion[]> {
     if (!this.apiKey) {
       return this.fallbackCourseSuggestion(playlists);
     }
 
     try {
-      const prompt = this.buildCourseAnalysisPrompt(playlists, existingCourseNames, customPrompt);
+      const prompt = this.buildCourseAnalysisPrompt(
+        playlists,
+        existingCourseNames,
+        customPrompt,
+      );
       const response = await this.callGeminiAPI(prompt);
       return this.parseCourseSuggestionResponse(response, playlists);
     } catch (error) {
@@ -208,15 +225,19 @@ Responda APENAS com um JSON no seguinte formato:
   private buildCourseAnalysisPrompt(
     playlists: PlaylistAnalysisData[],
     existingCourseNames: string[],
-    customPrompt?: string
+    customPrompt?: string,
   ): string {
-    const existingCoursesList = existingCourseNames.length > 0 
-      ? `\n\nCURSOS JÁ EXISTENTES (não criar duplicatas):\n${existingCourseNames.join(', ')}`
-      : '\n\nNenhum curso existe ainda.';
+    const existingCoursesList =
+      existingCourseNames.length > 0
+        ? `\n\nCURSOS JÁ EXISTENTES (não criar duplicatas):\n${existingCourseNames.join(', ')}`
+        : '\n\nNenhum curso existe ainda.';
 
-    const playlistsData = playlists.map((playlist, idx) => {
-      const videosList = playlist.videos.map((v, vidx) => `${vidx}: "${v.title}"`).join('\n');
-      return `
+    const playlistsData = playlists
+      .map((playlist, idx) => {
+        const videosList = playlist.videos
+          .map((v, vidx) => `${vidx}: "${v.title}"`)
+          .join('\n');
+        return `
 PLAYLIST ${idx + 1}:
 - ID: ${playlist.playlistId}
 - Título: ${playlist.playlistTitle}
@@ -225,7 +246,8 @@ PLAYLIST ${idx + 1}:
 - Vídeos (${playlist.videos.length}):
 ${videosList}
 `;
-    }).join('\n---\n');
+      })
+      .join('\n---\n');
 
     return `
 Você é um especialista em organização de conteúdo educacional. Analise as playlists do YouTube abaixo e organize-as em uma estrutura de cursos.
@@ -282,7 +304,7 @@ Responda APENAS com um JSON no seguinte formato:
 
   private parseCourseSuggestionResponse(
     response: string,
-    playlists: PlaylistAnalysisData[]
+    playlists: PlaylistAnalysisData[],
   ): CourseSuggestion[] {
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -291,10 +313,15 @@ Responda APENAS com um JSON no seguinte formato:
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      console.log('Resposta parseada do Gemini (cursos):', JSON.stringify(parsed, null, 2));
+      console.log(
+        'Resposta parseada do Gemini (cursos):',
+        JSON.stringify(parsed, null, 2),
+      );
 
       if (!parsed.courses || !Array.isArray(parsed.courses)) {
-        throw new Error('Estrutura de resposta inválida - campo "courses" não encontrado');
+        throw new Error(
+          'Estrutura de resposta inválida - campo "courses" não encontrado',
+        );
       }
 
       // Validar que todos os playlistIds foram incluídos
@@ -307,9 +334,11 @@ Responda APENAS com um JSON no seguinte formato:
         });
       });
 
-      const allPlaylistIds = new Set(playlists.map(p => p.playlistId));
-      const missing = Array.from(allPlaylistIds).filter(id => !processedPlaylistIds.has(id));
-      
+      const allPlaylistIds = new Set(playlists.map((p) => p.playlistId));
+      const missing = Array.from(allPlaylistIds).filter(
+        (id) => !processedPlaylistIds.has(id),
+      );
+
       if (missing.length > 0) {
         console.warn('Algumas playlists não foram processadas:', missing);
       }
@@ -322,14 +351,18 @@ Responda APENAS com um JSON no seguinte formato:
     }
   }
 
-  private fallbackCourseSuggestion(playlists: PlaylistAnalysisData[]): CourseSuggestion[] {
+  private fallbackCourseSuggestion(
+    playlists: PlaylistAnalysisData[],
+  ): CourseSuggestion[] {
     // Algoritmo fallback: uma playlist = um subcurso, organiza por nome do canal
     const coursesMap = new Map<string, CourseSuggestion>();
 
     playlists.forEach((playlist) => {
       // Extrair tema geral do título (primeira palavra ou tema principal)
-      const courseName = this.extractCourseNameFromPlaylist(playlist.playlistTitle);
-      
+      const courseName = this.extractCourseNameFromPlaylist(
+        playlist.playlistTitle,
+      );
+
       if (!coursesMap.has(courseName)) {
         coursesMap.set(courseName, {
           courseName,
@@ -339,7 +372,7 @@ Responda APENAS com um JSON no seguinte formato:
 
       const course = coursesMap.get(courseName)!;
       const subCourseName = `${playlist.playlistTitle} - ${playlist.channelName}`;
-      
+
       // Organizar vídeos em módulos simples (6 vídeos por módulo)
       const modules: ModuleSuggestion[] = [];
       const videosPerModule = 6;
@@ -349,7 +382,9 @@ Responda APENAS com um JSON no seguinte formato:
         modules.push({
           name: `Módulo ${moduleNumber}`,
           description: `Conteúdo do módulo ${moduleNumber}`,
-          videoIndices: playlist.videos.slice(i, i + videosPerModule).map((_, idx) => i + idx),
+          videoIndices: playlist.videos
+            .slice(i, i + videosPerModule)
+            .map((_, idx) => i + idx),
         });
       }
 
@@ -369,24 +404,24 @@ Responda APENAS com um JSON no seguinte formato:
 
     // Palavras-chave comuns de cursos
     const keywords: Record<string, string> = {
-      'biologia': 'Biologia',
-      'matemática': 'Matemática',
-      'português': 'Português',
-      'portugues': 'Português',
-      'react': 'React',
-      'javascript': 'JavaScript',
-      'typescript': 'TypeScript',
-      'node': 'Node.js',
-      'python': 'Python',
-      'java': 'Java',
-      'teologia': 'Teologia',
-      'história': 'História',
-      'historia': 'História',
-      'geografia': 'Geografia',
-      'física': 'Física',
-      'fisica': 'Física',
-      'química': 'Química',
-      'quimica': 'Química',
+      biologia: 'Biologia',
+      matemática: 'Matemática',
+      português: 'Português',
+      portugues: 'Português',
+      react: 'React',
+      javascript: 'JavaScript',
+      typescript: 'TypeScript',
+      node: 'Node.js',
+      python: 'Python',
+      java: 'Java',
+      teologia: 'Teologia',
+      história: 'História',
+      historia: 'História',
+      geografia: 'Geografia',
+      física: 'Física',
+      fisica: 'Física',
+      química: 'Química',
+      quimica: 'Química',
     };
 
     for (const [key, courseName] of Object.entries(keywords)) {
@@ -406,7 +441,7 @@ Responda APENAS com um JSON no seguinte formato:
   async generateMindMap(
     videoTitle: string,
     videoDescription: string,
-    videoUrl: string
+    videoUrl: string,
   ): Promise<string> {
     if (!this.apiKey) {
       throw new Error('GEMINI_API_KEY não configurada');
@@ -417,8 +452,14 @@ Responda APENAS com um JSON no seguinte formato:
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando mapa mental`);
-        const prompt = this.buildMindMapPrompt(videoTitle, videoDescription, videoUrl);
+        console.log(
+          `[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando mapa mental`,
+        );
+        const prompt = this.buildMindMapPrompt(
+          videoTitle,
+          videoDescription,
+          videoUrl,
+        );
         const response = await this.callGeminiAPI(prompt);
         console.log('[MindMap] ✅ Mapa mental gerado com sucesso');
         return response;
@@ -429,20 +470,24 @@ Responda APENAS com um JSON no seguinte formato:
         // Se não for a última tentativa, aguardar antes de retry
         if (attempt < maxRetries) {
           const waitTime = attempt * 2000; // 2s, 4s, 6s
-          console.log(`[MindMap] ⏳ Aguardando ${waitTime}ms antes de tentar novamente...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          console.log(
+            `[MindMap] ⏳ Aguardando ${waitTime}ms antes de tentar novamente...`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
       }
     }
 
     console.error('[MindMap] ❌ Todas as tentativas falhar');
-    throw new Error(`Erro ao gerar mapa mental após ${maxRetries} tentativas: ${lastError?.message || 'Erro desconhecido'}`);
+    throw new Error(
+      `Erro ao gerar mapa mental após ${maxRetries} tentativas: ${lastError?.message || 'Erro desconhecido'}`,
+    );
   }
 
   private buildMindMapPrompt(
     videoTitle: string,
     videoDescription: string,
-    videoUrl: string
+    videoUrl: string,
   ): string {
     return `
 Crie um mapa mental detalhado e estruturado para ESTUDO DO ENEM sobre o seguinte vídeo educacional:

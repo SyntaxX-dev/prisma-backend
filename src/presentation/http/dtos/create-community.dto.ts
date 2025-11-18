@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNotEmpty,
-  IsEnum,
-} from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { CommunityVisibility } from '../../../domain/enums/community-visibility';
 
@@ -45,7 +40,8 @@ export class CreateCommunityDto {
   image?: string;
 
   @ApiProperty({
-    description: 'Arquivo de imagem da comunidade (opcional, aceita JPG, PNG, GIF, WebP, máx 5MB)',
+    description:
+      'Arquivo de imagem da comunidade (opcional, aceita JPG, PNG, GIF, WebP, máx 5MB)',
     type: 'string',
     format: 'binary',
     required: false,
@@ -62,4 +58,3 @@ export class CreateCommunityDto {
   @IsNotEmpty()
   visibility: CommunityVisibility;
 }
-

@@ -5,7 +5,7 @@ export class UploadProfileImageDto {
     type: 'string',
     format: 'binary',
     description: 'Arquivo de imagem do perfil (JPG, PNG, GIF, WebP)',
-    example: 'profile-image.jpg'
+    example: 'profile-image.jpg',
   })
   image!: Express.Multer.File;
 }

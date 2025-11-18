@@ -1,5 +1,18 @@
-import { Controller, Get, Param, Query, UseGuards, Request, Put } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  Put,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { OptionalJwtAuthGuard } from '../../../infrastructure/guards/optional-jwt.guard';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { GetUserProfileUseCase } from '../../../application/use-cases/get-user-profile.use-case';
@@ -50,7 +63,10 @@ export class UserController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Marcar notificação como lida' })
   @ApiResponse({ status: 200, description: 'Notificação marcada como lida' })
-  async markNotificationAsRead(@Request() req: any, @Param('id') notificationId: string) {
+  async markNotificationAsRead(
+    @Request() req: any,
+    @Param('id') notificationId: string,
+  ) {
     await this.notificationRepository.markAsRead(notificationId);
 
     return {
@@ -63,7 +79,10 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Marcar todas as notificações como lidas' })
-  @ApiResponse({ status: 200, description: 'Todas as notificações foram marcadas como lidas' })
+  @ApiResponse({
+    status: 200,
+    description: 'Todas as notificações foram marcadas como lidas',
+  })
   async markAllNotificationsAsRead(@Request() req: any) {
     await this.notificationRepository.markAllAsRead(req.user.sub);
 
@@ -104,11 +123,17 @@ export class UserController {
           portfolio: 'https://joaosilva.dev',
           instagram: 'https://instagram.com/joaosilva',
           twitter: 'https://twitter.com/joaosilva',
-          socialLinksOrder: ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'],
-          createdAt: '2025-01-01T00:00:00.000Z'
-        }
-      }
-    }
+          socialLinksOrder: [
+            'linkedin',
+            'github',
+            'portfolio',
+            'instagram',
+            'twitter',
+          ],
+          createdAt: '2025-01-01T00:00:00.000Z',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -117,14 +142,14 @@ export class UserController {
       example: {
         statusCode: 404,
         message: 'Usuário não encontrado',
-        error: 'Not Found'
-      }
-    }
+        error: 'Not Found',
+      },
+    },
   })
   async getUserProfile(@Param('id') userId: string, @Request() req: any) {
     // Se houver usuário autenticado, passar o viewerId para verificar se são amigos
     const viewerId = req.user?.sub;
-    const result = await this.getUserProfileUseCase.execute({ 
+    const result = await this.getUserProfileUseCase.execute({
       userId,
       viewerId,
     });
@@ -226,11 +251,13 @@ export class UserController {
           };
         }
         const status = await this.chatGateway.getUserStatus(userId);
-        return status || {
-          userId,
-          status: 'offline',
-          lastSeen: new Date().toISOString(),
-        };
+        return (
+          status || {
+            userId,
+            status: 'offline',
+            lastSeen: new Date().toISOString(),
+          }
+        );
       }),
     );
 
@@ -240,4 +267,3 @@ export class UserController {
     };
   }
 }
- 

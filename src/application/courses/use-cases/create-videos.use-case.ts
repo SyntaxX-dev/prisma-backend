@@ -37,14 +37,18 @@ export class CreateVideosUseCase {
 
   async execute(input: CreateVideosInput): Promise<CreateVideosOutput> {
     // Verificar se o sub-curso existe
-    const subCourse = await this.subCourseRepository.findById(input.subCourseId);
+    const subCourse = await this.subCourseRepository.findById(
+      input.subCourseId,
+    );
     if (!subCourse) {
       throw new Error(`Sub-curso com ID "${input.subCourseId}" não encontrado`);
     }
 
     // Verificar se algum vídeo já existe (por videoId)
     const existingVideos = await Promise.all(
-      input.videos.map((video) => this.videoRepository.findByVideoId(video.videoId)),
+      input.videos.map((video) =>
+        this.videoRepository.findByVideoId(video.videoId),
+      ),
     );
 
     const existingVideoIds = existingVideos

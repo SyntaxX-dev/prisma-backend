@@ -10,5 +10,4 @@ export const CurrentUser = createParamDecorator(
     const request = ctx.switchToHttp().getRequest<UserRequest>();
     return request.user;
   },
-); 
- 
+);

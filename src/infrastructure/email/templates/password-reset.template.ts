@@ -221,4 +221,4 @@ Este email foi enviado para ${data.toEmail}
 © 2025 Prisma. Todos os direitos reservados.
 `;
   }
-} 
+}

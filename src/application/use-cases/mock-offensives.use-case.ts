@@ -1,7 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { VideoProgress } from '../../domain/entities/video-progress';
-import { VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, OFFENSIVE_SERVICE } from '../../domain/tokens';
+import {
+  VIDEO_REPOSITORY,
+  VIDEO_PROGRESS_REPOSITORY,
+  OFFENSIVE_SERVICE,
+} from '../../domain/tokens';
 import type { VideoRepository } from '../../domain/repositories/video.repository';
 import type { VideoProgressRepository } from '../../domain/repositories/video-progress.repository';
 import type { OffensiveService } from '../../domain/services/offensive.service';
@@ -56,7 +60,9 @@ export class MockOffensivesUseCase {
       completedDate.setHours(12, 0, 0, 0); // Meio-dia para evitar problemas de timezone
     }
 
-    console.log(`[MOCK] MockOffensivesUseCase - userId: ${userId}, videoId: ${videoId}`);
+    console.log(
+      `[MOCK] MockOffensivesUseCase - userId: ${userId}, videoId: ${videoId}`,
+    );
     console.log(`[MOCK] Completando vídeo em: ${completedDate.toISOString()}`);
 
     // Verificar se o vídeo existe
@@ -97,22 +103,25 @@ export class MockOffensivesUseCase {
         progress.createdAt,
         completedDate,
       );
-      
+
       await this.videoProgressRepository.update(updatedProgress);
       progress = updatedProgress;
     }
 
     // Recalcular ofensivas baseado em TODOS os vídeos completados
-    const offensiveResult = await this.offensiveService.recalculateOffensives(userId);
+    const offensiveResult =
+      await this.offensiveService.recalculateOffensives(userId);
 
     const currentDate = new Date();
     const daysDifference = Math.floor(
-      (currentDate.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24)
+      (currentDate.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     console.log(`[MOCK] Vídeo completado com sucesso`);
     console.log(`[MOCK] Diferença: ${daysDifference} dias`);
-    console.log(`[MOCK] Ofensiva: ${offensiveResult.offensive.consecutiveDays} dias consecutivos (${offensiveResult.offensive.type})`);
+    console.log(
+      `[MOCK] Ofensiva: ${offensiveResult.offensive.consecutiveDays} dias consecutivos (${offensiveResult.offensive.type})`,
+    );
 
     return {
       completedDate,
@@ -134,4 +143,3 @@ export class MockOffensivesUseCase {
     };
   }
 }
-

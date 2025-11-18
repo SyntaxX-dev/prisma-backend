@@ -30,7 +30,8 @@ export class PinnedMessageDrizzleRepository implements PinnedMessageRepository {
     userId2: string,
   ): Promise<PinnedMessage> {
     // Garantir que userId1 < userId2 para consistência na busca
-    const [u1, u2] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+    const [u1, u2] =
+      userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
 
     const [result] = await this.db
       .insert(pinnedMessages)
@@ -46,12 +47,18 @@ export class PinnedMessageDrizzleRepository implements PinnedMessageRepository {
   }
 
   async unpinMessage(messageId: string): Promise<void> {
-    await this.db.delete(pinnedMessages).where(eq(pinnedMessages.messageId, messageId));
+    await this.db
+      .delete(pinnedMessages)
+      .where(eq(pinnedMessages.messageId, messageId));
   }
 
-  async findByConversation(userId1: string, userId2: string): Promise<PinnedMessageWithDetails[]> {
+  async findByConversation(
+    userId1: string,
+    userId2: string,
+  ): Promise<PinnedMessageWithDetails[]> {
     // Garantir ordem consistente
-    const [u1, u2] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+    const [u1, u2] =
+      userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
 
     const results = await this.db
       .select({
@@ -80,10 +87,7 @@ export class PinnedMessageDrizzleRepository implements PinnedMessageRepository {
       .innerJoin(messages, eq(pinnedMessages.messageId, messages.id))
       .innerJoin(users, eq(pinnedMessages.pinnedBy, users.id))
       .where(
-        and(
-          eq(pinnedMessages.userId1, u1),
-          eq(pinnedMessages.userId2, u2),
-        ),
+        and(eq(pinnedMessages.userId1, u1), eq(pinnedMessages.userId2, u2)),
       )
       .orderBy(desc(pinnedMessages.pinnedAt));
 
@@ -124,4 +128,3 @@ export class PinnedMessageDrizzleRepository implements PinnedMessageRepository {
     return result ? this.mapToEntity(result) : null;
   }
 }
-

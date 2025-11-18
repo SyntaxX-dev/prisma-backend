@@ -102,7 +102,7 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
           subCourse.updatedAt,
           firstVideo?.channelThumbnailUrl || null,
         );
-      })
+      }),
     );
 
     return subCoursesWithChannelInfo;

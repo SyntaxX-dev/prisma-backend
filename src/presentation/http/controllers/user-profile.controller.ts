@@ -1,20 +1,25 @@
-import { 
-  Controller, 
-  Put, 
+import {
+  Controller,
+  Put,
   Post,
   Delete,
-  Body, 
-  UseGuards, 
-  Request, 
-  HttpException, 
+  Body,
+  UseGuards,
+  Request,
+  HttpException,
   HttpStatus,
   ConflictException,
   BadRequestException,
   UseInterceptors,
-  UploadedFile
+  UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { USER_REPOSITORY } from '../../../domain/tokens';
 import { Inject } from '@nestjs/common';
@@ -46,33 +51,30 @@ export class UserProfileController {
 
   @Put('name')
   @ApiOperation({ summary: 'Atualizar nome do usuário' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Nome atualizado com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Nome atualizado com sucesso',
         data: {
-          name: 'João Silva'
-        }
-      }
-    }
+          name: 'João Silva',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 409, 
+  @ApiResponse({
+    status: 409,
     description: 'Nome já existe na plataforma',
     schema: {
       example: {
         success: false,
-        message: 'Este nome já está sendo usado por outro usuário'
-      }
-    }
+        message: 'Este nome já está sendo usado por outro usuário',
+      },
+    },
   })
-  async updateName(
-    @Request() req: any,
-    @Body() updateNameDto: UpdateNameDto,
-  ) {
+  async updateName(@Request() req: any, @Body() updateNameDto: UpdateNameDto) {
     const userId = req.user.sub;
     const { name } = updateNameDto;
 
@@ -84,7 +86,9 @@ export class UserProfileController {
     // Verificar se o nome já existe (exceto para o próprio usuário)
     const existingUser = await this.userRepository.findByName(name);
     if (existingUser && existingUser.id !== userId) {
-      throw new ConflictException('Este nome já está sendo usado por outro usuário');
+      throw new ConflictException(
+        'Este nome já está sendo usado por outro usuário',
+      );
     }
 
     // Atualizar apenas o nome
@@ -94,30 +98,27 @@ export class UserProfileController {
       success: true,
       message: 'Nome atualizado com sucesso',
       data: {
-        name: name
-      }
+        name: name,
+      },
     };
   }
 
   @Put('age')
   @ApiOperation({ summary: 'Atualizar idade do usuário' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Idade atualizada com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Idade atualizada com sucesso',
         data: {
-          age: 25
-        }
-      }
-    }
+          age: 25,
+        },
+      },
+    },
   })
-  async updateAge(
-    @Request() req: any,
-    @Body() updateAgeDto: UpdateAgeDto,
-  ) {
+  async updateAge(@Request() req: any, @Body() updateAgeDto: UpdateAgeDto) {
     const userId = req.user.sub;
     const { age } = updateAgeDto;
 
@@ -133,25 +134,25 @@ export class UserProfileController {
       success: true,
       message: 'Idade atualizada com sucesso',
       data: {
-        age: age
-      }
+        age: age,
+      },
     };
   }
 
   @Put('profile-image')
   @ApiOperation({ summary: 'Atualizar foto do perfil' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Foto do perfil atualizada com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Foto do perfil atualizada com sucesso',
         data: {
-          profileImage: 'https://exemplo.com/foto.jpg'
-        }
-      }
-    }
+          profileImage: 'https://exemplo.com/foto.jpg',
+        },
+      },
+    },
   })
   async updateProfileImage(
     @Request() req: any,
@@ -172,36 +173,37 @@ export class UserProfileController {
       success: true,
       message: 'Foto do perfil atualizada com sucesso',
       data: {
-        profileImage: profileImage
-      }
+        profileImage: profileImage,
+      },
     };
   }
 
   @Post('profile-image/upload')
   @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({ summary: 'Upload de foto do perfil' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Foto do perfil enviada com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Foto do perfil enviada com sucesso',
         data: {
-          profileImage: 'https://res.cloudinary.com/dgdefptw3/image/upload/v1234567890/profile-images/abc123.jpg'
-        }
-      }
-    }
+          profileImage:
+            'https://res.cloudinary.com/dgdefptw3/image/upload/v1234567890/profile-images/abc123.jpg',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Erro no upload da imagem',
     schema: {
       example: {
         success: false,
-        message: 'Erro ao fazer upload da imagem: Invalid file format'
-      }
-    }
+        message: 'Erro ao fazer upload da imagem: Invalid file format',
+      },
+    },
   })
   async uploadProfileImage(
     @UploadedFile() file: Express.Multer.File,
@@ -210,19 +212,34 @@ export class UserProfileController {
     const userId = req.user.sub;
 
     if (!file) {
-      throw new HttpException('Nenhum arquivo foi enviado', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Nenhum arquivo foi enviado',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Validar tipo de arquivo
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new HttpException('Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Validar tamanho do arquivo (máximo 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      throw new HttpException('Arquivo muito grande. Tamanho máximo: 5MB', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Arquivo muito grande. Tamanho máximo: 5MB',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const user = await this.userRepository.findById(userId);
@@ -235,54 +252,56 @@ export class UserProfileController {
       const imageUrl = await this.cloudinaryService.uploadProfileImage(file);
 
       // Atualizar no banco de dados
-      await this.userRepository.updateProfile(userId, { profileImage: imageUrl });
+      await this.userRepository.updateProfile(userId, {
+        profileImage: imageUrl,
+      });
 
       return {
         success: true,
         message: 'Foto do perfil enviada com sucesso',
         data: {
-          profileImage: imageUrl
-        }
+          profileImage: imageUrl,
+        },
       };
     } catch (error) {
       throw new HttpException(
         `Erro ao fazer upload da imagem: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Delete('profile-image')
   @ApiOperation({ summary: 'Remover foto do perfil' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Foto do perfil removida com sucesso',
     schema: {
       example: {
         success: true,
-        message: 'Foto do perfil removida com sucesso'
-      }
-    }
+        message: 'Foto do perfil removida com sucesso',
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 404, 
+  @ApiResponse({
+    status: 404,
     description: 'Usuário não encontrado',
     schema: {
       example: {
         success: false,
-        message: 'Usuário não encontrado'
-      }
-    }
+        message: 'Usuário não encontrado',
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 500, 
+  @ApiResponse({
+    status: 500,
     description: 'Erro ao remover a imagem',
     schema: {
       example: {
         success: false,
-        message: 'Erro ao remover a imagem: Erro interno do servidor'
-      }
-    }
+        message: 'Erro ao remover a imagem: Erro interno do servidor',
+      },
+    },
   })
   async removeProfileImage(@Request() req: any) {
     const userId = req.user.sub;
@@ -296,14 +315,16 @@ export class UserProfileController {
     if (!user.profileImage) {
       return {
         success: true,
-        message: 'Usuário não possui foto de perfil para remover'
+        message: 'Usuário não possui foto de perfil para remover',
       };
     }
 
     try {
       // Extrair o public ID da URL do Cloudinary
-      const publicId = this.cloudinaryService.extractPublicIdFromUrl(user.profileImage);
-      
+      const publicId = this.cloudinaryService.extractPublicIdFromUrl(
+        user.profileImage,
+      );
+
       // Se conseguiu extrair o public ID, deletar a imagem do Cloudinary
       if (publicId) {
         await this.cloudinaryService.deleteImage(publicId);
@@ -314,20 +335,22 @@ export class UserProfileController {
 
       return {
         success: true,
-        message: 'Foto do perfil removida com sucesso'
+        message: 'Foto do perfil removida com sucesso',
       };
     } catch (error) {
       throw new HttpException(
         `Erro ao remover a imagem: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Put('links')
-  @ApiOperation({ summary: 'Atualizar links do usuário (LinkedIn, GitHub, Portfolio)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiOperation({
+    summary: 'Atualizar links do usuário (LinkedIn, GitHub, Portfolio)',
+  })
+  @ApiResponse({
+    status: 200,
     description: 'Links atualizados com sucesso',
     schema: {
       example: {
@@ -336,10 +359,10 @@ export class UserProfileController {
         data: {
           linkedin: 'https://linkedin.com/in/joao',
           github: 'https://github.com/joao',
-          portfolio: 'https://joao.dev'
-        }
-      }
-    }
+          portfolio: 'https://joao.dev',
+        },
+      },
+    },
   })
   async updateLinks(
     @Request() req: any,
@@ -354,10 +377,10 @@ export class UserProfileController {
     }
 
     // Atualizar apenas os links
-    await this.userRepository.updateProfile(userId, { 
+    await this.userRepository.updateProfile(userId, {
       linkedin: linkedin || null,
       github: github || null,
-      portfolio: portfolio || null
+      portfolio: portfolio || null,
     });
 
     return {
@@ -366,15 +389,15 @@ export class UserProfileController {
       data: {
         linkedin: linkedin || null,
         github: github || null,
-        portfolio: portfolio || null
-      }
+        portfolio: portfolio || null,
+      },
     };
   }
 
   @Put('about')
   @ApiOperation({ summary: 'Atualizar informações sobre o usuário' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Informações atualizadas com sucesso',
     schema: {
       example: {
@@ -384,10 +407,10 @@ export class UserProfileController {
           aboutYou: 'Desenvolvedor apaixonado por tecnologia',
           habilities: 'JavaScript, React, Node.js',
           momentCareer: 'Iniciando carreira em desenvolvimento',
-          location: 'São Paulo, SP'
-        }
-      }
-    }
+          location: 'São Paulo, SP',
+        },
+      },
+    },
   })
   async updateAbout(
     @Request() req: any,
@@ -402,11 +425,11 @@ export class UserProfileController {
     }
 
     // Atualizar apenas as informações sobre o usuário
-    await this.userRepository.updateProfile(userId, { 
+    await this.userRepository.updateProfile(userId, {
       aboutYou: aboutYou || null,
       habilities: habilities || null,
       momentCareer: momentCareer || null,
-      location: location || null
+      location: location || null,
     });
 
     return {
@@ -416,25 +439,25 @@ export class UserProfileController {
         aboutYou: aboutYou || null,
         habilities: habilities || null,
         momentCareer: momentCareer || null,
-        location: location || null
-      }
+        location: location || null,
+      },
     };
   }
 
   @Put('about-you')
   @ApiOperation({ summary: 'Atualizar texto sobre você (opcional)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Texto sobre você atualizado com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Texto sobre você atualizado com sucesso',
         data: {
-          aboutYou: 'Desenvolvedor apaixonado por tecnologia e inovação'
-        }
-      }
-    }
+          aboutYou: 'Desenvolvedor apaixonado por tecnologia e inovação',
+        },
+      },
+    },
   })
   async updateAboutYou(
     @Request() req: any,
@@ -455,25 +478,33 @@ export class UserProfileController {
       success: true,
       message: 'Texto sobre você atualizado com sucesso',
       data: {
-        aboutYou: aboutYou
-      }
+        aboutYou: aboutYou,
+      },
     };
   }
 
   @Put('habilities')
-  @ApiOperation({ summary: 'Atualizar habilidades do usuário (array de strings opcional)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiOperation({
+    summary: 'Atualizar habilidades do usuário (array de strings opcional)',
+  })
+  @ApiResponse({
+    status: 200,
     description: 'Habilidades atualizadas com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Habilidades atualizadas com sucesso',
         data: {
-          habilities: ["JavaScript", "React", "Node.js", "TypeScript", "Python"]
-        }
-      }
-    }
+          habilities: [
+            'JavaScript',
+            'React',
+            'Node.js',
+            'TypeScript',
+            'Python',
+          ],
+        },
+      },
+    },
   })
   async updateHabilities(
     @Request() req: any,
@@ -491,31 +522,35 @@ export class UserProfileController {
     const habilitiesString = habilities ? habilities.join(', ') : null;
 
     // Atualizar apenas as habilidades
-    await this.userRepository.updateProfile(userId, { habilities: habilitiesString });
+    await this.userRepository.updateProfile(userId, {
+      habilities: habilitiesString,
+    });
 
     return {
       success: true,
       message: 'Habilidades atualizadas com sucesso',
       data: {
-        habilities: habilities || null
-      }
+        habilities: habilities || null,
+      },
     };
   }
 
   @Put('moment-career')
-  @ApiOperation({ summary: 'Atualizar momento de carreira do usuário (opcional)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiOperation({
+    summary: 'Atualizar momento de carreira do usuário (opcional)',
+  })
+  @ApiResponse({
+    status: 200,
     description: 'Momento de carreira atualizado com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Momento de carreira atualizado com sucesso',
         data: {
-          momentCareer: 'Iniciando carreira em desenvolvimento web'
-        }
-      }
-    }
+          momentCareer: 'Iniciando carreira em desenvolvimento web',
+        },
+      },
+    },
   })
   async updateMomentCareer(
     @Request() req: any,
@@ -530,31 +565,33 @@ export class UserProfileController {
     }
 
     // Atualizar apenas o momento de carreira
-    await this.userRepository.updateProfile(userId, { momentCareer: momentCareer || null });
+    await this.userRepository.updateProfile(userId, {
+      momentCareer: momentCareer || null,
+    });
 
     return {
       success: true,
       message: 'Momento de carreira atualizado com sucesso',
       data: {
-        momentCareer: momentCareer || null
-      }
+        momentCareer: momentCareer || null,
+      },
     };
   }
 
   @Put('location')
   @ApiOperation({ summary: 'Atualizar localização do usuário (opcional)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Localização atualizada com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Localização atualizada com sucesso',
         data: {
-          location: 'São Paulo, SP, Brasil'
-        }
-      }
-    }
+          location: 'São Paulo, SP, Brasil',
+        },
+      },
+    },
   })
   async updateLocation(
     @Request() req: any,
@@ -569,41 +606,43 @@ export class UserProfileController {
     }
 
     // Atualizar apenas a localização
-    await this.userRepository.updateProfile(userId, { location: location || null });
+    await this.userRepository.updateProfile(userId, {
+      location: location || null,
+    });
 
     return {
       success: true,
       message: 'Localização atualizada com sucesso',
       data: {
-        location: location || null
-      }
+        location: location || null,
+      },
     };
   }
 
   @Put('instagram')
   @ApiOperation({ summary: 'Atualizar Instagram do usuário' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Instagram atualizado com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Instagram atualizado com sucesso',
         data: {
-          instagram: 'https://www.instagram.com/usuario'
-        }
-      }
-    }
+          instagram: 'https://www.instagram.com/usuario',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Dados inválidos',
     schema: {
       example: {
         success: false,
-        message: 'Instagram deve ser uma URL válida'
-      }
-    }
+        message: 'Instagram deve ser uma URL válida',
+      },
+    },
   })
   async updateInstagram(
     @Request() req: any,
@@ -616,43 +655,43 @@ export class UserProfileController {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    await this.userRepository.updateProfile(userId, { 
-      instagram: updateInstagramDto.instagram 
+    await this.userRepository.updateProfile(userId, {
+      instagram: updateInstagramDto.instagram,
     });
 
     return {
       success: true,
       message: 'Instagram atualizado com sucesso',
       data: {
-        instagram: updateInstagramDto.instagram
-      }
+        instagram: updateInstagramDto.instagram,
+      },
     };
   }
 
   @Put('twitter')
   @ApiOperation({ summary: 'Atualizar Twitter/X do usuário' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Twitter atualizado com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Twitter atualizado com sucesso',
         data: {
-          twitter: 'https://twitter.com/usuario'
-        }
-      }
-    }
+          twitter: 'https://twitter.com/usuario',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Dados inválidos',
     schema: {
       example: {
         success: false,
-        message: 'Twitter deve ser uma URL válida'
-      }
-    }
+        message: 'Twitter deve ser uma URL válida',
+      },
+    },
   })
   async updateTwitter(
     @Request() req: any,
@@ -665,43 +704,49 @@ export class UserProfileController {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    await this.userRepository.updateProfile(userId, { 
-      twitter: updateTwitterDto.twitter 
+    await this.userRepository.updateProfile(userId, {
+      twitter: updateTwitterDto.twitter,
     });
 
     return {
       success: true,
       message: 'Twitter atualizado com sucesso',
       data: {
-        twitter: updateTwitterDto.twitter
-      }
+        twitter: updateTwitterDto.twitter,
+      },
     };
   }
 
   @Put('social-links-order')
   @ApiOperation({ summary: 'Atualizar ordem dos links sociais' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Ordem dos links atualizada com sucesso',
     schema: {
       example: {
         success: true,
         message: 'Ordem dos links atualizada com sucesso',
         data: {
-          socialLinksOrder: ['linkedin', 'github', 'portfolio', 'instagram', 'twitter']
-        }
-      }
-    }
+          socialLinksOrder: [
+            'linkedin',
+            'github',
+            'portfolio',
+            'instagram',
+            'twitter',
+          ],
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Dados inválidos',
     schema: {
       example: {
         success: false,
-        message: 'Deve conter exatamente 5 links'
-      }
-    }
+        message: 'Deve conter exatamente 5 links',
+      },
+    },
   })
   async updateSocialLinksOrder(
     @Request() req: any,
@@ -715,39 +760,51 @@ export class UserProfileController {
     }
 
     // Validar se todos os links válidos estão presentes
-    const validLinks = ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'];
+    const validLinks = [
+      'linkedin',
+      'github',
+      'portfolio',
+      'instagram',
+      'twitter',
+    ];
     const providedLinks = updateSocialLinksOrderDto.socialLinksOrder;
-    
-    const hasAllValidLinks = validLinks.every(link => providedLinks.includes(link));
-    const hasOnlyValidLinks = providedLinks.every(link => validLinks.includes(link));
-    
+
+    const hasAllValidLinks = validLinks.every((link) =>
+      providedLinks.includes(link),
+    );
+    const hasOnlyValidLinks = providedLinks.every((link) =>
+      validLinks.includes(link),
+    );
+
     if (!hasAllValidLinks || !hasOnlyValidLinks) {
       throw new HttpException(
         'A ordem deve conter exatamente os links: linkedin, github, portfolio, instagram, twitter',
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
 
     // Converter array para JSON string
-    const socialLinksOrderJson = JSON.stringify(updateSocialLinksOrderDto.socialLinksOrder);
+    const socialLinksOrderJson = JSON.stringify(
+      updateSocialLinksOrderDto.socialLinksOrder,
+    );
 
-    await this.userRepository.updateProfile(userId, { 
-      socialLinksOrder: socialLinksOrderJson
+    await this.userRepository.updateProfile(userId, {
+      socialLinksOrder: socialLinksOrderJson,
     });
 
     return {
       success: true,
       message: 'Ordem dos links atualizada com sucesso',
       data: {
-        socialLinksOrder: updateSocialLinksOrderDto.socialLinksOrder
-      }
+        socialLinksOrder: updateSocialLinksOrderDto.socialLinksOrder,
+      },
     };
   }
 
   @Put('email')
   @ApiOperation({ summary: 'Email não pode ser editado' })
-  @ApiResponse({ 
-    status: 403, 
+  @ApiResponse({
+    status: 403,
     description: 'Email não pode ser editado',
     schema: {
       example: {
@@ -755,17 +812,20 @@ export class UserProfileController {
         message: 'Email não pode ser editado',
         field: 'email',
         readonly: true,
-        tag: 'READONLY_FIELD'
-      }
-    }
+        tag: 'READONLY_FIELD',
+      },
+    },
   })
   async updateEmail() {
-    throw new HttpException({
-      success: false,
-      message: 'Email não pode ser editado',
-      field: 'email',
-      readonly: true,
-      tag: 'READONLY_FIELD'
-    }, HttpStatus.FORBIDDEN);
+    throw new HttpException(
+      {
+        success: false,
+        message: 'Email não pode ser editado',
+        field: 'email',
+        readonly: true,
+        tag: 'READONLY_FIELD',
+      },
+      HttpStatus.FORBIDDEN,
+    );
   }
 }

@@ -10,4 +10,3 @@ export class CommunityInvite {
     public readonly updatedAt: Date = new Date(),
   ) {}
 }
-

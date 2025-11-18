@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import {
   FRIEND_REQUEST_REPOSITORY,
   USER_REPOSITORY,
@@ -41,21 +38,35 @@ export class ListFriendRequestsUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(input: ListFriendRequestsInput): Promise<ListFriendRequestsOutput> {
-    const { userId, type = 'received', status = FriendRequestStatus.PENDING } = input;
+  async execute(
+    input: ListFriendRequestsInput,
+  ): Promise<ListFriendRequestsOutput> {
+    const {
+      userId,
+      type = 'received',
+      status = FriendRequestStatus.PENDING,
+    } = input;
 
     let requests;
 
     if (type === 'received') {
-      requests = await this.friendRequestRepository.findByReceiverId(userId, status);
+      requests = await this.friendRequestRepository.findByReceiverId(
+        userId,
+        status,
+      );
     } else {
-      requests = await this.friendRequestRepository.findByRequesterId(userId, status);
+      requests = await this.friendRequestRepository.findByRequesterId(
+        userId,
+        status,
+      );
     }
 
     // Buscar informações dos usuários
     const requestsWithUsers = await Promise.all(
       requests.map(async (request) => {
-        const requester = await this.userRepository.findById(request.requesterId);
+        const requester = await this.userRepository.findById(
+          request.requesterId,
+        );
         const receiver = await this.userRepository.findById(request.receiverId);
 
         return {
@@ -77,4 +88,3 @@ export class ListFriendRequestsUseCase {
     };
   }
 }
-

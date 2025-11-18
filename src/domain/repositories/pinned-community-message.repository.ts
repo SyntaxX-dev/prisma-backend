@@ -10,7 +10,8 @@ export interface PinnedCommunityMessage {
   pinnedAt: Date;
 }
 
-export interface PinnedCommunityMessageWithDetails extends PinnedCommunityMessage {
+export interface PinnedCommunityMessageWithDetails
+  extends PinnedCommunityMessage {
   message: {
     id: string;
     communityId: string;
@@ -42,7 +43,9 @@ export interface PinnedCommunityMessageRepository {
   /**
    * Busca todas as mensagens fixadas de uma comunidade
    */
-  findByCommunity(communityId: string): Promise<PinnedCommunityMessageWithDetails[]>;
+  findByCommunity(
+    communityId: string,
+  ): Promise<PinnedCommunityMessageWithDetails[]>;
 
   /**
    * Verifica se uma mensagem está fixada
@@ -54,4 +57,3 @@ export interface PinnedCommunityMessageRepository {
    */
   findByMessageId(messageId: string): Promise<PinnedCommunityMessage | null>;
 }
-

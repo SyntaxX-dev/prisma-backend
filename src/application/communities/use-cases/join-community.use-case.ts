@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
   COMMUNITY_REPOSITORY,
@@ -96,4 +101,3 @@ export class JoinCommunityUseCase {
     };
   }
 }
-

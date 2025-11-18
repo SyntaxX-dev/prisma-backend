@@ -32,16 +32,22 @@ export class GetInProgressVideosUseCase {
     private readonly subCourseRepository: SubCourseRepository,
   ) {}
 
-  async execute(input: GetInProgressVideosInput): Promise<GetInProgressVideosOutput> {
+  async execute(
+    input: GetInProgressVideosInput,
+  ): Promise<GetInProgressVideosOutput> {
     // Buscar todos os vídeos em progresso (não completos com timestamp)
-    const progressList = await this.videoProgressRepository.findInProgressVideos(input.userId);
+    const progressList =
+      await this.videoProgressRepository.findInProgressVideos(input.userId);
 
-    console.log('[GetInProgressVideos] Progressos encontrados:', progressList.length);
-    progressList.forEach(p => {
+    console.log(
+      '[GetInProgressVideos] Progressos encontrados:',
+      progressList.length,
+    );
+    progressList.forEach((p) => {
       console.log('[GetInProgressVideos] Progresso:', {
         videoId: p.videoId,
         currentTimestamp: p.currentTimestamp,
-        isCompleted: p.isCompleted
+        isCompleted: p.isCompleted,
       });
     });
 
@@ -50,23 +56,37 @@ export class GetInProgressVideosUseCase {
       progressList.map(async (progress) => {
         const video = await this.videoRepository.findById(progress.videoId);
 
-        console.log('[GetInProgressVideos] Video buscado para ID:', progress.videoId, '-> encontrado:', !!video);
+        console.log(
+          '[GetInProgressVideos] Video buscado para ID:',
+          progress.videoId,
+          '-> encontrado:',
+          !!video,
+        );
 
         if (!video) {
-          console.warn('[GetInProgressVideos] Vídeo não encontrado no DB para ID:', progress.videoId);
+          console.warn(
+            '[GetInProgressVideos] Vídeo não encontrado no DB para ID:',
+            progress.videoId,
+          );
           return null;
         }
 
         // Buscar o SubCourse para obter o courseId
-        const subCourse = await this.subCourseRepository.findById(video.subCourseId);
+        const subCourse = await this.subCourseRepository.findById(
+          video.subCourseId,
+        );
         if (!subCourse) {
-          console.warn('[GetInProgressVideos] SubCourse não encontrado para ID:', video.subCourseId);
+          console.warn(
+            '[GetInProgressVideos] SubCourse não encontrado para ID:',
+            video.subCourseId,
+          );
           return null;
         }
 
-        const progressPercentage = video.duration && video.duration > 0
-          ? Math.round((progress.currentTimestamp! / video.duration) * 100)
-          : 0;
+        const progressPercentage =
+          video.duration && video.duration > 0
+            ? Math.round((progress.currentTimestamp! / video.duration) * 100)
+            : 0;
 
         return {
           videoId: video.videoId,
@@ -80,7 +100,7 @@ export class GetInProgressVideosUseCase {
           progressPercentage,
           lastWatchedAt: progress.updatedAt,
         } as InProgressVideo;
-      })
+      }),
     );
 
     // Filtrar nulls e ordenar por última visualização (mais recente primeiro)
@@ -91,4 +111,3 @@ export class GetInProgressVideosUseCase {
     return { videos };
   }
 }
-

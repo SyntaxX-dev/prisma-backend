@@ -4,7 +4,7 @@ import { RABBITMQ_SERVICE } from '../../domain/tokens';
 
 /**
  * RabbitMQModule - Módulo que fornece serviços RabbitMQ
- * 
+ *
  * @Global() - Torna o módulo global, permitindo usar RabbitMQService em qualquer lugar
  */
 @Global()
@@ -19,4 +19,3 @@ import { RABBITMQ_SERVICE } from '../../domain/tokens';
   exports: [RABBITMQ_SERVICE, RabbitMQService],
 })
 export class RabbitMQModule {}
-

@@ -9,7 +9,12 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { SendFriendRequestUseCase } from '../../../application/friendships/use-cases/send-friend-request.use-case';
 import { AcceptFriendRequestUseCase } from '../../../application/friendships/use-cases/accept-friend-request.use-case';
@@ -39,9 +44,15 @@ export class FriendshipsController {
 
   @Post('requests')
   @ApiOperation({ summary: 'Enviar pedido de amizade' })
-  @ApiResponse({ status: 201, description: 'Pedido de amizade enviado com sucesso' })
+  @ApiResponse({
+    status: 201,
+    description: 'Pedido de amizade enviado com sucesso',
+  })
   @ApiResponse({ status: 400, description: 'Erro ao enviar pedido' })
-  async sendFriendRequest(@Request() req: any, @Body() body: { receiverId: string }) {
+  async sendFriendRequest(
+    @Request() req: any,
+    @Body() body: { receiverId: string },
+  ) {
     const result = await this.sendFriendRequestUseCase.execute({
       requesterId: req.user.sub,
       receiverId: body.receiverId,
@@ -56,9 +67,15 @@ export class FriendshipsController {
 
   @Post('requests/:id/accept')
   @ApiOperation({ summary: 'Aceitar pedido de amizade' })
-  @ApiResponse({ status: 200, description: 'Pedido de amizade aceito com sucesso' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pedido de amizade aceito com sucesso',
+  })
   @ApiResponse({ status: 400, description: 'Erro ao aceitar pedido' })
-  async acceptFriendRequest(@Request() req: any, @Param('id') friendRequestId: string) {
+  async acceptFriendRequest(
+    @Request() req: any,
+    @Param('id') friendRequestId: string,
+  ) {
     const result = await this.acceptFriendRequestUseCase.execute({
       userId: req.user.sub,
       friendRequestId,
@@ -75,7 +92,10 @@ export class FriendshipsController {
   @ApiOperation({ summary: 'Rejeitar pedido de amizade' })
   @ApiResponse({ status: 200, description: 'Pedido de amizade rejeitado' })
   @ApiResponse({ status: 400, description: 'Erro ao rejeitar pedido' })
-  async rejectFriendRequest(@Request() req: any, @Param('id') friendRequestId: string) {
+  async rejectFriendRequest(
+    @Request() req: any,
+    @Param('id') friendRequestId: string,
+  ) {
     const result = await this.rejectFriendRequestUseCase.execute({
       userId: req.user.sub,
       friendRequestId,
@@ -98,7 +118,9 @@ export class FriendshipsController {
     const result = await this.listFriendRequestsUseCase.execute({
       userId: req.user.sub,
       type: type || 'received',
-      status: status ? (status as FriendRequestStatus) : FriendRequestStatus.PENDING,
+      status: status
+        ? (status as FriendRequestStatus)
+        : FriendRequestStatus.PENDING,
     });
 
     return {
@@ -147,7 +169,10 @@ export class FriendshipsController {
   @ApiOperation({ summary: 'Desbloquear usuário' })
   @ApiResponse({ status: 200, description: 'Usuário desbloqueado com sucesso' })
   @ApiResponse({ status: 400, description: 'Erro ao desbloquear usuário' })
-  async unblockUser(@Request() req: any, @Param('blockedId') blockedId: string) {
+  async unblockUser(
+    @Request() req: any,
+    @Param('blockedId') blockedId: string,
+  ) {
     const result = await this.unblockUserUseCase.execute({
       blockerId: req.user.sub,
       blockedId,
@@ -176,4 +201,3 @@ export class FriendshipsController {
     };
   }
 }
-

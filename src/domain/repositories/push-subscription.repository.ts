@@ -49,4 +49,3 @@ export interface PushSubscriptionRepository {
    */
   deleteByUserId(userId: string): Promise<void>;
 }
-

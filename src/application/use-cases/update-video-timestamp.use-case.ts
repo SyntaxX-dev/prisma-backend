@@ -21,7 +21,9 @@ export class UpdateVideoTimestampUseCase {
     private readonly videoRepository: VideoRepository,
   ) {}
 
-  async execute(input: UpdateVideoTimestampInput): Promise<UpdateVideoTimestampOutput> {
+  async execute(
+    input: UpdateVideoTimestampInput,
+  ): Promise<UpdateVideoTimestampOutput> {
     // Verificar se o vídeo existe
     const video = await this.videoRepository.findByVideoId(input.videoId);
     if (!video) {
@@ -61,7 +63,9 @@ export class UpdateVideoTimestampUseCase {
       // (usuário está assistindo novamente)
       let updatedProgress = progress.updateTimestamp(input.timestamp);
       if (progress.isCompleted) {
-        console.log('[UpdateTimestamp] Vídeo estava completado, desmarcando...');
+        console.log(
+          '[UpdateTimestamp] Vídeo estava completado, desmarcando...',
+        );
         updatedProgress = updatedProgress.markAsIncomplete();
       }
 
@@ -72,4 +76,3 @@ export class UpdateVideoTimestampUseCase {
     return { progress };
   }
 }
-

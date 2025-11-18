@@ -1,12 +1,20 @@
 /**
  * MarkMessagesAsReadUseCase - Lógica para marcar mensagens como lidas
- * 
+ *
  * Quando um usuário abre uma conversa, todas as mensagens não lidas
  * daquele amigo são marcadas como lidas.
  */
 
-import { Injectable, Inject, BadRequestException, Optional } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY } from '../../../domain/tokens';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  Optional,
+} from '@nestjs/common';
+import {
+  MESSAGE_REPOSITORY,
+  FRIENDSHIP_REPOSITORY,
+} from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
@@ -32,7 +40,9 @@ export class MarkMessagesAsReadUseCase {
     private readonly chatGateway?: ChatGateway,
   ) {}
 
-  async execute(input: MarkMessagesAsReadInput): Promise<MarkMessagesAsReadOutput> {
+  async execute(
+    input: MarkMessagesAsReadInput,
+  ): Promise<MarkMessagesAsReadOutput> {
     const { userId, senderId } = input;
 
     // Validações
@@ -41,7 +51,10 @@ export class MarkMessagesAsReadUseCase {
     }
 
     // Verificar se são amigos
-    const friendship = await this.friendshipRepository.findByUsers(userId, senderId);
+    const friendship = await this.friendshipRepository.findByUsers(
+      userId,
+      senderId,
+    );
     if (!friendship) {
       throw new BadRequestException('Vocês precisam ser amigos');
     }
@@ -73,4 +86,3 @@ export class MarkMessagesAsReadUseCase {
     };
   }
 }
-

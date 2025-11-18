@@ -161,21 +161,27 @@ export class AuthController {
     };
   }> {
     const output: LoginOutput = await this.loginUser.execute(body);
-    
+
     // Marcar usuário como online no Redis e notificar amigos
     if (this.chatGateway) {
       try {
         await this.chatGateway.setUserOnline(output.user.id);
-        console.log('[AUTH_CONTROLLER] ✅ Usuário marcado como online após login', {
-          userId: output.user.id,
-          timestamp: new Date().toISOString(),
-        });
+        console.log(
+          '[AUTH_CONTROLLER] ✅ Usuário marcado como online após login',
+          {
+            userId: output.user.id,
+            timestamp: new Date().toISOString(),
+          },
+        );
       } catch (error) {
-        console.error('[AUTH_CONTROLLER] ❌ Erro ao marcar usuário como online:', error);
+        console.error(
+          '[AUTH_CONTROLLER] ❌ Erro ao marcar usuário como online:',
+          error,
+        );
         // Não falhar o login se houver erro ao marcar como online
       }
     }
-    
+
     return {
       accessToken: output.accessToken,
       user: {
@@ -209,12 +215,18 @@ export class AuthController {
     if (this.chatGateway) {
       try {
         await this.chatGateway.setUserOffline(user.sub);
-        console.log('[AUTH_CONTROLLER] ❌ Usuário marcado como offline após logout', {
-          userId: user.sub,
-          timestamp: new Date().toISOString(),
-        });
+        console.log(
+          '[AUTH_CONTROLLER] ❌ Usuário marcado como offline após logout',
+          {
+            userId: user.sub,
+            timestamp: new Date().toISOString(),
+          },
+        );
       } catch (error) {
-        console.error('[AUTH_CONTROLLER] ❌ Erro ao marcar usuário como offline:', error);
+        console.error(
+          '[AUTH_CONTROLLER] ❌ Erro ao marcar usuário como offline:',
+          error,
+        );
         // Não falhar o logout se houver erro ao marcar como offline
       }
     }
@@ -255,10 +267,17 @@ export class AuthController {
         notification: {
           hasNotification: true,
           missingFields: ['idade', 'foco de estudo'],
-          message: 'Complete seu perfil adicionando sua idade e foco de estudo.',
+          message:
+            'Complete seu perfil adicionando sua idade e foco de estudo.',
           badge: 'ENEM_BADGE',
           profileCompletionPercentage: 75,
-          completedFields: ['nome', 'email', 'foto do perfil', 'LinkedIn', 'GitHub']
+          completedFields: [
+            'nome',
+            'email',
+            'foto do perfil',
+            'LinkedIn',
+            'GitHub',
+          ],
         },
       },
     },
@@ -289,7 +308,7 @@ export class AuthController {
       email: {
         value: user.email,
         readonly: true,
-        tag: 'READONLY_FIELD'
+        tag: 'READONLY_FIELD',
       },
       perfil: roleMapEnToPt[user.role as UserRole] || user.role,
       // Informações básicas
@@ -306,7 +325,9 @@ export class AuthController {
       location: fullUser?.location || null,
       instagram: fullUser?.instagram || null,
       twitter: fullUser?.twitter || null,
-      socialLinksOrder: fullUser?.socialLinksOrder ? JSON.parse(fullUser.socialLinksOrder) : ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'],
+      socialLinksOrder: fullUser?.socialLinksOrder
+        ? JSON.parse(fullUser.socialLinksOrder)
+        : ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'],
       // Foco de estudo
       userFocus: fullUser?.userFocus || null,
       contestType: fullUser?.contestType || null,
@@ -321,7 +342,8 @@ export class AuthController {
         missingFields: notificationInfo.missingFields,
         message: notificationInfo.message,
         badge: notificationInfo.badge,
-        profileCompletionPercentage: notificationInfo.profileCompletionPercentage,
+        profileCompletionPercentage:
+          notificationInfo.profileCompletionPercentage,
         completedFields: notificationInfo.completedFields,
       },
     };

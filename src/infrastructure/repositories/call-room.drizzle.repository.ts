@@ -30,14 +30,24 @@ export class CallRoomDrizzleRepository implements CallRoomRepository {
     return result ? this.mapToEntity(result) : null;
   }
 
-  async findByUsers(userId1: string, userId2: string, limit: number = 50): Promise<CallRoom[]> {
+  async findByUsers(
+    userId1: string,
+    userId2: string,
+    limit: number = 50,
+  ): Promise<CallRoom[]> {
     const results = await this.db
       .select()
       .from(callRooms)
       .where(
         or(
-          and(eq(callRooms.callerId, userId1), eq(callRooms.receiverId, userId2)),
-          and(eq(callRooms.callerId, userId2), eq(callRooms.receiverId, userId1)),
+          and(
+            eq(callRooms.callerId, userId1),
+            eq(callRooms.receiverId, userId2),
+          ),
+          and(
+            eq(callRooms.callerId, userId2),
+            eq(callRooms.receiverId, userId1),
+          ),
         ),
       )
       .orderBy(desc(callRooms.startedAt))
@@ -46,16 +56,29 @@ export class CallRoomDrizzleRepository implements CallRoomRepository {
     return results.map((row) => this.mapToEntity(row));
   }
 
-  async updateStatus(id: string, status: 'ringing' | 'active' | 'ended' | 'rejected' | 'missed'): Promise<void> {
+  async updateStatus(
+    id: string,
+    status: 'ringing' | 'active' | 'ended' | 'rejected' | 'missed',
+  ): Promise<void> {
     await this.db.update(callRooms).set({ status }).where(eq(callRooms.id, id));
   }
 
   async updateAnsweredAt(id: string, answeredAt: Date): Promise<void> {
-    await this.db.update(callRooms).set({ answeredAt }).where(eq(callRooms.id, id));
+    await this.db
+      .update(callRooms)
+      .set({ answeredAt })
+      .where(eq(callRooms.id, id));
   }
 
-  async updateEndedAt(id: string, endedAt: Date, duration: number): Promise<void> {
-    await this.db.update(callRooms).set({ endedAt, duration }).where(eq(callRooms.id, id));
+  async updateEndedAt(
+    id: string,
+    endedAt: Date,
+    duration: number,
+  ): Promise<void> {
+    await this.db
+      .update(callRooms)
+      .set({ endedAt, duration })
+      .where(eq(callRooms.id, id));
   }
 
   private mapToEntity(row: any): CallRoom {
@@ -72,4 +95,3 @@ export class CallRoomDrizzleRepository implements CallRoomRepository {
     );
   }
 }
-

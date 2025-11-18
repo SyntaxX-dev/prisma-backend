@@ -58,12 +58,16 @@ export class SendFriendRequestUseCase {
     private readonly notificationsGateway?: NotificationsGateway,
   ) {}
 
-  async execute(input: SendFriendRequestInput): Promise<SendFriendRequestOutput> {
+  async execute(
+    input: SendFriendRequestInput,
+  ): Promise<SendFriendRequestOutput> {
     const { requesterId, receiverId } = input;
 
     // Não pode enviar pedido para si mesmo
     if (requesterId === receiverId) {
-      throw new BadRequestException('Você não pode enviar um pedido de amizade para si mesmo');
+      throw new BadRequestException(
+        'Você não pode enviar um pedido de amizade para si mesmo',
+      );
     }
 
     // Verificar se o usuário receptor existe
@@ -79,47 +83,64 @@ export class SendFriendRequestUseCase {
     }
 
     // Verificar se o usuário que está enviando foi bloqueado pelo receptor
-    const isBlocked = await this.blockRepository.findByBlockerAndBlocked(receiverId, requesterId);
+    const isBlocked = await this.blockRepository.findByBlockerAndBlocked(
+      receiverId,
+      requesterId,
+    );
     if (isBlocked) {
       // O usuário bloqueado não sabe que foi bloqueado, então não retornamos erro específico
       // Mas não criamos o pedido
-      throw new ForbiddenException('Não foi possível enviar o pedido de amizade');
+      throw new ForbiddenException(
+        'Não foi possível enviar o pedido de amizade',
+      );
     }
 
     // Verificar se já são amigos
-    const existingFriendship = await this.friendshipRepository.findByUsers(requesterId, receiverId);
+    const existingFriendship = await this.friendshipRepository.findByUsers(
+      requesterId,
+      receiverId,
+    );
     if (existingFriendship) {
       throw new BadRequestException('Vocês já são amigos');
     }
 
     // Verificar se já existe um pedido entre esses dois usuários (direção atual)
-    const existingRequest = await this.friendRequestRepository.findByRequesterAndReceiver(
-      requesterId,
-      receiverId,
-    );
+    const existingRequest =
+      await this.friendRequestRepository.findByRequesterAndReceiver(
+        requesterId,
+        receiverId,
+      );
     if (existingRequest) {
       if (existingRequest.status === FriendRequestStatus.PENDING) {
-        throw new BadRequestException('Já existe um pedido de amizade pendente');
+        throw new BadRequestException(
+          'Já existe um pedido de amizade pendente',
+        );
       }
       // Se o pedido foi aceito ou rejeitado, deleta o antigo para criar um novo
       await this.friendRequestRepository.delete(existingRequest.id);
     }
 
     // Verificar se existe um pedido na direção oposta
-    const reverseRequest = await this.friendRequestRepository.findByRequesterAndReceiver(
-      receiverId,
-      requesterId,
-    );
+    const reverseRequest =
+      await this.friendRequestRepository.findByRequesterAndReceiver(
+        receiverId,
+        requesterId,
+      );
     if (reverseRequest) {
       if (reverseRequest.status === FriendRequestStatus.PENDING) {
-        throw new BadRequestException('Este usuário já enviou um pedido de amizade para você');
+        throw new BadRequestException(
+          'Este usuário já enviou um pedido de amizade para você',
+        );
       }
       // Se o pedido foi aceito ou rejeitado, deleta o antigo para criar um novo
       await this.friendRequestRepository.delete(reverseRequest.id);
     }
 
     // Criar o pedido de amizade
-    const friendRequest = await this.friendRequestRepository.create(requesterId, receiverId);
+    const friendRequest = await this.friendRequestRepository.create(
+      requesterId,
+      receiverId,
+    );
 
     // Criar notificação para o receptor
     const notification = await this.notificationRepository.create(
@@ -147,15 +168,25 @@ export class SendFriendRequestUseCase {
         },
         createdAt: notification.createdAt,
       };
-      
-      const sent = this.notificationsGateway.emitToUser(receiverId, 'friend_request', notificationData);
+
+      const sent = this.notificationsGateway.emitToUser(
+        receiverId,
+        'friend_request',
+        notificationData,
+      );
       if (!sent) {
-        console.log(`[SendFriendRequest] Usuário ${receiverId} não está conectado ao WebSocket`);
+        console.log(
+          `[SendFriendRequest] Usuário ${receiverId} não está conectado ao WebSocket`,
+        );
       } else {
-        console.log(`[SendFriendRequest] Notificação enviada via WebSocket para usuário ${receiverId}`);
+        console.log(
+          `[SendFriendRequest] Notificação enviada via WebSocket para usuário ${receiverId}`,
+        );
       }
     } else {
-      console.warn('[SendFriendRequest] NotificationsGateway não está disponível');
+      console.warn(
+        '[SendFriendRequest] NotificationsGateway não está disponível',
+      );
     }
 
     return {
@@ -171,4 +202,3 @@ export class SendFriendRequestUseCase {
     };
   }
 }
-

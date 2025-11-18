@@ -34,4 +34,3 @@ import { ListFriendRequestsUseCase } from './use-cases/list-friend-requests.use-
   ],
 })
 export class FriendshipsModule {}
-

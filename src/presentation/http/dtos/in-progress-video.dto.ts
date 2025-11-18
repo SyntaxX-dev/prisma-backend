@@ -57,4 +57,3 @@ export class InProgressVideoDto {
   })
   lastWatchedAt: Date;
 }
-

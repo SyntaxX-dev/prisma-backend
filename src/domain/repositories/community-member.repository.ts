@@ -11,4 +11,3 @@ export interface CommunityMemberRepository {
   delete(communityId: string, userId: string): Promise<void>;
   countMembersByCommunityId(communityId: string): Promise<number>;
 }
-

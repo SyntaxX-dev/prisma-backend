@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString, IsOptional, ArrayMinSize, ArrayMaxSize } from 'class-validator';
+import {
+  IsArray,
+  IsString,
+  IsOptional,
+  ArrayMinSize,
+  ArrayMaxSize,
+} from 'class-validator';
 
 export class BulkProcessPlaylistsDto {
   @ApiProperty({
@@ -16,7 +22,8 @@ export class BulkProcessPlaylistsDto {
   playlistIds: string[];
 
   @ApiProperty({
-    description: 'Prompt personalizado para a IA organizar os cursos (opcional)',
+    description:
+      'Prompt personalizado para a IA organizar os cursos (opcional)',
     example: 'Organize os cursos por nível: Básico, Intermediário e Avançado',
     required: false,
   })
@@ -24,4 +31,3 @@ export class BulkProcessPlaylistsDto {
   @IsString()
   aiPrompt?: string;
 }
-

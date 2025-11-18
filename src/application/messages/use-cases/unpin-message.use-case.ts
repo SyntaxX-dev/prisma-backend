@@ -29,9 +29,12 @@ export class UnpinMessageUseCase {
     });
 
     // 1. Verificar se mensagem está fixada
-    const pinnedMessage = await this.pinnedMessageRepository.findByMessageId(messageId);
+    const pinnedMessage =
+      await this.pinnedMessageRepository.findByMessageId(messageId);
     if (!pinnedMessage) {
-      console.warn('[UNPIN_MESSAGE] ❌ Mensagem não está fixada', { messageId });
+      console.warn('[UNPIN_MESSAGE] ❌ Mensagem não está fixada', {
+        messageId,
+      });
       throw new NotFoundException('Mensagem não está fixada');
     }
 
@@ -42,12 +45,17 @@ export class UnpinMessageUseCase {
       pinnedMessage.userId2 === userId;
 
     if (!canUnpin) {
-      console.warn('[UNPIN_MESSAGE] ❌ Usuário não tem permissão para desfixar', {
-        messageId,
-        userId,
-        pinnedBy: pinnedMessage.pinnedBy,
-      });
-      throw new NotFoundException('Você não tem permissão para desfixar esta mensagem');
+      console.warn(
+        '[UNPIN_MESSAGE] ❌ Usuário não tem permissão para desfixar',
+        {
+          messageId,
+          userId,
+          pinnedBy: pinnedMessage.pinnedBy,
+        },
+      );
+      throw new NotFoundException(
+        'Você não tem permissão para desfixar esta mensagem',
+      );
     }
 
     // 3. Desfixar mensagem
@@ -65,4 +73,3 @@ export class UnpinMessageUseCase {
     };
   }
 }
-

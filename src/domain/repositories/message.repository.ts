@@ -2,7 +2,7 @@ import { Message } from '../entities/message';
 
 /**
  * Interface MessageRepository - Define como acessar mensagens no banco de dados
- * 
+ *
  * Esta interface define os métodos que qualquer implementação de repositório
  * de mensagens deve ter. Isso permite trocar a implementação facilmente.
  */
@@ -10,7 +10,11 @@ export interface MessageRepository {
   /**
    * Cria uma nova mensagem no banco de dados
    */
-  create(senderId: string, receiverId: string, content: string): Promise<Message>;
+  create(
+    senderId: string,
+    receiverId: string,
+    content: string,
+  ): Promise<Message>;
 
   /**
    * Busca uma mensagem pelo ID
@@ -56,16 +60,21 @@ export interface MessageRepository {
    * @param userId - ID do usuário
    * @returns Array com informações da última mensagem de cada conversa
    */
-  findConversations(userId: string): Promise<Array<{
-    otherUserId: string;
-    lastMessage: Message;
-    unreadCount: number;
-  }>>;
+  findConversations(userId: string): Promise<
+    Array<{
+      otherUserId: string;
+      lastMessage: Message;
+      unreadCount: number;
+    }>
+  >;
 
   /**
    * Conta mensagens não lidas de uma conversa específica
    */
-  countUnreadByConversation(receiverId: string, senderId: string): Promise<number>;
+  countUnreadByConversation(
+    receiverId: string,
+    senderId: string,
+  ): Promise<number>;
 
   /**
    * Atualiza o conteúdo de uma mensagem
@@ -77,4 +86,3 @@ export interface MessageRepository {
    */
   delete(messageId: string): Promise<void>;
 }
-

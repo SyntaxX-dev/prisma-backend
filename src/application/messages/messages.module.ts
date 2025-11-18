@@ -14,10 +14,7 @@ import { ListConversationsUseCase } from './use-cases/list-conversations.use-cas
 import { GetConversationAttachmentsUseCase } from './use-cases/get-conversation-attachments.use-case';
 
 @Module({
-  imports: [
-    InfrastructureModule,
-    forwardRef(() => WebSocketsModule),
-  ],
+  imports: [InfrastructureModule, forwardRef(() => WebSocketsModule)],
   providers: [
     SendMessageUseCase,
     GetMessagesUseCase,
@@ -46,4 +43,3 @@ import { GetConversationAttachmentsUseCase } from './use-cases/get-conversation-
   ],
 })
 export class MessagesModule {}
-

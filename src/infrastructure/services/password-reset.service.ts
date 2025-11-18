@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PASSWORD_RESET_SERVICE, USER_REPOSITORY, PASSWORD_HASHER, MAILER_SERVICE } from '../../domain/tokens';
+import {
+  PASSWORD_RESET_SERVICE,
+  USER_REPOSITORY,
+  PASSWORD_HASHER,
+  MAILER_SERVICE,
+} from '../../domain/tokens';
 import type { PasswordResetService as PasswordResetServicePort } from '../../domain/services/password-reset.service';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { PasswordHasher } from '../../domain/services/password-hasher';
@@ -32,7 +37,7 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
 
     // Gerar código aleatório de 6 dígitos
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Definir expiração em 15 minutos
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 15);
@@ -52,7 +57,7 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
 
   async verifyResetCode(email: string, code: string): Promise<boolean> {
     const resetData = this.resetCodes.get(email);
-    
+
     if (!resetData) {
       return false;
     }
@@ -100,7 +105,11 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
     this.resetCodes.delete(email);
   }
 
-  private async sendResetEmail(userName: string, userEmail: string, code: string): Promise<void> {
+  private async sendResetEmail(
+    userName: string,
+    userEmail: string,
+    code: string,
+  ): Promise<void> {
     try {
       // Primeiro, tentar enviar usando o serviço de email configurado
       const emailData = {
@@ -112,16 +121,19 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
       };
 
       const emailContent = PasswordResetEmailTemplate.generate(emailData);
-      
+
       // Usar o serviço de email real
       await this.mailerService.sendEmail(
         userEmail,
         emailContent.subject,
         emailContent.html,
-        emailContent.text
+        emailContent.text,
       );
-      
-      console.log('✅ Email de redefinição enviado com sucesso para:', userEmail);
+
+      console.log(
+        '✅ Email de redefinição enviado com sucesso para:',
+        userEmail,
+      );
     } catch (error) {
       // Fallback: Log no console se o email falhar
       console.log('⚠️ Falha ao enviar email, código para desenvolvimento:', {
@@ -129,10 +141,9 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
         code: code,
         error: error.message,
       });
-      
+
       // Em desenvolvimento, não falhar se o email não funcionar
       // throw error; // Descomente em produção para falhar se email não funcionar
     }
   }
-} 
- 
+}

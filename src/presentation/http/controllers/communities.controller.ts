@@ -90,8 +90,10 @@ export class CommunitiesController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     // Verificar se é FormData (multipart) ou JSON
-    const isFormData = req.headers['content-type']?.includes('multipart/form-data');
-    
+    const isFormData = req.headers['content-type']?.includes(
+      'multipart/form-data',
+    );
+
     let name: string;
     let focus: string;
     let description: string | undefined;
@@ -116,29 +118,50 @@ export class CommunitiesController {
 
     // Validações manuais para FormData
     if (!name || typeof name !== 'string' || name.trim() === '') {
-      throw new HttpException('name should not be empty', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'name should not be empty',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     if (!focus || typeof focus !== 'string' || focus.trim() === '') {
-      throw new HttpException('focus should not be empty', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'focus should not be empty',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     if (!visibility || !['PUBLIC', 'PRIVATE'].includes(visibility)) {
-      throw new HttpException('visibility must be one of the following values: PUBLIC, PRIVATE', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'visibility must be one of the following values: PUBLIC, PRIVATE',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Se um arquivo foi enviado, fazer upload
     if (file) {
       // Validar tipo de arquivo
-      const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      const allowedMimeTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+      ];
       if (!allowedMimeTypes.includes(file.mimetype)) {
-        throw new HttpException('Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Validar tamanho do arquivo (máximo 5MB)
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
-        throw new HttpException('Arquivo muito grande. Tamanho máximo: 5MB', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Arquivo muito grande. Tamanho máximo: 5MB',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       try {
@@ -147,7 +170,7 @@ export class CommunitiesController {
       } catch (error) {
         throw new HttpException(
           `Erro ao fazer upload da imagem: ${error.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
     }
@@ -176,7 +199,10 @@ export class CommunitiesController {
     status: 200,
     description: 'Entrou na comunidade com sucesso',
   })
-  @ApiResponse({ status: 400, description: 'Não foi possível entrar na comunidade' })
+  @ApiResponse({
+    status: 400,
+    description: 'Não foi possível entrar na comunidade',
+  })
   @ApiResponse({ status: 404, description: 'Comunidade não encontrada' })
   async joinCommunity(
     @Request() req: any,
@@ -201,31 +227,32 @@ export class CommunitiesController {
     schema: {
       example: {
         success: true,
-        message: 'Você saiu da comunidade com sucesso'
-      }
-    }
+        message: 'Você saiu da comunidade com sucesso',
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Você não é membro desta comunidade',
     schema: {
       example: {
         statusCode: 400,
         message: 'Você não é membro desta comunidade',
-        error: 'Bad Request'
-      }
-    }
+        error: 'Bad Request',
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 403, 
+  @ApiResponse({
+    status: 403,
     description: 'O dono da comunidade não pode sair',
     schema: {
       example: {
         statusCode: 403,
-        message: 'O dono da comunidade não pode sair. Se deseja excluir a comunidade, use o endpoint de exclusão.',
-        error: 'Forbidden'
-      }
-    }
+        message:
+          'O dono da comunidade não pode sair. Se deseja excluir a comunidade, use o endpoint de exclusão.',
+        error: 'Forbidden',
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'Comunidade não encontrada' })
   async leaveCommunity(
@@ -249,8 +276,14 @@ export class CommunitiesController {
     status: 200,
     description: 'Convite enviado com sucesso',
   })
-  @ApiResponse({ status: 400, description: 'Não foi possível enviar o convite' })
-  @ApiResponse({ status: 404, description: 'Comunidade ou usuário não encontrado' })
+  @ApiResponse({
+    status: 400,
+    description: 'Não foi possível enviar o convite',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Comunidade ou usuário não encontrado',
+  })
   async inviteToCommunity(
     @Request() req: any,
     @Body() inviteToCommunityDto: InviteToCommunityDto,
@@ -308,7 +341,10 @@ export class CommunitiesController {
     description: 'Detalhes da comunidade retornados com sucesso',
   })
   @ApiResponse({ status: 404, description: 'Comunidade não encontrada' })
-  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar a comunidade' })
+  @ApiResponse({
+    status: 403,
+    description: 'Sem permissão para visualizar a comunidade',
+  })
   async getCommunity(@Request() req: any, @Param('id') id: string) {
     const userId = req.user?.sub;
     const result = await this.getCommunityUseCase.execute({
@@ -352,19 +388,22 @@ export class CommunitiesController {
               name: 'João Silva',
               profileImage: 'https://...',
               joinedAt: '2025-11-08T20:05:11.628Z',
-              isOwner: true
-            }
+              isOwner: true,
+            },
           ],
           total: 50,
           limit: 20,
           offset: 0,
-          hasMore: true
-        }
-      }
-    }
+          hasMore: true,
+        },
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'Comunidade não encontrada' })
-  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar os membros' })
+  @ApiResponse({
+    status: 403,
+    description: 'Sem permissão para visualizar os membros',
+  })
   async listCommunityMembers(
     @Request() req: any,
     @Param('id') id: string,
@@ -399,42 +438,43 @@ export class CommunitiesController {
         success: true,
         message: 'Imagem da comunidade enviada com sucesso',
         data: {
-          image: 'https://res.cloudinary.com/dgdefptw3/image/upload/v1234567890/community-images/abc123.jpg'
-        }
-      }
-    }
+          image:
+            'https://res.cloudinary.com/dgdefptw3/image/upload/v1234567890/community-images/abc123.jpg',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Erro no upload da imagem',
     schema: {
       example: {
         success: false,
-        message: 'Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP'
-      }
-    }
+        message: 'Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP',
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 403, 
+  @ApiResponse({
+    status: 403,
     description: 'Apenas o dono da comunidade pode fazer upload de imagem',
     schema: {
       example: {
         statusCode: 403,
         message: 'Apenas o dono da comunidade pode fazer upload de imagem',
-        error: 'Forbidden'
-      }
-    }
+        error: 'Forbidden',
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 404, 
+  @ApiResponse({
+    status: 404,
     description: 'Comunidade não encontrada',
     schema: {
       example: {
         statusCode: 404,
         message: 'Comunidade não encontrada',
-        error: 'Not Found'
-      }
-    }
+        error: 'Not Found',
+      },
+    },
   })
   async uploadCommunityImage(
     @Param('id') communityId: string,
@@ -444,31 +484,49 @@ export class CommunitiesController {
     const userId = req.user.sub;
 
     if (!file) {
-      throw new HttpException('Nenhum arquivo foi enviado', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Nenhum arquivo foi enviado',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Validar tipo de arquivo
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new HttpException('Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Validar tamanho do arquivo (máximo 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      throw new HttpException('Arquivo muito grande. Tamanho máximo: 5MB', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Arquivo muito grande. Tamanho máximo: 5MB',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Verificar se a comunidade existe e se o usuário é o dono
     const community = await this.communityRepository.findById(communityId);
     if (!community) {
-      throw new HttpException('Comunidade não encontrada', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        'Comunidade não encontrada',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     if (community.ownerId !== userId) {
       throw new HttpException(
         'Apenas o dono da comunidade pode fazer upload de imagem',
-        HttpStatus.FORBIDDEN
+        HttpStatus.FORBIDDEN,
       );
     }
 
@@ -484,13 +542,13 @@ export class CommunitiesController {
         success: true,
         message: 'Imagem da comunidade enviada com sucesso',
         data: {
-          image: imageUrl
-        }
+          image: imageUrl,
+        },
       };
     } catch (error) {
       throw new HttpException(
         `Erro ao fazer upload da imagem: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -500,12 +558,19 @@ export class CommunitiesController {
   @Post(':id/messages/upload-signature')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Gerar assinatura para upload de arquivo em comunidade' })
+  @ApiOperation({
+    summary: 'Gerar assinatura para upload de arquivo em comunidade',
+  })
   @ApiResponse({ status: 200, description: 'Assinatura gerada com sucesso' })
   async getUploadSignature(
     @Request() req: any,
     @Param('id') communityId: string,
-    @Body() body: { fileType: string; fileSize: number; resourceType?: 'image' | 'raw' | 'video' | 'auto' },
+    @Body()
+    body: {
+      fileType: string;
+      fileSize: number;
+      resourceType?: 'image' | 'raw' | 'video' | 'auto';
+    },
   ) {
     const userId = req.user.sub;
     const { fileType, fileSize, resourceType = 'auto' } = body;
@@ -513,16 +578,28 @@ export class CommunitiesController {
     // Validações
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     if (fileSize > MAX_FILE_SIZE) {
-      throw new HttpException('Arquivo muito grande (máximo 10MB)', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Arquivo muito grande (máximo 10MB)',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Tipos permitidos
-    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedImageTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
     const allowedPdfTypes = ['application/pdf'];
     const allowedTypes = [...allowedImageTypes, ...allowedPdfTypes];
 
     if (!allowedTypes.includes(fileType)) {
-      throw new HttpException('Tipo de arquivo não permitido', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Tipo de arquivo não permitido',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Determinar formato e resource type
@@ -794,7 +871,9 @@ export class CommunitiesController {
   @Get(':id/messages/attachments')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Listar todos os arquivos/anexos de uma comunidade' })
+  @ApiOperation({
+    summary: 'Listar todos os arquivos/anexos de uma comunidade',
+  })
   @ApiResponse({
     status: 200,
     description: 'Arquivos retornados com sucesso',
@@ -830,7 +909,10 @@ export class CommunitiesController {
       },
     },
   })
-  async getCommunityAttachments(@Request() req: any, @Param('id') communityId: string) {
+  async getCommunityAttachments(
+    @Request() req: any,
+    @Param('id') communityId: string,
+  ) {
     try {
       const result = await this.getCommunityAttachmentsUseCase.execute({
         userId: req.user.sub,
@@ -852,4 +934,3 @@ export class CommunitiesController {
     }
   }
 }
-

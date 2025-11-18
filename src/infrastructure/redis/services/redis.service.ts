@@ -1,21 +1,26 @@
 /**
  * RedisService - Serviço para gerenciar conexão e operações com Redis
- * 
+ *
  * Este serviço encapsula todas as operações com Redis:
  * - Pub/Sub: Publicar e assinar mensagens
  * - Cache: Armazenar e recuperar dados temporários
- * 
+ *
  * Como funciona o Pub/Sub:
  * 1. Um servidor publica uma mensagem em um "canal" (channel)
  * 2. Outros servidores que estão "assinando" esse canal recebem a mensagem
  * 3. Isso permite que múltiplas instâncias do servidor compartilhem mensagens
- * 
+ *
  * Exemplo:
  * - Servidor 1: redis.publish('chat:user123', { message: 'Olá' })
  * - Servidor 2: redis.subscribe('chat:user123') → Recebe a mensagem
  */
 
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 import { RedisConfiguration } from '../config/redis.config';
 
@@ -33,7 +38,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const redisOptions: any = {
       retryStrategy: (times: number) => {
         const delay = Math.min(times * 50, 2000);
-        this.logger.warn(`Tentando reconectar ao Redis... (tentativa ${times})`);
+        this.logger.warn(
+          `Tentando reconectar ao Redis... (tentativa ${times})`,
+        );
         return delay;
       },
       enableReadyCheck: true,
@@ -55,7 +62,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       redisOptions.port = config.port;
       redisOptions.password = config.password;
       redisOptions.db = config.db;
-      
+
       this.publisher = new Redis(redisOptions);
       this.subscriber = new Redis(redisOptions);
       this.client = new Redis(redisOptions);
@@ -90,14 +97,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     // Redis é opcional - não travar a aplicação se não conectar
     const config = RedisConfiguration.loadFromEnv();
-    
+
     // Verificar se Redis está configurado
-    const hasUrl = config.url && !config.url.includes('${{') && config.url.trim() !== '';
-    const hasHost = config.host && config.host !== 'localhost' && config.host.trim() !== '' && !config.host.includes('${{');
-    
+    const hasUrl =
+      config.url && !config.url.includes('${{') && config.url.trim() !== '';
+    const hasHost =
+      config.host &&
+      config.host !== 'localhost' &&
+      config.host.trim() !== '' &&
+      !config.host.includes('${{');
+
     if (!hasUrl && !hasHost) {
-      this.logger.warn('⚠️ Redis não configurado (REDIS_URL ou REDIS_HOST/REDISHOST não definida). Continuando sem Redis.');
-      console.warn('[REDIS] ⚠️ Redis não configurado. Aplicação continuará sem Redis.');
+      this.logger.warn(
+        '⚠️ Redis não configurado (REDIS_URL ou REDIS_HOST/REDISHOST não definida). Continuando sem Redis.',
+      );
+      console.warn(
+        '[REDIS] ⚠️ Redis não configurado. Aplicação continuará sem Redis.',
+      );
       return;
     }
 
@@ -107,16 +123,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       const pingPromises = [
         Promise.race([
           this.publisher.ping(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 5000),
+          ),
         ]),
         Promise.race([
           this.subscriber.ping(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 5000),
+          ),
         ]),
         Promise.race([
           this.client.ping(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ])
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 5000),
+          ),
+        ]),
       ];
 
       await Promise.all(pingPromises);
@@ -128,8 +150,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         client: 'connected',
       });
     } catch (error) {
-      this.logger.error('❌ Erro ao conectar ao Redis (continuando sem Redis):', error);
-      console.error('[REDIS] ❌ Erro ao conectar (continuando sem Redis):', error);
+      this.logger.error(
+        '❌ Erro ao conectar ao Redis (continuando sem Redis):',
+        error,
+      );
+      console.error(
+        '[REDIS] ❌ Erro ao conectar (continuando sem Redis):',
+        error,
+      );
       // Não lança erro - Redis é opcional
     }
   }
@@ -144,87 +172,112 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Publica uma mensagem em um canal (Pub)
-   * 
+   *
    * @param channel - Nome do canal (ex: 'chat:user123')
    * @param message - Mensagem a ser publicada (será convertida para JSON)
-   * 
+   *
    * Exemplo:
    * redisService.publish('chat:user123', { type: 'new_message', data: {...} })
    */
   async publish(channel: string, message: any): Promise<void> {
-    console.log('[REDIS_SERVICE] 🔴 Método publish() chamado - Verificando disponibilidade do Redis...', {
-      channel,
-      messageType: message?.type,
-      publisherExists: !!this.publisher,
-      publisherStatus: this.publisher?.status,
-      timestamp: new Date().toISOString(),
-    });
+    console.log(
+      '[REDIS_SERVICE] 🔴 Método publish() chamado - Verificando disponibilidade do Redis...',
+      {
+        channel,
+        messageType: message?.type,
+        publisherExists: !!this.publisher,
+        publisherStatus: this.publisher?.status,
+        timestamp: new Date().toISOString(),
+      },
+    );
 
     try {
       // Verificar se Redis está disponível
       if (!this.publisher) {
-        this.logger.warn(`⚠️ Redis não disponível. Mensagem não publicada no canal: ${channel}`);
-        console.warn(`[REDIS_SERVICE] ⚠️ Redis não disponível. Mensagem não publicada:`, { 
-          channel, 
-          messageType: message?.type,
-          timestamp: new Date().toISOString(),
-        });
+        this.logger.warn(
+          `⚠️ Redis não disponível. Mensagem não publicada no canal: ${channel}`,
+        );
+        console.warn(
+          `[REDIS_SERVICE] ⚠️ Redis não disponível. Mensagem não publicada:`,
+          {
+            channel,
+            messageType: message?.type,
+            timestamp: new Date().toISOString(),
+          },
+        );
         return;
       }
 
       // Verificar status do cliente (ioredis não tem status 'ready', usa 'end' para verificar se desconectou)
       if (this.publisher.status === 'end') {
-        this.logger.warn(`⚠️ Redis desconectado. Mensagem não publicada no canal: ${channel}`);
-        console.warn(`[REDIS_SERVICE] ⚠️ Redis desconectado. Mensagem não publicada:`, { 
-          channel, 
-          messageType: message?.type,
-          publisherStatus: this.publisher.status,
-          timestamp: new Date().toISOString(),
-        });
+        this.logger.warn(
+          `⚠️ Redis desconectado. Mensagem não publicada no canal: ${channel}`,
+        );
+        console.warn(
+          `[REDIS_SERVICE] ⚠️ Redis desconectado. Mensagem não publicada:`,
+          {
+            channel,
+            messageType: message?.type,
+            publisherStatus: this.publisher.status,
+            timestamp: new Date().toISOString(),
+          },
+        );
         return;
       }
 
-      console.log('[REDIS_SERVICE] 🔴 Redis disponível - Publicando mensagem...', {
-        channel,
-        messageType: message?.type,
-        publisherStatus: this.publisher.status,
-        timestamp: new Date().toISOString(),
-      });
+      console.log(
+        '[REDIS_SERVICE] 🔴 Redis disponível - Publicando mensagem...',
+        {
+          channel,
+          messageType: message?.type,
+          publisherStatus: this.publisher.status,
+          timestamp: new Date().toISOString(),
+        },
+      );
 
       const messageStr = JSON.stringify(message);
       await this.publisher.publish(channel, messageStr);
-      
+
       this.logger.debug(`📤 Mensagem publicada no canal: ${channel}`);
-      console.log(`[REDIS_SERVICE] ✅ REDIS usado com sucesso - Mensagem publicada no canal "${channel}":`, {
-        channel,
-        messageType: message?.type,
-        publisherStatus: this.publisher.status,
-        timestamp: new Date().toISOString(),
-      });
+      console.log(
+        `[REDIS_SERVICE] ✅ REDIS usado com sucesso - Mensagem publicada no canal "${channel}":`,
+        {
+          channel,
+          messageType: message?.type,
+          publisherStatus: this.publisher.status,
+          timestamp: new Date().toISOString(),
+        },
+      );
     } catch (error) {
       this.logger.error(`Erro ao publicar no canal ${channel}:`, error);
-      console.error(`[REDIS_SERVICE] ❌ Erro ao publicar no canal "${channel}":`, {
-        error: error.message,
-        channel,
-        messageType: message?.type,
-        timestamp: new Date().toISOString(),
-      });
+      console.error(
+        `[REDIS_SERVICE] ❌ Erro ao publicar no canal "${channel}":`,
+        {
+          error: error.message,
+          channel,
+          messageType: message?.type,
+          timestamp: new Date().toISOString(),
+        },
+      );
       // Não lança erro - Redis é opcional
     }
   }
 
   /**
    * Assina um canal para receber mensagens (Sub)
-   * 
+   *
    * @param channel - Nome do canal para assinar
    * @param callback - Função chamada quando uma mensagem é recebida
-   * 
+   *
    * Exemplo:
    * redisService.subscribe('chat:user123', (message) => {
    *   console.log('Nova mensagem:', message)
    * })
    */
-  async subscribe(channel: string, callback: (message: any) => void): Promise<void> {
+  async subscribe(
+    channel: string,
+    callback: (message: any) => void,
+  ): Promise<void> {
     try {
       await this.subscriber.subscribe(channel);
       this.logger.debug(`📥 Assinando canal: ${channel}`);
@@ -241,8 +294,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
             });
             callback(message);
           } catch (error) {
-            this.logger.error(`Erro ao processar mensagem do canal ${channel}:`, error);
-            console.error(`[REDIS] ❌ Erro ao processar mensagem do canal "${channel}":`, error);
+            this.logger.error(
+              `Erro ao processar mensagem do canal ${channel}:`,
+              error,
+            );
+            console.error(
+              `[REDIS] ❌ Erro ao processar mensagem do canal "${channel}":`,
+              error,
+            );
           }
         }
       });
@@ -262,7 +321,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Armazena um valor no cache com TTL (Time To Live)
-   * 
+   *
    * @param key - Chave do cache
    * @param value - Valor a ser armazenado
    * @param ttlSeconds - Tempo de vida em segundos (opcional)
@@ -317,4 +376,3 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.subscriber;
   }
 }
-

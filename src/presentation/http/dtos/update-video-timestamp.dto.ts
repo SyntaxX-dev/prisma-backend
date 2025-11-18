@@ -18,4 +18,3 @@ export class UpdateVideoTimestampDto {
   @Min(0, { message: 'Timestamp deve ser maior ou igual a 0' })
   timestamp: number;
 }
-

@@ -1,5 +1,16 @@
-import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException, Optional } from '@nestjs/common';
-import { COMMUNITY_MESSAGE_REPOSITORY, COMMUNITY_REPOSITORY, COMMUNITY_MEMBER_REPOSITORY } from '../../../domain/tokens';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Optional,
+} from '@nestjs/common';
+import {
+  COMMUNITY_MESSAGE_REPOSITORY,
+  COMMUNITY_REPOSITORY,
+  COMMUNITY_MEMBER_REPOSITORY,
+} from '../../../domain/tokens';
 import type { CommunityMessageRepository } from '../../../domain/repositories/community-message.repository';
 import type { CommunityRepository } from '../../../domain/repositories/community.repository';
 import type { CommunityMemberRepository } from '../../../domain/repositories/community-member.repository';
@@ -38,16 +49,22 @@ export class EditCommunityMessageUseCase {
     private readonly chatGateway?: ChatGateway,
   ) {}
 
-  async execute(input: EditCommunityMessageInput): Promise<EditCommunityMessageOutput> {
+  async execute(
+    input: EditCommunityMessageInput,
+  ): Promise<EditCommunityMessageOutput> {
     const { messageId, userId, newContent } = input;
 
     // Validar conteúdo
     if (!newContent || newContent.trim().length === 0) {
-      throw new BadRequestException('O conteúdo da mensagem não pode estar vazio');
+      throw new BadRequestException(
+        'O conteúdo da mensagem não pode estar vazio',
+      );
     }
 
     if (newContent.length > 10000) {
-      throw new BadRequestException('O conteúdo da mensagem é muito longo (máximo 10000 caracteres)');
+      throw new BadRequestException(
+        'O conteúdo da mensagem é muito longo (máximo 10000 caracteres)',
+      );
     }
 
     // Buscar mensagem
@@ -58,7 +75,9 @@ export class EditCommunityMessageUseCase {
 
     // Verificar se o usuário é o remetente
     if (message.senderId !== userId) {
-      throw new ForbiddenException('Você só pode editar suas próprias mensagens');
+      throw new ForbiddenException(
+        'Você só pode editar suas próprias mensagens',
+      );
     }
 
     // Verificar tempo limite (5 minutos)
@@ -73,28 +92,38 @@ export class EditCommunityMessageUseCase {
     }
 
     // Atualizar mensagem
-    const updatedMessage = await this.communityMessageRepository.update(messageId, newContent.trim());
+    const updatedMessage = await this.communityMessageRepository.update(
+      messageId,
+      newContent.trim(),
+    );
 
     // Notificar todos os membros via WebSocket/Redis em tempo real
     if (this.chatGateway) {
-      const community = await this.communityRepository.findById(updatedMessage.communityId);
+      const community = await this.communityRepository.findById(
+        updatedMessage.communityId,
+      );
       if (community) {
         // Buscar todos os membros da comunidade
-        const members = await this.communityMemberRepository.findByCommunityId(updatedMessage.communityId);
+        const members = await this.communityMemberRepository.findByCommunityId(
+          updatedMessage.communityId,
+        );
         const memberIds = members.map((m) => m.userId);
-        
+
         // Incluir o dono se não estiver na lista de membros
         if (!memberIds.includes(community.ownerId)) {
           memberIds.push(community.ownerId);
         }
 
-        console.log('[EDIT_COMMUNITY_MESSAGE] 📡 Notificando membros sobre edição...', {
-          messageId,
-          communityId: updatedMessage.communityId,
-          senderId: userId,
-          totalMembers: memberIds.length,
-          timestamp: new Date().toISOString(),
-        });
+        console.log(
+          '[EDIT_COMMUNITY_MESSAGE] 📡 Notificando membros sobre edição...',
+          {
+            messageId,
+            communityId: updatedMessage.communityId,
+            senderId: userId,
+            totalMembers: memberIds.length,
+            timestamp: new Date().toISOString(),
+          },
+        );
 
         // Enviar para todos os membros online via WebSocket
         for (const memberId of memberIds) {
@@ -126,11 +155,14 @@ export class EditCommunityMessageUseCase {
           },
         });
 
-        console.log('[EDIT_COMMUNITY_MESSAGE] ✅ Notificação de edição enviada', {
-          messageId,
-          communityId: updatedMessage.communityId,
-          timestamp: new Date().toISOString(),
-        });
+        console.log(
+          '[EDIT_COMMUNITY_MESSAGE] ✅ Notificação de edição enviada',
+          {
+            messageId,
+            communityId: updatedMessage.communityId,
+            timestamp: new Date().toISOString(),
+          },
+        );
       }
     }
 
@@ -147,4 +179,3 @@ export class EditCommunityMessageUseCase {
     };
   }
 }
-

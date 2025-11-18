@@ -1,4 +1,11 @@
-import { IsArray, IsString, IsNotEmpty, ArrayMinSize, ArrayMaxSize, IsOptional } from 'class-validator';
+import {
+  IsArray,
+  IsString,
+  IsNotEmpty,
+  ArrayMinSize,
+  ArrayMaxSize,
+  IsOptional,
+} from 'class-validator';
 
 export class UpdateHabilitiesDto {
   @IsOptional()

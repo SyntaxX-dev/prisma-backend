@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   PINNED_COMMUNITY_MESSAGE_REPOSITORY,
   COMMUNITY_REPOSITORY,
@@ -62,30 +67,34 @@ export class GetPinnedCommunityMessagesUseCase {
     );
 
     if (!isOwner && !member) {
-      throw new ForbiddenException('Você precisa ser membro da comunidade para ver mensagens fixadas');
+      throw new ForbiddenException(
+        'Você precisa ser membro da comunidade para ver mensagens fixadas',
+      );
     }
 
     // Buscar mensagens fixadas
-    const pinnedMessages = await this.pinnedMessageRepository.findByCommunity(communityId);
+    const pinnedMessages =
+      await this.pinnedMessageRepository.findByCommunity(communityId);
 
     // Enriquecer com tempo desde fixação
-    const enrichedPinnedMessages: PinnedCommunityMessageOutput[] = pinnedMessages.map((pm) => {
-      const timeSincePinned = this.getTimeSince(pm.pinnedAt);
-      return {
-        id: pm.id,
-        messageId: pm.messageId,
-        pinnedBy: pm.pinnedBy,
-        pinnedByUserName: pm.pinnedByUser.name,
-        pinnedAt: pm.pinnedAt,
-        timeSincePinned,
-        message: {
-          id: pm.message.id,
-          content: pm.message.content,
-          senderId: pm.message.senderId,
-          createdAt: pm.message.createdAt,
-        },
-      };
-    });
+    const enrichedPinnedMessages: PinnedCommunityMessageOutput[] =
+      pinnedMessages.map((pm) => {
+        const timeSincePinned = this.getTimeSince(pm.pinnedAt);
+        return {
+          id: pm.id,
+          messageId: pm.messageId,
+          pinnedBy: pm.pinnedBy,
+          pinnedByUserName: pm.pinnedByUser.name,
+          pinnedAt: pm.pinnedAt,
+          timeSincePinned,
+          message: {
+            id: pm.message.id,
+            content: pm.message.content,
+            senderId: pm.message.senderId,
+            createdAt: pm.message.createdAt,
+          },
+        };
+      });
 
     return {
       pinnedMessages: enrichedPinnedMessages,
@@ -110,4 +119,3 @@ export class GetPinnedCommunityMessagesUseCase {
     return `há alguns segundos`;
   }
 }
-

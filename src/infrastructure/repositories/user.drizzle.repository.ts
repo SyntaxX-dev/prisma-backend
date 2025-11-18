@@ -53,10 +53,18 @@ export class UserDrizzleRepository implements UserRepository {
     if (!row) return null;
 
     const role = row.role ? UserRole[row.role as keyof typeof UserRole] : null;
-    const educationLevel = row.educationLevel ? EducationLevel[row.educationLevel] : null;
-    const userFocus = row.userFocus ? UserFocus[row.userFocus as keyof typeof UserFocus] : null;
-    const contestType = row.contestType ? ContestType[row.contestType as keyof typeof ContestType] : null;
-    const collegeCourse = row.collegeCourse ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse] : null;
+    const educationLevel = row.educationLevel
+      ? EducationLevel[row.educationLevel]
+      : null;
+    const userFocus = row.userFocus
+      ? UserFocus[row.userFocus as keyof typeof UserFocus]
+      : null;
+    const contestType = row.contestType
+      ? ContestType[row.contestType as keyof typeof ContestType]
+      : null;
+    const collegeCourse = row.collegeCourse
+      ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse]
+      : null;
 
     const user: User = {
       id: row.id,
@@ -95,7 +103,10 @@ export class UserDrizzleRepository implements UserRepository {
       .where(eq(users.id, userId));
   }
 
-  async updateProfile(userId: string, profileData: Partial<User>): Promise<void> {
+  async updateProfile(
+    userId: string,
+    profileData: Partial<User>,
+  ): Promise<void> {
     await this.db
       .update(users)
       .set({
@@ -134,10 +145,18 @@ export class UserDrizzleRepository implements UserRepository {
     if (!row) return null;
 
     const role = row.role ? UserRole[row.role as keyof typeof UserRole] : null;
-    const educationLevel = row.educationLevel ? EducationLevel[row.educationLevel] : null;
-    const userFocus = row.userFocus ? UserFocus[row.userFocus as keyof typeof UserFocus] : null;
-    const contestType = row.contestType ? ContestType[row.contestType as keyof typeof ContestType] : null;
-    const collegeCourse = row.collegeCourse ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse] : null;
+    const educationLevel = row.educationLevel
+      ? EducationLevel[row.educationLevel]
+      : null;
+    const userFocus = row.userFocus
+      ? UserFocus[row.userFocus as keyof typeof UserFocus]
+      : null;
+    const contestType = row.contestType
+      ? ContestType[row.contestType as keyof typeof ContestType]
+      : null;
+    const collegeCourse = row.collegeCourse
+      ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse]
+      : null;
 
     const user: User = {
       id: row.id,
@@ -179,10 +198,18 @@ export class UserDrizzleRepository implements UserRepository {
     if (!row) return null;
 
     const role = row.role ? UserRole[row.role as keyof typeof UserRole] : null;
-    const educationLevel = row.educationLevel ? EducationLevel[row.educationLevel] : null;
-    const userFocus = row.userFocus ? UserFocus[row.userFocus as keyof typeof UserFocus] : null;
-    const contestType = row.contestType ? ContestType[row.contestType as keyof typeof ContestType] : null;
-    const collegeCourse = row.collegeCourse ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse] : null;
+    const educationLevel = row.educationLevel
+      ? EducationLevel[row.educationLevel]
+      : null;
+    const userFocus = row.userFocus
+      ? UserFocus[row.userFocus as keyof typeof UserFocus]
+      : null;
+    const contestType = row.contestType
+      ? ContestType[row.contestType as keyof typeof ContestType]
+      : null;
+    const collegeCourse = row.collegeCourse
+      ? CollegeCourse[row.collegeCourse as keyof typeof CollegeCourse]
+      : null;
 
     const user: User = {
       id: row.id,

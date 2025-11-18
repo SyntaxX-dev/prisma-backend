@@ -9,7 +9,8 @@ export class FriendshipDrizzleRepository implements FriendshipRepository {
 
   async create(userId1: string, userId2: string): Promise<Friendship> {
     // Garantir que userId1 < userId2 para consistência
-    const [id1, id2] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+    const [id1, id2] =
+      userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
 
     const [created] = await this.db
       .insert(friendships)
@@ -33,9 +34,13 @@ export class FriendshipDrizzleRepository implements FriendshipRepository {
     return this.mapToEntity(friendship);
   }
 
-  async findByUsers(userId1: string, userId2: string): Promise<Friendship | null> {
+  async findByUsers(
+    userId1: string,
+    userId2: string,
+  ): Promise<Friendship | null> {
     // Garantir que userId1 < userId2 para consistência
-    const [id1, id2] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+    const [id1, id2] =
+      userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
 
     const [friendship] = await this.db
       .select()
@@ -51,7 +56,9 @@ export class FriendshipDrizzleRepository implements FriendshipRepository {
     const allFriendships = await this.db
       .select()
       .from(friendships)
-      .where(or(eq(friendships.userId1, userId), eq(friendships.userId2, userId)))
+      .where(
+        or(eq(friendships.userId1, userId), eq(friendships.userId2, userId)),
+      )
       .orderBy(friendships.createdAt);
 
     return allFriendships.map((f) => this.mapToEntity(f));
@@ -59,7 +66,8 @@ export class FriendshipDrizzleRepository implements FriendshipRepository {
 
   async delete(userId1: string, userId2: string): Promise<void> {
     // Garantir que userId1 < userId2 para consistência
-    const [id1, id2] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+    const [id1, id2] =
+      userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
 
     await this.db
       .delete(friendships)
@@ -70,4 +78,3 @@ export class FriendshipDrizzleRepository implements FriendshipRepository {
     return new Friendship(row.id, row.userId1, row.userId2, row.createdAt);
   }
 }
-

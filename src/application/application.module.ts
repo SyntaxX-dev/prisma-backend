@@ -12,13 +12,17 @@ import { ListNotificationsUseCase } from './use-cases/list-notifications.use-cas
 import { InfrastructureModule } from '../infrastructure/config/infrastructure.module';
 import { EmailModule } from '../infrastructure/email/email.module';
 import { AuthModule } from '../infrastructure/auth/auth.module';
-import { OFFENSIVE_SERVICE, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '../domain/tokens';
+import {
+  OFFENSIVE_SERVICE,
+  VIDEO_REPOSITORY,
+  VIDEO_PROGRESS_REPOSITORY,
+} from '../domain/tokens';
 
 @Module({
   imports: [InfrastructureModule, EmailModule, AuthModule],
   providers: [
-    RegisterUserUseCase, 
-    LoginUserUseCase, 
+    RegisterUserUseCase,
+    LoginUserUseCase,
     UpdateUserProfileUseCase,
     CheckUserNotificationsUseCase,
     ListContestsUseCase,
@@ -27,19 +31,28 @@ import { OFFENSIVE_SERVICE, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '
     ListNotificationsUseCase,
     {
       provide: MockOffensivesUseCase,
-      useFactory: (videoRepository, videoProgressRepository, offensiveService) =>
-        new MockOffensivesUseCase(videoRepository, videoProgressRepository, offensiveService),
+      useFactory: (
+        videoRepository,
+        videoProgressRepository,
+        offensiveService,
+      ) =>
+        new MockOffensivesUseCase(
+          videoRepository,
+          videoProgressRepository,
+          offensiveService,
+        ),
       inject: [VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, OFFENSIVE_SERVICE],
     },
     {
       provide: GetUserOffensivesUseCase,
-      useFactory: (offensiveService) => new GetUserOffensivesUseCase(offensiveService),
+      useFactory: (offensiveService) =>
+        new GetUserOffensivesUseCase(offensiveService),
       inject: [OFFENSIVE_SERVICE],
     },
   ],
   exports: [
-    RegisterUserUseCase, 
-    LoginUserUseCase, 
+    RegisterUserUseCase,
+    LoginUserUseCase,
     UpdateUserProfileUseCase,
     CheckUserNotificationsUseCase,
     ListContestsUseCase,

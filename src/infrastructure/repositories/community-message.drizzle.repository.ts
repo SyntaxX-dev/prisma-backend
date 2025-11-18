@@ -6,14 +6,20 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 /**
  * CommunityMessageDrizzleRepository - Implementação do repositório de mensagens de comunidades usando Drizzle ORM
- * 
+ *
  * Este repositório implementa a interface CommunityMessageRepository usando Drizzle ORM
  * para acessar a tabela community_messages no PostgreSQL.
  */
-export class CommunityMessageDrizzleRepository implements CommunityMessageRepository {
+export class CommunityMessageDrizzleRepository
+  implements CommunityMessageRepository
+{
   constructor(private readonly db: NodePgDatabase) {}
 
-  async create(communityId: string, senderId: string, content: string): Promise<CommunityMessage> {
+  async create(
+    communityId: string,
+    senderId: string,
+    content: string,
+  ): Promise<CommunityMessage> {
     const [created] = await this.db
       .insert(communityMessages)
       .values({
@@ -107,4 +113,3 @@ export class CommunityMessageDrizzleRepository implements CommunityMessageReposi
     return message;
   }
 }
-

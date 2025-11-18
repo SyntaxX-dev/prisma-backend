@@ -63,16 +63,31 @@ export class GetUserProfileUseCase {
         socialLinksOrder = JSON.parse(user.socialLinksOrder);
       } catch {
         // Se não for JSON válido, usar ordem padrão
-        socialLinksOrder = ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'];
+        socialLinksOrder = [
+          'linkedin',
+          'github',
+          'portfolio',
+          'instagram',
+          'twitter',
+        ];
       }
     } else {
-      socialLinksOrder = ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'];
+      socialLinksOrder = [
+        'linkedin',
+        'github',
+        'portfolio',
+        'instagram',
+        'twitter',
+      ];
     }
 
     // Verificar se são amigos (apenas se viewerId foi fornecido e é diferente do userId)
     let isFriend: boolean | undefined = undefined;
     if (input.viewerId && input.viewerId !== input.userId) {
-      const friendship = await this.friendshipRepository.findByUsers(input.viewerId, input.userId);
+      const friendship = await this.friendshipRepository.findByUsers(
+        input.viewerId,
+        input.userId,
+      );
       isFriend = friendship !== null;
     }
 
@@ -104,4 +119,3 @@ export class GetUserProfileUseCase {
     };
   }
 }
-

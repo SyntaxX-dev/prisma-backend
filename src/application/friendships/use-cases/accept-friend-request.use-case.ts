@@ -51,18 +51,23 @@ export class AcceptFriendRequestUseCase {
     private readonly notificationsGateway?: NotificationsGateway,
   ) {}
 
-  async execute(input: AcceptFriendRequestInput): Promise<AcceptFriendRequestOutput> {
+  async execute(
+    input: AcceptFriendRequestInput,
+  ): Promise<AcceptFriendRequestOutput> {
     const { userId, friendRequestId } = input;
 
     // Buscar o pedido de amizade
-    const friendRequest = await this.friendRequestRepository.findById(friendRequestId);
+    const friendRequest =
+      await this.friendRequestRepository.findById(friendRequestId);
     if (!friendRequest) {
       throw new NotFoundException('Pedido de amizade não encontrado');
     }
 
     // Verificar se o usuário é o receptor do pedido
     if (friendRequest.receiverId !== userId) {
-      throw new ForbiddenException('Você não tem permissão para aceitar este pedido');
+      throw new ForbiddenException(
+        'Você não tem permissão para aceitar este pedido',
+      );
     }
 
     // Verificar se o pedido está pendente
@@ -91,10 +96,15 @@ export class AcceptFriendRequestUseCase {
     );
 
     // Atualizar o status do pedido
-    await this.friendRequestRepository.updateStatus(friendRequestId, FriendRequestStatus.ACCEPTED);
+    await this.friendRequestRepository.updateStatus(
+      friendRequestId,
+      FriendRequestStatus.ACCEPTED,
+    );
 
     // Buscar o nome do receptor para a notificação
-    const receiver = await this.userRepository.findById(friendRequest.receiverId);
+    const receiver = await this.userRepository.findById(
+      friendRequest.receiverId,
+    );
     if (receiver) {
       // Criar notificação para o requester informando que foi aceito
       const notification = await this.notificationRepository.create(
@@ -108,26 +118,30 @@ export class AcceptFriendRequestUseCase {
 
       // Enviar notificação em tempo real via WebSocket
       if (this.notificationsGateway) {
-        this.notificationsGateway.emitToUser(friendRequest.requesterId, 'friend_accepted', {
-          id: notification.id,
-          type: NotificationType.FRIEND_ACCEPTED,
-          title: notification.title,
-          message: notification.message,
-          relatedUserId: friendRequest.receiverId,
-          relatedEntityId: friendship.id,
-          receiver: {
-            id: receiver.id,
-            name: receiver.name,
-            profileImage: receiver.profileImage,
+        this.notificationsGateway.emitToUser(
+          friendRequest.requesterId,
+          'friend_accepted',
+          {
+            id: notification.id,
+            type: NotificationType.FRIEND_ACCEPTED,
+            title: notification.title,
+            message: notification.message,
+            relatedUserId: friendRequest.receiverId,
+            relatedEntityId: friendship.id,
+            receiver: {
+              id: receiver.id,
+              name: receiver.name,
+              profileImage: receiver.profileImage,
+            },
+            friendship: {
+              id: friendship.id,
+              userId1: friendship.userId1,
+              userId2: friendship.userId2,
+              createdAt: friendship.createdAt,
+            },
+            createdAt: notification.createdAt,
           },
-          friendship: {
-            id: friendship.id,
-            userId1: friendship.userId1,
-            userId2: friendship.userId2,
-            createdAt: friendship.createdAt,
-          },
-          createdAt: notification.createdAt,
-        });
+        );
       }
     }
 
@@ -143,4 +157,3 @@ export class AcceptFriendRequestUseCase {
     };
   }
 }
-

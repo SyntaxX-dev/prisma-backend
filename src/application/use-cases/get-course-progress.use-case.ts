@@ -23,9 +23,13 @@ export class GetCourseProgressUseCase {
     private readonly subCourseRepository: SubCourseRepository,
   ) {}
 
-  async execute(input: GetCourseProgressInput): Promise<GetCourseProgressOutput> {
+  async execute(
+    input: GetCourseProgressInput,
+  ): Promise<GetCourseProgressOutput> {
     // Verificar se o sub-curso existe
-    const subCourse = await this.subCourseRepository.findById(input.subCourseId);
+    const subCourse = await this.subCourseRepository.findById(
+      input.subCourseId,
+    );
     if (!subCourse) {
       throw new Error(`Sub-curso com ID "${input.subCourseId}" não encontrado`);
     }

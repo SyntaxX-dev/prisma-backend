@@ -53,32 +53,45 @@ export class ListVideosUseCase {
 
   async execute(input: ListVideosInput): Promise<ListVideosOutput> {
     // Verificar se o sub-curso existe
-    const subCourse = await this.subCourseRepository.findById(input.subCourseId);
+    const subCourse = await this.subCourseRepository.findById(
+      input.subCourseId,
+    );
     if (!subCourse) {
       throw new Error(`Sub-curso com ID "${input.subCourseId}" não encontrado`);
     }
 
-    const videos = await this.videoRepository.findBySubCourseId(input.subCourseId);
-    
+    const videos = await this.videoRepository.findBySubCourseId(
+      input.subCourseId,
+    );
+
     // Buscar progresso do usuário se userId foi fornecido
-    let userProgress: Map<string, { isCompleted: boolean; completedAt: Date | null }> = new Map();
+    let userProgress: Map<
+      string,
+      { isCompleted: boolean; completedAt: Date | null }
+    > = new Map();
     if (input.userId) {
-      const progressList = await this.videoProgressRepository.findByUserAndSubCourse(
-        input.userId,
-        input.subCourseId,
-      );
+      const progressList =
+        await this.videoProgressRepository.findByUserAndSubCourse(
+          input.userId,
+          input.subCourseId,
+        );
       userProgress = new Map(
-        progressList.map(p => [p.videoId, { isCompleted: p.isCompleted, completedAt: p.completedAt }])
+        progressList.map((p) => [
+          p.videoId,
+          { isCompleted: p.isCompleted, completedAt: p.completedAt },
+        ]),
       );
     }
-    
+
     // Enriquecer vídeos com informações do canal do YouTube e progresso
     const enrichedVideos = await Promise.all(
       videos.map(async (video) => {
         // Se o vídeo não tem channelId ou channelThumbnailUrl, buscar do YouTube
         if (!video.channelId || !video.channelThumbnailUrl) {
           try {
-            const youtubeVideo = await this.youtubeService.getVideoById(video.videoId);
+            const youtubeVideo = await this.youtubeService.getVideoById(
+              video.videoId,
+            );
             if (youtubeVideo) {
               // Criar um novo vídeo com as informações enriquecidas
               const enrichedVideo = new Video(
@@ -112,7 +125,10 @@ export class ListVideosUseCase {
               } as VideoWithProgress;
             }
           } catch (error) {
-            console.warn(`Erro ao buscar informações do canal para vídeo ${video.videoId}:`, error);
+            console.warn(
+              `Erro ao buscar informações do canal para vídeo ${video.videoId}:`,
+              error,
+            );
           }
         }
 
@@ -123,7 +139,7 @@ export class ListVideosUseCase {
           isCompleted: progress?.isCompleted || false,
           completedAt: progress?.completedAt || null,
         } as VideoWithProgress;
-      })
+      }),
     );
 
     // Calcular progresso do curso se userId foi fornecido
@@ -135,7 +151,7 @@ export class ListVideosUseCase {
       );
     }
 
-    return { 
+    return {
       videos: enrichedVideos,
       courseProgress,
     };

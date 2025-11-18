@@ -29,7 +29,7 @@ export class VideoProgress {
       new Date(), // createdAt
       new Date(), // updatedAt
     );
-    
+
     return {
       userId: instance.userId,
       videoId: instance.videoId,

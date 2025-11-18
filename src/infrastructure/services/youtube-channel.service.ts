@@ -19,20 +19,24 @@ export class YouTubeChannelService {
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
     if (!apiKey) {
-      console.warn('YOUTUBE_API_KEY não configurada. YouTube Channel Service desabilitado.');
+      console.warn(
+        'YOUTUBE_API_KEY não configurada. YouTube Channel Service desabilitado.',
+      );
     }
     this.apiKey = apiKey || null;
   }
 
   async getChannelInfo(channelId: string): Promise<ChannelInfo | null> {
     if (!this.apiKey) {
-      console.warn('YOUTUBE_API_KEY não configurada. Não é possível buscar informações do canal.');
+      console.warn(
+        'YOUTUBE_API_KEY não configurada. Não é possível buscar informações do canal.',
+      );
       return null;
     }
 
     try {
       const url = `${this.baseUrl}/channels?part=snippet,statistics&id=${channelId}&key=${this.apiKey}`;
-      
+
       const response = await fetch(url);
       const data = await response.json();
 
@@ -42,7 +46,10 @@ export class YouTubeChannelService {
           id: channel.id,
           title: channel.snippet.title,
           description: channel.snippet.description,
-          thumbnailUrl: channel.snippet.thumbnails.high?.url || channel.snippet.thumbnails.medium?.url || channel.snippet.thumbnails.default?.url,
+          thumbnailUrl:
+            channel.snippet.thumbnails.high?.url ||
+            channel.snippet.thumbnails.medium?.url ||
+            channel.snippet.thumbnails.default?.url,
           subscriberCount: channel.statistics.subscriberCount,
           viewCount: channel.statistics.viewCount,
           videoCount: channel.statistics.videoCount,
@@ -56,16 +63,20 @@ export class YouTubeChannelService {
     }
   }
 
-  async getChannelInfoByUsername(username: string): Promise<ChannelInfo | null> {
+  async getChannelInfoByUsername(
+    username: string,
+  ): Promise<ChannelInfo | null> {
     if (!this.apiKey) {
-      console.warn('YOUTUBE_API_KEY não configurada. Não é possível buscar informações do canal.');
+      console.warn(
+        'YOUTUBE_API_KEY não configurada. Não é possível buscar informações do canal.',
+      );
       return null;
     }
 
     try {
       // Primeiro, buscar o canal pelo username
       const searchUrl = `${this.baseUrl}/channels?part=snippet&forUsername=${username}&key=${this.apiKey}`;
-      
+
       const searchResponse = await fetch(searchUrl);
       const searchData = await searchResponse.json();
 

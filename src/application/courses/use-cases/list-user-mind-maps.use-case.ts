@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MindMapRepository } from '../../../domain/repositories/mind-map.repository';
+import type { MindMapRepository } from '../../../domain/repositories/mind-map.repository';
 
 export interface ListUserMindMapsInput {
   userId: string;

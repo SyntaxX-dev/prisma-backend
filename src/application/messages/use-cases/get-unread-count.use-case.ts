@@ -1,6 +1,6 @@
 /**
  * GetUnreadCountUseCase - Lógica para contar mensagens não lidas
- * 
+ *
  * Retorna quantas mensagens não lidas um usuário tem no total.
  */
 
@@ -33,4 +33,3 @@ export class GetUnreadCountUseCase {
     };
   }
 }
-

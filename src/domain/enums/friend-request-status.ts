@@ -3,4 +3,3 @@ export enum FriendRequestStatus {
   ACCEPTED = 'ACCEPTED',
   REJECTED = 'REJECTED',
 }
-

@@ -54,22 +54,29 @@ export class BlockUserUseCase {
     }
 
     // Verificar se já está bloqueado
-    const existingBlock = await this.blockRepository.findByBlockerAndBlocked(blockerId, blockedId);
+    const existingBlock = await this.blockRepository.findByBlockerAndBlocked(
+      blockerId,
+      blockedId,
+    );
     if (existingBlock) {
       throw new BadRequestException('Este usuário já está bloqueado');
     }
 
     // Remover amizade se existir
-    const friendship = await this.friendshipRepository.findByUsers(blockerId, blockedId);
+    const friendship = await this.friendshipRepository.findByUsers(
+      blockerId,
+      blockedId,
+    );
     if (friendship) {
       await this.friendshipRepository.delete(blockerId, blockedId);
     }
 
     // Rejeitar pedidos de amizade pendentes em qualquer direção
-    const request1 = await this.friendRequestRepository.findByRequesterAndReceiver(
-      blockerId,
-      blockedId,
-    );
+    const request1 =
+      await this.friendRequestRepository.findByRequesterAndReceiver(
+        blockerId,
+        blockedId,
+      );
     if (request1 && request1.status === FriendRequestStatus.PENDING) {
       await this.friendRequestRepository.updateStatus(
         request1.id,
@@ -77,10 +84,11 @@ export class BlockUserUseCase {
       );
     }
 
-    const request2 = await this.friendRequestRepository.findByRequesterAndReceiver(
-      blockedId,
-      blockerId,
-    );
+    const request2 =
+      await this.friendRequestRepository.findByRequesterAndReceiver(
+        blockedId,
+        blockerId,
+      );
     if (request2 && request2.status === FriendRequestStatus.PENDING) {
       await this.friendRequestRepository.updateStatus(
         request2.id,
@@ -97,4 +105,3 @@ export class BlockUserUseCase {
     };
   }
 }
-

@@ -189,7 +189,11 @@ export class ProgressController {
                 subCourseId: { type: 'string', example: 'uuid-do-sub-curso' },
                 isCompleted: { type: 'boolean', example: false },
                 currentTimestamp: { type: 'number', example: 120 },
-                completedAt: { type: 'string', format: 'date-time', nullable: true },
+                completedAt: {
+                  type: 'string',
+                  format: 'date-time',
+                  nullable: true,
+                },
                 createdAt: { type: 'string', format: 'date-time' },
                 updatedAt: { type: 'string', format: 'date-time' },
               },
@@ -226,7 +230,9 @@ export class ProgressController {
   }
 
   @Get('videos/in-progress')
-  @ApiOperation({ summary: 'Obter lista de vídeos que o usuário está assistindo' })
+  @ApiOperation({
+    summary: 'Obter lista de vídeos que o usuário está assistindo',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de vídeos em progresso retornada com sucesso',
@@ -270,9 +276,10 @@ export class ProgressController {
   }
 
   @Post('test/video-completion')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: '🧪 [TESTE] Marcar vídeo como concluído em data específica',
-    description: '⚠️ USO APENAS PARA TESTES! Permite simular conclusão de vídeo em data passada para testar ofensivas.'
+    description:
+      '⚠️ USO APENAS PARA TESTES! Permite simular conclusão de vídeo em data passada para testar ofensivas.',
   })
   @ApiBody({ type: TestVideoCompletionDto })
   @ApiResponse({
@@ -302,18 +309,32 @@ export class ProgressController {
                   properties: {
                     consecutiveDays: { type: 'number', example: 2 },
                     type: { type: 'string', example: 'NORMAL' },
-                    lastVideoCompletedAt: { type: 'string', format: 'date-time' },
+                    lastVideoCompletedAt: {
+                      type: 'string',
+                      format: 'date-time',
+                    },
                   },
                 },
-                message: { type: 'string', example: 'Ofensiva normal conquistada!' },
+                message: {
+                  type: 'string',
+                  example: 'Ofensiva normal conquistada!',
+                },
               },
             },
             testInfo: {
               type: 'object',
               properties: {
-                simulatedDate: { type: 'string', format: 'date-time', example: '2025-11-05T12:00:00.000Z' },
+                simulatedDate: {
+                  type: 'string',
+                  format: 'date-time',
+                  example: '2025-11-05T12:00:00.000Z',
+                },
                 currentDate: { type: 'string', format: 'date-time' },
-                daysDifference: { type: 'number', example: 1, description: 'Dias de diferença (negativo = no passado)' },
+                daysDifference: {
+                  type: 'number',
+                  example: 1,
+                  description: 'Dias de diferença (negativo = no passado)',
+                },
               },
             },
           },
@@ -332,7 +353,9 @@ export class ProgressController {
       console.log(`[TEST ENDPOINT] Simulando conclusão de vídeo:`);
       console.log(`[TEST ENDPOINT] - userId: ${userId}`);
       console.log(`[TEST ENDPOINT] - videoId: ${testDto.videoId}`);
-      console.log(`[TEST ENDPOINT] - completedAt: ${completedAt.toISOString()}`);
+      console.log(
+        `[TEST ENDPOINT] - completedAt: ${completedAt.toISOString()}`,
+      );
 
       const result = await this.testVideoCompletionUseCase.execute({
         userId,

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GeminiService } from '../../../infrastructure/services/gemini.service';
-import { MindMapRepository } from '../../../domain/repositories/mind-map.repository';
+import type { MindMapRepository } from '../../../domain/repositories/mind-map.repository';
 import { MindMap } from '../../../domain/entities/mind-map';
 
 export interface GenerateMindMapInput {

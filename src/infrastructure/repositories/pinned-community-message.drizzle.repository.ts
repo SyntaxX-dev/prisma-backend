@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { eq, desc } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { pinnedCommunityMessages, communityMessages, users } from '../database/schema';
+import {
+  pinnedCommunityMessages,
+  communityMessages,
+  users,
+} from '../database/schema';
 import type {
   PinnedCommunityMessageRepository,
   PinnedCommunityMessage,
@@ -10,7 +14,9 @@ import type {
 import { CommunityMessage } from '../../domain/entities/community-message';
 
 @Injectable()
-export class PinnedCommunityMessageDrizzleRepository implements PinnedCommunityMessageRepository {
+export class PinnedCommunityMessageDrizzleRepository
+  implements PinnedCommunityMessageRepository
+{
   constructor(private readonly db: NodePgDatabase) {}
 
   private mapToEntity(row: any): PinnedCommunityMessage {
@@ -46,7 +52,9 @@ export class PinnedCommunityMessageDrizzleRepository implements PinnedCommunityM
       .where(eq(pinnedCommunityMessages.messageId, messageId));
   }
 
-  async findByCommunity(communityId: string): Promise<PinnedCommunityMessageWithDetails[]> {
+  async findByCommunity(
+    communityId: string,
+  ): Promise<PinnedCommunityMessageWithDetails[]> {
     const results = await this.db
       .select({
         pinned: {
@@ -69,7 +77,10 @@ export class PinnedCommunityMessageDrizzleRepository implements PinnedCommunityM
         },
       })
       .from(pinnedCommunityMessages)
-      .innerJoin(communityMessages, eq(pinnedCommunityMessages.messageId, communityMessages.id))
+      .innerJoin(
+        communityMessages,
+        eq(pinnedCommunityMessages.messageId, communityMessages.id),
+      )
       .innerJoin(users, eq(pinnedCommunityMessages.pinnedBy, users.id))
       .where(eq(pinnedCommunityMessages.communityId, communityId))
       .orderBy(desc(pinnedCommunityMessages.pinnedAt));
@@ -99,7 +110,9 @@ export class PinnedCommunityMessageDrizzleRepository implements PinnedCommunityM
     return !!result;
   }
 
-  async findByMessageId(messageId: string): Promise<PinnedCommunityMessage | null> {
+  async findByMessageId(
+    messageId: string,
+  ): Promise<PinnedCommunityMessage | null> {
     const [result] = await this.db
       .select()
       .from(pinnedCommunityMessages)
@@ -108,4 +121,3 @@ export class PinnedCommunityMessageDrizzleRepository implements PinnedCommunityM
     return result ? this.mapToEntity(result) : null;
   }
 }
-

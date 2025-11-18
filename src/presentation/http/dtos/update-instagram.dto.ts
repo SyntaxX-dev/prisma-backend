@@ -6,7 +6,7 @@ export class UpdateInstagramDto {
     description: 'URL do perfil do Instagram',
     example: 'https://www.instagram.com/usuario',
     required: false,
-    nullable: true
+    nullable: true,
   })
   @IsOptional()
   @IsString()

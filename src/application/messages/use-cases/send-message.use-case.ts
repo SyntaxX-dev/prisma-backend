@@ -1,6 +1,6 @@
 /**
  * SendMessageUseCase - Lógica para enviar uma mensagem (Padrão Moderno)
- * 
+ *
  * Este use case segue o padrão usado por WhatsApp, Telegram, Discord:
  * 1. Valida se os usuários são amigos
  * 2. Salva a mensagem no banco de dados (fonte da verdade)
@@ -9,8 +9,20 @@
  * 5. Quando usuário voltar: Busca mensagens do banco (não de filas)
  */
 
-import { Injectable, Inject, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, USER_REPOSITORY, PUSH_NOTIFICATION_SERVICE, MESSAGE_ATTACHMENT_REPOSITORY } from '../../../domain/tokens';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
+import {
+  MESSAGE_REPOSITORY,
+  FRIENDSHIP_REPOSITORY,
+  USER_REPOSITORY,
+  PUSH_NOTIFICATION_SERVICE,
+  MESSAGE_ATTACHMENT_REPOSITORY,
+} from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
@@ -74,7 +86,9 @@ export class SendMessageUseCase {
 
     // Validações
     if (senderId === receiverId) {
-      throw new BadRequestException('Você não pode enviar mensagem para si mesmo');
+      throw new BadRequestException(
+        'Você não pode enviar mensagem para si mesmo',
+      );
     }
 
     // Mensagem deve ter conteúdo OU anexos
@@ -83,7 +97,9 @@ export class SendMessageUseCase {
     }
 
     if (content && content.length > 5000) {
-      throw new BadRequestException('Mensagem muito longa (máximo 5000 caracteres)');
+      throw new BadRequestException(
+        'Mensagem muito longa (máximo 5000 caracteres)',
+      );
     }
 
     // Validar anexos
@@ -101,14 +117,18 @@ export class SendMessageUseCase {
             attachment.fileType.startsWith('image/') ? 'image' : 'raw',
           );
           if (!exists) {
-            throw new BadRequestException(`Arquivo ${attachment.fileName} não encontrado no Cloudinary`);
+            throw new BadRequestException(
+              `Arquivo ${attachment.fileName} não encontrado no Cloudinary`,
+            );
           }
         }
 
         // Validar tamanho (10MB máximo)
         const MAX_FILE_SIZE = 10 * 1024 * 1024;
         if (attachment.fileSize > MAX_FILE_SIZE) {
-          throw new BadRequestException(`Arquivo ${attachment.fileName} muito grande (máximo 10MB)`);
+          throw new BadRequestException(
+            `Arquivo ${attachment.fileName} muito grande (máximo 10MB)`,
+          );
         }
 
         // Validar tipo
@@ -121,7 +141,9 @@ export class SendMessageUseCase {
           'application/pdf',
         ];
         if (!allowedTypes.includes(attachment.fileType)) {
-          throw new BadRequestException(`Tipo de arquivo não permitido: ${attachment.fileType}`);
+          throw new BadRequestException(
+            `Tipo de arquivo não permitido: ${attachment.fileType}`,
+          );
         }
       }
     }
@@ -133,15 +155,25 @@ export class SendMessageUseCase {
     }
 
     // Verificar se são amigos
-    const friendship = await this.friendshipRepository.findByUsers(senderId, receiverId);
+    const friendship = await this.friendshipRepository.findByUsers(
+      senderId,
+      receiverId,
+    );
     if (!friendship) {
-      throw new BadRequestException('Vocês precisam ser amigos para trocar mensagens');
+      throw new BadRequestException(
+        'Vocês precisam ser amigos para trocar mensagens',
+      );
     }
 
     // Criar mensagem no banco de dados (FONTE DA VERDADE)
     // Sempre salva primeiro - padrão moderno de mensagens
-    const messageContent = content || (attachments.length > 0 ? '📎 Arquivo anexado' : '');
-    const message = await this.messageRepository.create(senderId, receiverId, messageContent);
+    const messageContent =
+      content || (attachments.length > 0 ? '📎 Arquivo anexado' : '');
+    const message = await this.messageRepository.create(
+      senderId,
+      receiverId,
+      messageContent,
+    );
 
     // Criar anexos se houver
     if (attachments.length > 0 && this.messageAttachmentRepository) {
@@ -160,17 +192,20 @@ export class SendMessageUseCase {
         });
       }
     }
-    
-    console.log('[SEND_MESSAGE] 💾 Mensagem salva no banco de dados (fonte da verdade)', {
-      messageId: message.id,
-      senderId,
-      receiverId,
-      timestamp: new Date().toISOString(),
-    });
+
+    console.log(
+      '[SEND_MESSAGE] 💾 Mensagem salva no banco de dados (fonte da verdade)',
+      {
+        messageId: message.id,
+        senderId,
+        receiverId,
+        timestamp: new Date().toISOString(),
+      },
+    );
 
     // Verificar se destinatário está online
     const isOnline = this.chatGateway?.isUserOnline(receiverId) || false;
-    
+
     console.log('[SEND_MESSAGE] 🔍 Verificando status do destinatário...', {
       receiverId,
       isOnline,
@@ -181,12 +216,15 @@ export class SendMessageUseCase {
 
     if (isOnline) {
       // ✅ USUÁRIO ONLINE - Padrão Moderno: WebSocket + Redis
-      console.log('[SEND_MESSAGE] ✅ Destinatário ONLINE - Enviando via WebSocket + Redis...', {
-        receiverId,
-        messageId: message.id,
-        timestamp: new Date().toISOString(),
-      });
-      
+      console.log(
+        '[SEND_MESSAGE] ✅ Destinatário ONLINE - Enviando via WebSocket + Redis...',
+        {
+          receiverId,
+          messageId: message.id,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
       // Envia diretamente via WebSocket
       this.chatGateway!.emitToUser(receiverId, 'new_message', {
         id: message.id,
@@ -210,7 +248,7 @@ export class SendMessageUseCase {
           createdAt: message.createdAt,
         },
       });
-      
+
       console.log('[SEND_MESSAGE] ✅ Mensagem entregue via WebSocket + Redis', {
         receiverId,
         messageId: message.id,
@@ -219,18 +257,21 @@ export class SendMessageUseCase {
     } else {
       // ❌ USUÁRIO OFFLINE - Padrão Moderno: Push Notification
       // Mensagem já está salva no banco, usuário buscará quando voltar
-      console.log('[SEND_MESSAGE] ❌ Destinatário OFFLINE - Enviando Push Notification...', {
-        receiverId,
-        messageId: message.id,
-        pushNotificationServiceAvailable: !!this.pushNotificationService,
-        timestamp: new Date().toISOString(),
-      });
-      
+      console.log(
+        '[SEND_MESSAGE] ❌ Destinatário OFFLINE - Enviando Push Notification...',
+        {
+          receiverId,
+          messageId: message.id,
+          pushNotificationServiceAvailable: !!this.pushNotificationService,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
       if (this.pushNotificationService) {
         // Buscar nome do remetente para a notificação
         const sender = await this.userRepository.findById(senderId);
         const senderName = sender?.name || 'Alguém';
-        
+
         // Enviar push notification
         const pushSent = await this.pushNotificationService.sendNotification(
           receiverId,
@@ -243,29 +284,38 @@ export class SendMessageUseCase {
             receiverId: message.receiverId,
           },
         );
-        
+
         if (pushSent) {
-          console.log('[SEND_MESSAGE] ✅ Push Notification enviada com sucesso', {
-            receiverId,
-            messageId: message.id,
-            timestamp: new Date().toISOString(),
-          });
+          console.log(
+            '[SEND_MESSAGE] ✅ Push Notification enviada com sucesso',
+            {
+              receiverId,
+              messageId: message.id,
+              timestamp: new Date().toISOString(),
+            },
+          );
         } else {
-          console.warn('[SEND_MESSAGE] ⚠️ Push Notification não pôde ser enviada', {
-            receiverId,
-            messageId: message.id,
-            timestamp: new Date().toISOString(),
-          });
+          console.warn(
+            '[SEND_MESSAGE] ⚠️ Push Notification não pôde ser enviada',
+            {
+              receiverId,
+              messageId: message.id,
+              timestamp: new Date().toISOString(),
+            },
+          );
         }
       } else {
-        console.warn('[SEND_MESSAGE] ⚠️ Push Notification Service não disponível', {
-          receiverId,
-          messageId: message.id,
-          note: 'Mensagem salva no banco, usuário buscará quando voltar',
-          timestamp: new Date().toISOString(),
-        });
+        console.warn(
+          '[SEND_MESSAGE] ⚠️ Push Notification Service não disponível',
+          {
+            receiverId,
+            messageId: message.id,
+            note: 'Mensagem salva no banco, usuário buscará quando voltar',
+            timestamp: new Date().toISOString(),
+          },
+        );
       }
-      
+
       // Nota: Mensagem já está no banco, quando usuário voltar:
       // 1. Conecta via WebSocket
       // 2. Busca mensagens não lidas do banco
@@ -285,4 +335,3 @@ export class SendMessageUseCase {
     };
   }
 }
-

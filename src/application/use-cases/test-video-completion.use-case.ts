@@ -34,10 +34,14 @@ export class TestVideoCompletionUseCase {
     private readonly offensiveService: OffensiveService,
   ) {}
 
-  async execute(input: TestVideoCompletionInput): Promise<TestVideoCompletionOutput> {
+  async execute(
+    input: TestVideoCompletionInput,
+  ): Promise<TestVideoCompletionOutput> {
     const { userId, videoId, completedAt } = input;
 
-    console.log(`[TEST] TestVideoCompletionUseCase - userId: ${userId}, videoId: ${videoId}, completedAt: ${completedAt.toISOString()}`);
+    console.log(
+      `[TEST] TestVideoCompletionUseCase - userId: ${userId}, videoId: ${videoId}, completedAt: ${completedAt.toISOString()}`,
+    );
 
     const video = await this.videoRepository.findById(videoId);
     if (!video) {
@@ -75,23 +79,28 @@ export class TestVideoCompletionUseCase {
         progress.createdAt,
         completedAt,
       );
-      
+
       await this.videoProgressRepository.update(updatedProgress);
       progress = updatedProgress;
     }
 
     // Para testes, recalcular TODAS as ofensivas baseado em TODOS os vídeos
     // Isso permite inserir vídeos em datas passadas sem quebrar a sequência
-    const offensiveResult = await this.offensiveService.recalculateOffensives(userId);
+    const offensiveResult =
+      await this.offensiveService.recalculateOffensives(userId);
 
     const currentDate = new Date();
     const daysDifference = Math.floor(
-      (currentDate.getTime() - completedAt.getTime()) / (1000 * 60 * 60 * 24)
+      (currentDate.getTime() - completedAt.getTime()) / (1000 * 60 * 60 * 24),
     );
 
-    console.log(`[TEST] Video completado com sucesso em ${completedAt.toISOString()}`);
+    console.log(
+      `[TEST] Video completado com sucesso em ${completedAt.toISOString()}`,
+    );
     console.log(`[TEST] Diferença de dias: ${daysDifference} dias atrás`);
-    console.log(`[TEST] Ofensiva atual: ${offensiveResult.offensive.consecutiveDays} dias consecutivos`);
+    console.log(
+      `[TEST] Ofensiva atual: ${offensiveResult.offensive.consecutiveDays} dias consecutivos`,
+    );
 
     return {
       progress,
@@ -104,4 +113,3 @@ export class TestVideoCompletionUseCase {
     };
   }
 }
-

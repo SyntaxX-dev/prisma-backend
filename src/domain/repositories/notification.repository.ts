@@ -16,4 +16,3 @@ export interface NotificationRepository {
   markAllAsRead(userId: string): Promise<void>;
   delete(id: string): Promise<void>;
 }
-

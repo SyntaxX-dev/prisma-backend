@@ -6,4 +6,3 @@ export class Block {
     public readonly createdAt: Date,
   ) {}
 }
-

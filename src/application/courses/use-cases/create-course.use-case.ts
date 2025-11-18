@@ -24,7 +24,12 @@ export class CreateCourseUseCase {
       throw new Error(`Curso com o nome "${input.name}" já existe`);
     }
 
-    const courseData = Course.create(input.name, input.description, input.imageUrl, input.isPaid);
+    const courseData = Course.create(
+      input.name,
+      input.description,
+      input.imageUrl,
+      input.isPaid,
+    );
     const course = await this.courseRepository.create(courseData);
 
     return { course };

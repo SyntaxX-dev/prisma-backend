@@ -1,5 +1,8 @@
 import { eq, and, desc } from 'drizzle-orm';
-import { communityMessageAttachments, communityMessages } from '../database/schema';
+import {
+  communityMessageAttachments,
+  communityMessages,
+} from '../database/schema';
 import type { CommunityMessageAttachmentRepository } from '../../domain/repositories/community-message-attachment.repository';
 import { CommunityMessageAttachment } from '../../domain/entities/community-message-attachment';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -40,7 +43,9 @@ export class CommunityMessageAttachmentDrizzleRepository
     return this.mapToEntity(created);
   }
 
-  async findByMessageId(messageId: string): Promise<CommunityMessageAttachment[]> {
+  async findByMessageId(
+    messageId: string,
+  ): Promise<CommunityMessageAttachment[]> {
     const results = await this.db
       .select()
       .from(communityMessageAttachments)
@@ -49,7 +54,9 @@ export class CommunityMessageAttachmentDrizzleRepository
     return results.map((row) => this.mapToEntity(row));
   }
 
-  async findByCommunityId(communityId: string): Promise<CommunityMessageAttachment[]> {
+  async findByCommunityId(
+    communityId: string,
+  ): Promise<CommunityMessageAttachment[]> {
     // Buscar attachments de mensagens da comunidade
     const results = await this.db
       .select({
@@ -67,7 +74,10 @@ export class CommunityMessageAttachmentDrizzleRepository
         createdAt: communityMessageAttachments.createdAt,
       })
       .from(communityMessageAttachments)
-      .innerJoin(communityMessages, eq(communityMessageAttachments.messageId, communityMessages.id))
+      .innerJoin(
+        communityMessages,
+        eq(communityMessageAttachments.messageId, communityMessages.id),
+      )
       .where(
         and(
           eq(communityMessages.communityId, communityId),
@@ -108,4 +118,3 @@ export class CommunityMessageAttachmentDrizzleRepository
     );
   }
 }
-

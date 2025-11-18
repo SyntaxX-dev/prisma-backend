@@ -12,4 +12,3 @@ import { InfrastructureModule } from '../config/infrastructure.module';
   exports: [NotificationsGateway, ChatGateway],
 })
 export class WebSocketsModule {}
-

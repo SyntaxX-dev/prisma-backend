@@ -38,11 +38,15 @@ export interface GetUserOffensivesOutput {
 export class GetUserOffensivesUseCase {
   constructor(private readonly offensiveService: OffensiveService) {}
 
-  async execute(input: GetUserOffensivesInput): Promise<GetUserOffensivesOutput> {
-    const offensiveInfo = await this.offensiveService.getUserOffensiveInfo(input.userId);
+  async execute(
+    input: GetUserOffensivesInput,
+  ): Promise<GetUserOffensivesOutput> {
+    const offensiveInfo = await this.offensiveService.getUserOffensiveInfo(
+      input.userId,
+    );
 
     const currentStreak = offensiveInfo.stats.currentStreak;
-    
+
     const nextMilestones = {
       daysToSuper: Math.max(0, 7 - currentStreak),
       daysToUltra: Math.max(0, 30 - currentStreak),
@@ -51,15 +55,18 @@ export class GetUserOffensivesUseCase {
     };
 
     return {
-      currentOffensive: offensiveInfo.currentOffensive ? {
-        id: offensiveInfo.currentOffensive.id,
-        type: offensiveInfo.currentOffensive.type,
-        consecutiveDays: offensiveInfo.currentOffensive.consecutiveDays,
-        lastVideoCompletedAt: offensiveInfo.currentOffensive.lastVideoCompletedAt,
-        streakStartDate: offensiveInfo.currentOffensive.streakStartDate,
-        totalOffensives: offensiveInfo.currentOffensive.totalOffensives,
-      } : null,
-      history: offensiveInfo.history.map(item => ({
+      currentOffensive: offensiveInfo.currentOffensive
+        ? {
+            id: offensiveInfo.currentOffensive.id,
+            type: offensiveInfo.currentOffensive.type,
+            consecutiveDays: offensiveInfo.currentOffensive.consecutiveDays,
+            lastVideoCompletedAt:
+              offensiveInfo.currentOffensive.lastVideoCompletedAt,
+            streakStartDate: offensiveInfo.currentOffensive.streakStartDate,
+            totalOffensives: offensiveInfo.currentOffensive.totalOffensives,
+          }
+        : null,
+      history: offensiveInfo.history.map((item) => ({
         date: item.date,
         hasOffensive: item.hasOffensive,
         type: item.type as OffensiveType,

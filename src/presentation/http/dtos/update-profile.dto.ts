@@ -1,4 +1,11 @@
-import { IsOptional, IsEnum, IsNumber, IsString, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsString,
+  Min,
+  Max,
+} from 'class-validator';
 import { UserFocus } from '../../../domain/enums/user-focus';
 import { ContestType } from '../../../domain/enums/contest-type';
 import { CollegeCourse } from '../../../domain/enums/college-course';

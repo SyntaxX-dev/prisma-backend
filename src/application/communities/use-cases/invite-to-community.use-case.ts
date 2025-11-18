@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
   COMMUNITY_REPOSITORY,
@@ -74,9 +79,7 @@ export class InviteToCommunityUseCase {
         invitee.id,
       );
     if (existingMember) {
-      throw new BadRequestException(
-        'Este usuário já é membro da comunidade',
-      );
+      throw new BadRequestException('Este usuário já é membro da comunidade');
     }
 
     // Verificar se já existe um convite pendente
@@ -86,7 +89,9 @@ export class InviteToCommunityUseCase {
         input.inviteeUsername,
       );
     if (existingInvite && existingInvite.status === 'PENDING') {
-      throw new BadRequestException('Já existe um convite pendente para este usuário');
+      throw new BadRequestException(
+        'Já existe um convite pendente para este usuário',
+      );
     }
 
     // Criar o convite
@@ -109,4 +114,3 @@ export class InviteToCommunityUseCase {
     };
   }
 }
-

@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Body, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../infrastructure/auth/jwt-auth.guard';
 import { GetUserOffensivesUseCase } from '../../application/use-cases/get-user-offensives.use-case';
 import { MockOffensivesUseCase } from '../../application/use-cases/mock-offensives.use-case';
@@ -23,7 +38,7 @@ export class OffensivesController {
   })
   async getUserOffensives(@Request() req: any) {
     console.log(`[DEBUG] OffensivesController - req.user:`, req.user);
-    
+
     const result = await this.getUserOffensivesUseCase.execute({
       userId: req.user.sub || req.user.id,
     });
@@ -35,9 +50,10 @@ export class OffensivesController {
   }
 
   @Post('mock')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: '🧪 [TESTE] Simular conclusão de vídeo para testar ofensivas',
-    description: '⚠️ USO APENAS PARA TESTES! Permite simular conclusão de vídeo em data passada para testar ofensivas sem esperar dias reais. Use daysAgo para completar N dias atrás ou specificDate para uma data específica.'
+    description:
+      '⚠️ USO APENAS PARA TESTES! Permite simular conclusão de vídeo em data passada para testar ofensivas sem esperar dias reais. Use daysAgo para completar N dias atrás ou specificDate para uma data específica.',
   })
   @ApiBody({ type: MockOffensivesDto })
   @ApiResponse({
@@ -54,18 +70,18 @@ export class OffensivesController {
               type: 'NORMAL',
               consecutiveDays: 3,
               lastVideoCompletedAt: '2025-11-08T12:00:00.000Z',
-              totalOffensives: 3
+              totalOffensives: 3,
             },
-            message: 'Ofensiva normal conquistada!'
+            message: 'Ofensiva normal conquistada!',
           },
           info: {
             simulatedDate: '2025-11-08T12:00:00.000Z',
             currentDate: '2025-11-09T10:00:00.000Z',
-            daysDifference: 1
-          }
-        }
-      }
-    }
+            daysDifference: 1,
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -73,9 +89,9 @@ export class OffensivesController {
     schema: {
       example: {
         success: false,
-        message: 'Vídeo com ID "xxx" não encontrado'
-      }
-    }
+        message: 'Vídeo com ID "xxx" não encontrado',
+      },
+    },
   })
   async mockOffensives(
     @Request() req: any,
@@ -83,8 +99,8 @@ export class OffensivesController {
   ) {
     try {
       const userId = req.user.sub || req.user.id;
-      
-      const completedDate = mockDto.specificDate 
+
+      const completedDate = mockDto.specificDate
         ? new Date(mockDto.specificDate)
         : undefined;
 
@@ -93,7 +109,9 @@ export class OffensivesController {
       console.log(`[MOCK ENDPOINT] - videoId: ${mockDto.videoId}`);
       console.log(`[MOCK ENDPOINT] - daysAgo: ${mockDto.daysAgo || 0}`);
       if (completedDate) {
-        console.log(`[MOCK ENDPOINT] - specificDate: ${completedDate.toISOString()}`);
+        console.log(
+          `[MOCK ENDPOINT] - specificDate: ${completedDate.toISOString()}`,
+        );
       }
 
       const result = await this.mockOffensivesUseCase.execute({

@@ -13,7 +13,9 @@ export class GoogleConfiguration {
     const successRedirectUrl = process.env.GOOGLE_SUCCESS_REDIRECT;
 
     if (!clientId || !clientSecret) {
-      console.log('[Google OAuth] Credenciais não configuradas - Google OAuth desabilitado');
+      console.log(
+        '[Google OAuth] Credenciais não configuradas - Google OAuth desabilitado',
+      );
       return null;
     }
 
@@ -21,7 +23,8 @@ export class GoogleConfiguration {
       clientId,
       clientSecret,
       callbackUrl: callbackUrl || 'http://localhost:3000/auth/google/callback',
-      successRedirectUrl: successRedirectUrl || 'http://localhost:3000/oauth/success',
+      successRedirectUrl:
+        successRedirectUrl || 'http://localhost:3000/oauth/success',
     };
   }
 }

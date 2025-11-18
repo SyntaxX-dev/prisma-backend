@@ -36,7 +36,7 @@ export class CourseDrizzleRepository implements CourseRepository {
   async findById(id: string): Promise<Course | null> {
     const [course] = await this.drizzleService.db
       .select()
-      .from(courses)                                                                                                
+      .from(courses)
       .where(eq(courses.id, id));
 
     if (!course) return null;

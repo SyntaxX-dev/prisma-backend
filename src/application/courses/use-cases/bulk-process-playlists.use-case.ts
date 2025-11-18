@@ -3,7 +3,11 @@ import type { CourseRepository } from '../../../domain/repositories/course.repos
 import type { SubCourseRepository } from '../../../domain/repositories/sub-course.repository';
 import type { ModuleRepository } from '../../../domain/repositories/module.repository';
 import type { VideoRepository } from '../../../domain/repositories/video.repository';
-import { GeminiService, PlaylistAnalysisData, CourseSuggestion } from '../../../infrastructure/services/gemini.service';
+import {
+  GeminiService,
+  PlaylistAnalysisData,
+  CourseSuggestion,
+} from '../../../infrastructure/services/gemini.service';
 import { YouTubeService } from '../../../infrastructure/services/youtube.service';
 import { Course } from '../../../domain/entities/course';
 import { SubCourse } from '../../../domain/entities/sub-course';
@@ -54,13 +58,19 @@ export class BulkProcessPlaylistsUseCase {
     private readonly youtubeService: YouTubeService,
   ) {}
 
-  async execute(input: BulkProcessPlaylistsInput): Promise<BulkProcessPlaylistsOutput> {
-    console.log(`[BulkProcess] Iniciando processamento de ${input.playlistIds.length} playlists`);
+  async execute(
+    input: BulkProcessPlaylistsInput,
+  ): Promise<BulkProcessPlaylistsOutput> {
+    console.log(
+      `[BulkProcess] Iniciando processamento de ${input.playlistIds.length} playlists`,
+    );
 
     // 1. Buscar lista de cursos existentes
     const existingCourses = await this.courseRepository.findAll();
-    const existingCourseNames = existingCourses.map(c => c.name);
-    console.log(`[BulkProcess] Cursos existentes: ${existingCourseNames.join(', ')}`);
+    const existingCourseNames = existingCourses.map((c) => c.name);
+    console.log(
+      `[BulkProcess] Cursos existentes: ${existingCourseNames.join(', ')}`,
+    );
 
     // 2. Buscar informações e vídeos de cada playlist
     const playlistData: PlaylistAnalysisData[] = [];
@@ -69,16 +79,20 @@ export class BulkProcessPlaylistsUseCase {
     for (const playlistId of input.playlistIds) {
       try {
         console.log(`[BulkProcess] Processando playlist: ${playlistId}`);
-        
+
         // Buscar informações da playlist
-        const playlistInfo = await this.youtubeService.getPlaylistInfo(playlistId);
+        const playlistInfo =
+          await this.youtubeService.getPlaylistInfo(playlistId);
         if (!playlistInfo) {
           errors.push({ playlistId, error: 'Playlist não encontrada' });
           continue;
         }
 
         // Buscar vídeos da playlist
-        const videos = await this.youtubeService.getPlaylistVideos(playlistId, 200); // Limite alto
+        const videos = await this.youtubeService.getPlaylistVideos(
+          playlistId,
+          200,
+        ); // Limite alto
         if (videos.length === 0) {
           errors.push({ playlistId, error: 'Playlist não contém vídeos' });
           continue;
@@ -90,7 +104,7 @@ export class BulkProcessPlaylistsUseCase {
           playlistDescription: playlistInfo.description,
           channelName: playlistInfo.channelTitle || 'Canal Desconhecido',
           channelId: undefined, // Pode ser adicionado se necessário
-          videos: videos.map(video => ({
+          videos: videos.map((video) => ({
             videoId: video.videoId,
             title: video.title || '',
             description: video.description,
@@ -99,9 +113,14 @@ export class BulkProcessPlaylistsUseCase {
           })),
         });
 
-        console.log(`[BulkProcess] Playlist ${playlistId} processada: ${videos.length} vídeos encontrados`);
+        console.log(
+          `[BulkProcess] Playlist ${playlistId} processada: ${videos.length} vídeos encontrados`,
+        );
       } catch (error) {
-        console.error(`[BulkProcess] Erro ao processar playlist ${playlistId}:`, error);
+        console.error(
+          `[BulkProcess] Erro ao processar playlist ${playlistId}:`,
+          error,
+        );
         errors.push({
           playlistId,
           error: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -125,14 +144,19 @@ export class BulkProcessPlaylistsUseCase {
     }
 
     // 3. Enviar para Gemini analisar e sugerir estrutura
-    console.log(`[BulkProcess] Enviando ${playlistData.length} playlists para análise do Gemini`);
-    const courseSuggestions = await this.geminiService.analyzePlaylistsForCourses(
-      playlistData,
-      existingCourseNames,
-      input.aiPrompt
+    console.log(
+      `[BulkProcess] Enviando ${playlistData.length} playlists para análise do Gemini`,
     );
+    const courseSuggestions =
+      await this.geminiService.analyzePlaylistsForCourses(
+        playlistData,
+        existingCourseNames,
+        input.aiPrompt,
+      );
 
-    console.log(`[BulkProcess] Gemini sugeriu ${courseSuggestions.length} cursos`);
+    console.log(
+      `[BulkProcess] Gemini sugeriu ${courseSuggestions.length} cursos`,
+    );
 
     // 4. Criar cursos, subcursos, módulos e vídeos
     const createdCourses: BulkProcessPlaylistsOutput['data']['courses'] = [];
@@ -141,17 +165,24 @@ export class BulkProcessPlaylistsUseCase {
     let totalVideos = 0;
 
     // Mapa para armazenar vídeos por playlistId (para buscar depois)
-    const videosByPlaylistId = new Map<string, typeof playlistData[0]['videos']>();
-    playlistData.forEach(data => {
+    const videosByPlaylistId = new Map<
+      string,
+      (typeof playlistData)[0]['videos']
+    >();
+    playlistData.forEach((data) => {
       videosByPlaylistId.set(data.playlistId, data.videos);
     });
 
     for (const courseSuggestion of courseSuggestions) {
-      console.log(`[BulkProcess] Processando curso: ${courseSuggestion.courseName}`);
+      console.log(
+        `[BulkProcess] Processando curso: ${courseSuggestion.courseName}`,
+      );
 
       // Verificar se curso já existe
-      let course = existingCourses.find(c => 
-        c.name.toLowerCase().trim() === courseSuggestion.courseName.toLowerCase().trim()
+      let course = existingCourses.find(
+        (c) =>
+          c.name.toLowerCase().trim() ===
+          courseSuggestion.courseName.toLowerCase().trim(),
       );
 
       if (!course) {
@@ -163,12 +194,16 @@ export class BulkProcessPlaylistsUseCase {
           false, // Não pago por padrão
         );
         course = await this.courseRepository.create(courseData);
-        console.log(`[BulkProcess] Curso criado: ${course.name} (${course.id})`);
+        console.log(
+          `[BulkProcess] Curso criado: ${course.name} (${course.id})`,
+        );
       } else {
-        console.log(`[BulkProcess] Curso já existe: ${course.name} (${course.id})`);
+        console.log(
+          `[BulkProcess] Curso já existe: ${course.name} (${course.id})`,
+        );
       }
 
-      const courseOutput: typeof createdCourses[0] = {
+      const courseOutput: (typeof createdCourses)[0] = {
         courseId: course.id,
         courseName: course.name,
         subCourses: [],
@@ -176,23 +211,30 @@ export class BulkProcessPlaylistsUseCase {
 
       // Criar subcursos
       for (const subCourseSuggestion of courseSuggestion.subCourses) {
-        console.log(`[BulkProcess] Processando subcurso: ${subCourseSuggestion.subCourseName}`);
+        console.log(
+          `[BulkProcess] Processando subcurso: ${subCourseSuggestion.subCourseName}`,
+        );
 
         // Buscar vídeos da playlist correspondente
-        const playlistVideos = videosByPlaylistId.get(subCourseSuggestion.playlistId);
+        const playlistVideos = videosByPlaylistId.get(
+          subCourseSuggestion.playlistId,
+        );
         if (!playlistVideos || playlistVideos.length === 0) {
-          console.warn(`[BulkProcess] Vídeos não encontrados para playlist ${subCourseSuggestion.playlistId}`);
+          console.warn(
+            `[BulkProcess] Vídeos não encontrados para playlist ${subCourseSuggestion.playlistId}`,
+          );
           continue;
         }
 
         // Buscar vídeos completos do YouTube
         const fullVideos = await this.youtubeService.getPlaylistVideos(
           subCourseSuggestion.playlistId,
-          200
+          200,
         );
 
         // Buscar subcursos existentes para calcular ordem
-        const existingSubCourses = await this.subCourseRepository.findByCourseId(course.id);
+        const existingSubCourses =
+          await this.subCourseRepository.findByCourseId(course.id);
         const nextOrder = existingSubCourses.length;
 
         // Criar subcurso
@@ -204,12 +246,18 @@ export class BulkProcessPlaylistsUseCase {
         );
         const subCourse = await this.subCourseRepository.create(subCourseData);
         totalSubCourses++;
-        console.log(`[BulkProcess] Subcurso criado: ${subCourse.name} (${subCourse.id})`);
+        console.log(
+          `[BulkProcess] Subcurso criado: ${subCourse.name} (${subCourse.id})`,
+        );
 
         const subCourseOutput = {
           subCourseId: subCourse.id,
           subCourseName: subCourse.name,
-          modules: [] as Array<{ moduleId: string; moduleName: string; videoCount: number }>,
+          modules: [] as Array<{
+            moduleId: string;
+            moduleName: string;
+            videoCount: number;
+          }>,
         };
 
         // Criar módulos e vídeos
@@ -230,7 +278,9 @@ export class BulkProcessPlaylistsUseCase {
           let videoOrder = 0;
           for (const videoIndex of moduleSuggestion.videoIndices) {
             if (videoIndex >= fullVideos.length) {
-              console.warn(`[BulkProcess] Índice de vídeo ${videoIndex} fora do range`);
+              console.warn(
+                `[BulkProcess] Índice de vídeo ${videoIndex} fora do range`,
+              );
               continue;
             }
 
@@ -247,7 +297,9 @@ export class BulkProcessPlaylistsUseCase {
               youtubeVideo.channelTitle,
               youtubeVideo.channelId,
               youtubeVideo.channelThumbnailUrl,
-              youtubeVideo.publishedAt ? new Date(youtubeVideo.publishedAt) : undefined,
+              youtubeVideo.publishedAt
+                ? new Date(youtubeVideo.publishedAt)
+                : undefined,
               youtubeVideo.viewCount,
               youtubeVideo.tags,
               youtubeVideo.category,
@@ -287,4 +339,3 @@ export class BulkProcessPlaylistsUseCase {
     };
   }
 }
-

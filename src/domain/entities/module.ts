@@ -15,7 +15,10 @@ export class Module {
     name: string,
     description?: string,
     order: number = 0,
-  ): Omit<Module, 'id' | 'videoCount' | 'createdAt' | 'updatedAt' | 'updateVideoCount'> {
+  ): Omit<
+    Module,
+    'id' | 'videoCount' | 'createdAt' | 'updatedAt' | 'updateVideoCount'
+  > {
     return {
       subCourseId,
       name,

@@ -24,7 +24,9 @@ import { JwtPayload } from '../services/auth.service';
   },
   namespace: '/notifications',
 })
-export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class NotificationsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -52,8 +54,10 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       const user = client.data.user as JwtPayload;
       if (user && user.sub) {
         this.connectedUsers.set(user.sub, client.id);
-        this.logger.log(`Usuário conectado: ${user.sub} (socket: ${client.id})`);
-        
+        this.logger.log(
+          `Usuário conectado: ${user.sub} (socket: ${client.id})`,
+        );
+
         // Notificar o cliente que está conectado
         client.emit('connected', { userId: user.sub });
       }
@@ -79,12 +83,18 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   // Método público para emitir notificações
   emitToUser(userId: string, event: string, data: any) {
     const socketId = this.connectedUsers.get(userId);
-    this.logger.debug(`Tentando enviar ${event} para usuário ${userId}, socketId: ${socketId}`);
-    this.logger.debug(`Usuários conectados: ${Array.from(this.connectedUsers.keys()).join(', ')}`);
-    
+    this.logger.debug(
+      `Tentando enviar ${event} para usuário ${userId}, socketId: ${socketId}`,
+    );
+    this.logger.debug(
+      `Usuários conectados: ${Array.from(this.connectedUsers.keys()).join(', ')}`,
+    );
+
     if (socketId) {
       this.server.to(socketId).emit(event, data);
-      this.logger.log(`✅ Notificação enviada para usuário ${userId} (${socketId}): ${event}`);
+      this.logger.log(
+        `✅ Notificação enviada para usuário ${userId} (${socketId}): ${event}`,
+      );
       return true;
     }
     this.logger.warn(`❌ Usuário ${userId} não está conectado ao WebSocket`);
@@ -96,4 +106,3 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     return this.connectedUsers.has(userId);
   }
 }
-

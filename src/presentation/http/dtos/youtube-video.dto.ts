@@ -71,7 +71,10 @@ export class YouTubeSearchDto {
   @IsOptional()
   maxResults?: number = 10;
 
-  @ApiProperty({ description: 'Ordenação dos resultados', default: 'relevance' })
+  @ApiProperty({
+    description: 'Ordenação dos resultados',
+    default: 'relevance',
+  })
   @IsString()
   @IsOptional()
   order?: 'relevance' | 'date' | 'rating' | 'viewCount' | 'title' = 'relevance';

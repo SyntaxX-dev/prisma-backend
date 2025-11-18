@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   COMMUNITY_REPOSITORY,
   COMMUNITY_MEMBER_REPOSITORY,
@@ -83,10 +88,9 @@ export class ListCommunityMembersUseCase {
     const offset = input.offset || 0;
 
     // Buscar todos os membros (para contar total)
-    const allMembers =
-      await this.communityMemberRepository.findByCommunityId(
-        input.communityId,
-      );
+    const allMembers = await this.communityMemberRepository.findByCommunityId(
+      input.communityId,
+    );
 
     const total = allMembers.length;
 
@@ -146,4 +150,3 @@ export class ListCommunityMembersUseCase {
     };
   }
 }
-

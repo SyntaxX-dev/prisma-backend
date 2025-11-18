@@ -44,7 +44,9 @@ export class GetCommunityAttachmentsUseCase {
     private readonly communityMemberRepository?: CommunityMemberRepository,
   ) {}
 
-  async execute(input: GetCommunityAttachmentsInput): Promise<GetCommunityAttachmentsOutput> {
+  async execute(
+    input: GetCommunityAttachmentsInput,
+  ): Promise<GetCommunityAttachmentsOutput> {
     const { userId, communityId } = input;
 
     // Verificar se a comunidade existe
@@ -57,7 +59,11 @@ export class GetCommunityAttachmentsUseCase {
       // Verificar se o usuário é membro ou dono
       const isOwner = community.ownerId === userId;
       if (!isOwner && this.communityMemberRepository) {
-        const member = await this.communityMemberRepository.findByCommunityAndUser(communityId, userId);
+        const member =
+          await this.communityMemberRepository.findByCommunityAndUser(
+            communityId,
+            userId,
+          );
         if (!member) {
           throw new Error('Você não é membro desta comunidade');
         }
@@ -69,7 +75,10 @@ export class GetCommunityAttachmentsUseCase {
     }
 
     // Buscar todos os attachments da comunidade
-    const attachments = await this.communityMessageAttachmentRepository.findByCommunityId(communityId);
+    const attachments =
+      await this.communityMessageAttachmentRepository.findByCommunityId(
+        communityId,
+      );
 
     return {
       attachments: attachments.map((att) => ({
@@ -89,4 +98,3 @@ export class GetCommunityAttachmentsUseCase {
     };
   }
 }
-

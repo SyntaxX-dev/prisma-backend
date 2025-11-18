@@ -1,6 +1,6 @@
 /**
  * ListConversationsUseCase - Lógica para listar todas as conversas de um usuário
- * 
+ *
  * Este use case retorna todas as conversas do usuário com:
  * - Última mensagem de cada conversa
  * - Contagem de mensagens não lidas
@@ -8,7 +8,11 @@
  */
 
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, USER_REPOSITORY, FRIENDSHIP_REPOSITORY } from '../../../domain/tokens';
+import {
+  MESSAGE_REPOSITORY,
+  USER_REPOSITORY,
+  FRIENDSHIP_REPOSITORY,
+} from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
@@ -54,7 +58,9 @@ export class ListConversationsUseCase {
     private readonly friendshipRepository: FriendshipRepository,
   ) {}
 
-  async execute(input: ListConversationsInput): Promise<ListConversationsOutput> {
+  async execute(
+    input: ListConversationsInput,
+  ): Promise<ListConversationsOutput> {
     const { userId } = input;
 
     // Verificar se o usuário existe
@@ -64,7 +70,8 @@ export class ListConversationsUseCase {
     }
 
     // Buscar todas as conversas
-    const conversationsData = await this.messageRepository.findConversations(userId);
+    const conversationsData =
+      await this.messageRepository.findConversations(userId);
 
     // Enriquecer com informações dos outros usuários
     const enrichedConversations = await Promise.all(
@@ -121,4 +128,3 @@ export class ListConversationsUseCase {
     };
   }
 }
-

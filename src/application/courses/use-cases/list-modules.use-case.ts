@@ -20,12 +20,16 @@ export class ListModulesUseCase {
 
   async execute(input: ListModulesInput): Promise<ListModulesOutput> {
     // Verificar se o sub-curso existe
-    const subCourse = await this.subCourseRepository.findById(input.subCourseId);
+    const subCourse = await this.subCourseRepository.findById(
+      input.subCourseId,
+    );
     if (!subCourse) {
       throw new Error(`Sub-curso com ID "${input.subCourseId}" não encontrado`);
     }
 
-    const modules = await this.moduleRepository.findBySubCourseId(input.subCourseId);
+    const modules = await this.moduleRepository.findBySubCourseId(
+      input.subCourseId,
+    );
 
     return { modules };
   }

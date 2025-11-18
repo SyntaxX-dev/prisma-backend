@@ -13,4 +13,3 @@ export class Notification {
     public readonly createdAt: Date,
   ) {}
 }
-

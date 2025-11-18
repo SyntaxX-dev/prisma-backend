@@ -18,26 +18,37 @@ export class OffensiveService {
     private readonly videoProgressRepository: VideoProgressRepository,
   ) {}
 
-  async processVideoCompletion(userId: string, videoCompletedAt: Date): Promise<OffensiveResult> {
+  async processVideoCompletion(
+    userId: string,
+    videoCompletedAt: Date,
+  ): Promise<OffensiveResult> {
     const completionDate = new Date(videoCompletedAt);
     completionDate.setHours(0, 0, 0, 0);
-    
+
     const previousDay = new Date(completionDate);
     previousDay.setDate(previousDay.getDate() - 1);
 
-    console.log(`[DEBUG] processVideoCompletion - userId: ${userId}, videoCompletedAt: ${videoCompletedAt.toISOString()}`);
-    console.log(`[DEBUG] completionDate (normalized): ${completionDate.toISOString()}, previousDay: ${previousDay.toISOString()}`);
+    console.log(
+      `[DEBUG] processVideoCompletion - userId: ${userId}, videoCompletedAt: ${videoCompletedAt.toISOString()}`,
+    );
+    console.log(
+      `[DEBUG] completionDate (normalized): ${completionDate.toISOString()}, previousDay: ${previousDay.toISOString()}`,
+    );
 
     let offensive = await this.offensiveRepository.findByUserId(userId);
-    
+
     if (offensive) {
       const lastOffensiveDate = new Date(offensive.lastVideoCompletedAt);
       lastOffensiveDate.setHours(0, 0, 0, 0);
-      
-      console.log(`[DEBUG] lastOffensiveDate: ${lastOffensiveDate.toISOString()}, completionDate: ${completionDate.toISOString()}`);
-      
+
+      console.log(
+        `[DEBUG] lastOffensiveDate: ${lastOffensiveDate.toISOString()}, completionDate: ${completionDate.toISOString()}`,
+      );
+
       if (lastOffensiveDate.getTime() === completionDate.getTime()) {
-        console.log(`[DEBUG] Ofensiva já processada nesta data. Retornando ofensiva existente.`);
+        console.log(
+          `[DEBUG] Ofensiva já processada nesta data. Retornando ofensiva existente.`,
+        );
         return {
           offensive: offensive,
           isNewOffensive: false,
@@ -70,11 +81,21 @@ export class OffensiveService {
 
       if (lastCompletionDate.getTime() === previousDay.getTime()) {
         const newConsecutiveDays = offensive.consecutiveDays + 1;
-        console.log(`[DEBUG] Sequência mantida! Incrementando de ${offensive.consecutiveDays} para ${newConsecutiveDays} dias`);
-        offensive = offensive.updateStreak(newConsecutiveDays, videoCompletedAt);
+        console.log(
+          `[DEBUG] Sequência mantida! Incrementando de ${offensive.consecutiveDays} para ${newConsecutiveDays} dias`,
+        );
+        offensive = offensive.updateStreak(
+          newConsecutiveDays,
+          videoCompletedAt,
+        );
       } else {
-        const daysDiff = Math.floor((completionDate.getTime() - lastCompletionDate.getTime()) / (1000 * 60 * 60 * 24));
-        console.log(`[DEBUG] Sequência quebrada! Última conclusão foi há ${daysDiff} dias. Resetando...`);
+        const daysDiff = Math.floor(
+          (completionDate.getTime() - lastCompletionDate.getTime()) /
+            (1000 * 60 * 60 * 24),
+        );
+        console.log(
+          `[DEBUG] Sequência quebrada! Última conclusão foi há ${daysDiff} dias. Resetando...`,
+        );
         offensive = offensive.resetStreak();
         offensive = new Offensive(
           offensive.id,
@@ -98,7 +119,11 @@ export class OffensiveService {
       offensive = await this.offensiveRepository.update(offensive);
     }
 
-    const message = this.generateOffensiveMessage(offensive, isNewOffensive, isStreakBroken);
+    const message = this.generateOffensiveMessage(
+      offensive,
+      isNewOffensive,
+      isStreakBroken,
+    );
 
     return {
       offensive,
@@ -119,69 +144,89 @@ export class OffensiveService {
     };
   }> {
     console.log(`[DEBUG] getUserOffensiveInfo - userId: ${userId}`);
-    
-    const currentOffensive = await this.offensiveRepository.findByUserId(userId);
-    console.log(`[DEBUG] currentOffensive found: ${currentOffensive ? 'YES' : 'NO'}`);
+
+    const currentOffensive =
+      await this.offensiveRepository.findByUserId(userId);
+    console.log(
+      `[DEBUG] currentOffensive found: ${currentOffensive ? 'YES' : 'NO'}`,
+    );
     if (currentOffensive) {
       console.log(`[DEBUG] currentOffensive details:`, {
         id: currentOffensive.id,
         type: currentOffensive.type,
         consecutiveDays: currentOffensive.consecutiveDays,
-        totalOffensives: currentOffensive.totalOffensives
+        totalOffensives: currentOffensive.totalOffensives,
       });
     }
-    
+
     // Verificar se a sequência ainda está ativa (último vídeo completado hoje ou ontem)
     let activeStreak = 0;
     let currentType = OffensiveType.NORMAL;
-    
+
     if (currentOffensive) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      
-      const lastCompletionDate = new Date(currentOffensive.lastVideoCompletedAt);
+
+      const lastCompletionDate = new Date(
+        currentOffensive.lastVideoCompletedAt,
+      );
       lastCompletionDate.setHours(0, 0, 0, 0);
-      
+
       // Verificar se completou vídeo hoje
-      const hasCompletedToday = await this.hasCompletedVideoToday(userId, today);
-      const lastCompletionWasToday = lastCompletionDate.getTime() === today.getTime();
-      const lastCompletionWasYesterday = lastCompletionDate.getTime() === yesterday.getTime();
-      
+      const hasCompletedToday = await this.hasCompletedVideoToday(
+        userId,
+        today,
+      );
+      const lastCompletionWasToday =
+        lastCompletionDate.getTime() === today.getTime();
+      const lastCompletionWasYesterday =
+        lastCompletionDate.getTime() === yesterday.getTime();
+
       // Sequência está ativa se:
       // 1. Completou vídeo hoje, OU
       // 2. Último vídeo foi completado ontem (usuário ainda tem até 00:00 do próximo dia para completar hoje)
       // Sequência está quebrada APENAS se o último vídeo foi completado há 2 dias ou mais
-      if (hasCompletedToday || lastCompletionWasToday || lastCompletionWasYesterday) {
+      if (
+        hasCompletedToday ||
+        lastCompletionWasToday ||
+        lastCompletionWasYesterday
+      ) {
         // Sequência ativa - usuário completou vídeo hoje ou ontem (ainda pode completar hoje)
         activeStreak = currentOffensive.consecutiveDays;
         currentType = currentOffensive.type;
       } else {
         // Sequência quebrada (último vídeo foi há 2 dias ou mais) - resetar no banco de dados
-        const daysSinceLastCompletion = Math.floor((today.getTime() - lastCompletionDate.getTime()) / (1000 * 60 * 60 * 24));
-        console.log(`[DEBUG] Streak broken - last completion was ${daysSinceLastCompletion} days ago. Resetting...`);
+        const daysSinceLastCompletion = Math.floor(
+          (today.getTime() - lastCompletionDate.getTime()) /
+            (1000 * 60 * 60 * 24),
+        );
+        console.log(
+          `[DEBUG] Streak broken - last completion was ${daysSinceLastCompletion} days ago. Resetting...`,
+        );
         const resetOffensive = currentOffensive.resetStreak();
         await this.offensiveRepository.update(resetOffensive);
         activeStreak = 0;
         currentType = OffensiveType.NORMAL;
       }
     }
-    
+
     // Buscar histórico dos últimos 30 dias
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999); // Fim do dia
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);
     startDate.setHours(0, 0, 0, 0); // Início do dia
-    
+
     // Buscar todas as conclusões no período
-    const completions = await this.videoProgressRepository.findCompletionsByDateRange(
-      userId,
-      startDate,
-      endDate,
-    );
+    const completions =
+      await this.videoProgressRepository.findCompletionsByDateRange(
+        userId,
+        startDate,
+        endDate,
+      );
 
     // Agrupar por dia e calcular tipo de ofensiva para cada dia
     const completionsByDay = new Map<number, Date>();
@@ -197,7 +242,9 @@ export class OffensiveService {
     }
 
     // Ordenar datas
-    const sortedDates = Array.from(completionsByDay.values()).sort((a, b) => a.getTime() - b.getTime());
+    const sortedDates = Array.from(completionsByDay.values()).sort(
+      (a, b) => a.getTime() - b.getTime(),
+    );
 
     // Gerar histórico: apenas dias com ofensivas
     const history: { date: Date; hasOffensive: boolean; type?: string }[] = [];
@@ -206,12 +253,14 @@ export class OffensiveService {
     for (let i = 0; i < sortedDates.length; i++) {
       const day = sortedDates[i];
       let consecutiveDays = 1;
-      
+
       // Contar dias consecutivos anteriores (retroceder na lista)
       for (let j = i - 1; j >= 0; j--) {
         const prevDate = sortedDates[j];
         const nextDate = sortedDates[j + 1];
-        const daysDiff = Math.floor((nextDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.floor(
+          (nextDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
         if (daysDiff === 1) {
           consecutiveDays++;
         } else {
@@ -254,19 +303,25 @@ export class OffensiveService {
     };
   }
 
-  private async hasCompletedVideoToday(userId: string, today: Date): Promise<boolean> {
+  private async hasCompletedVideoToday(
+    userId: string,
+    today: Date,
+  ): Promise<boolean> {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     // Buscar se há algum vídeo completado hoje
-    const todayCompletions = await this.videoProgressRepository.findCompletionsByDateRange(
-      userId,
-      today,
-      tomorrow,
+    const todayCompletions =
+      await this.videoProgressRepository.findCompletionsByDateRange(
+        userId,
+        today,
+        tomorrow,
+      );
+
+    console.log(
+      `[DEBUG] hasCompletedVideoToday - userId: ${userId}, today: ${today.toISOString()}, completions: ${todayCompletions.length}`,
     );
-    
-    console.log(`[DEBUG] hasCompletedVideoToday - userId: ${userId}, today: ${today.toISOString()}, completions: ${todayCompletions.length}`);
-    
+
     return todayCompletions.length > 0;
   }
 
@@ -297,13 +352,16 @@ export class OffensiveService {
     const startDate = new Date();
     startDate.setFullYear(startDate.getFullYear() - 10); // 10 anos no passado
 
-    const allCompletions = await this.videoProgressRepository.findCompletionsByDateRange(
-      userId,
-      startDate,
-      endDate,
-    );
+    const allCompletions =
+      await this.videoProgressRepository.findCompletionsByDateRange(
+        userId,
+        startDate,
+        endDate,
+      );
 
-    console.log(`[DEBUG] Found ${allCompletions.length} total video completions`);
+    console.log(
+      `[DEBUG] Found ${allCompletions.length} total video completions`,
+    );
 
     if (allCompletions.length === 0) {
       // Sem vídeos, resetar ofensiva
@@ -322,32 +380,36 @@ export class OffensiveService {
 
     // Agrupar conclusões por dia (normalizar datas para 00:00:00)
     const completionsByDay = new Map<number, Date>();
-    
+
     for (const completion of allCompletions) {
       const date = new Date(completion.completedAt!);
       date.setHours(0, 0, 0, 0);
       const timestamp = date.getTime();
-      
+
       if (!completionsByDay.has(timestamp)) {
         completionsByDay.set(timestamp, date);
       }
     }
 
     // Ordenar datas
-    const sortedDates = Array.from(completionsByDay.values()).sort((a, b) => a.getTime() - b.getTime());
-    
+    const sortedDates = Array.from(completionsByDay.values()).sort(
+      (a, b) => a.getTime() - b.getTime(),
+    );
+
     console.log(`[DEBUG] Found ${sortedDates.length} unique completion days`);
 
     // Calcular a sequência consecutiva a partir da data mais recente
     let consecutiveDays = 1;
     const mostRecentDate = sortedDates[sortedDates.length - 1];
-    
+
     for (let i = sortedDates.length - 2; i >= 0; i--) {
       const currentDate = sortedDates[i];
       const nextDate = sortedDates[i + 1];
-      
-      const daysDiff = Math.floor((nextDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
+      const daysDiff = Math.floor(
+        (nextDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
       if (daysDiff === 1) {
         // Dias consecutivos
         consecutiveDays++;
@@ -396,7 +458,11 @@ export class OffensiveService {
       await this.offensiveRepository.update(offensive);
     }
 
-    const message = this.generateOffensiveMessage(offensive, isNewOffensive, false);
+    const message = this.generateOffensiveMessage(
+      offensive,
+      isNewOffensive,
+      false,
+    );
 
     return {
       offensive,

@@ -34,7 +34,10 @@ import { CreateVideosDto } from '../dtos/create-videos.dto';
 import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
 import { ProcessYouTubePlaylistDto } from '../dtos/process-youtube-playlist.dto';
 import { BulkProcessPlaylistsDto } from '../dtos/bulk-process-playlists.dto';
-import { GenerateMindMapDto, GetMindMapByVideoDto } from '../dtos/generate-mind-map.dto';
+import {
+  GenerateMindMapDto,
+  GetMindMapByVideoDto,
+} from '../dtos/generate-mind-map.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
@@ -260,10 +263,10 @@ export class CoursesController {
                 example: 'Aulas de português para PRF',
               },
               order: { type: 'number', example: 1 },
-              channelThumbnailUrl: { 
-                type: 'string', 
+              channelThumbnailUrl: {
+                type: 'string',
                 example: 'https://yt3.ggpht.com/...',
-                description: 'URL da imagem do canal do YouTube'
+                description: 'URL da imagem do canal do YouTube',
               },
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
@@ -330,7 +333,10 @@ export class CoursesController {
               duration: { type: 'number', example: 3998 },
               channelTitle: { type: 'string', example: 'AlfaCon' },
               channelId: { type: 'string', example: 'UC123456789' },
-              channelThumbnailUrl: { type: 'string', example: 'https://yt3.ggpht.com/...' },
+              channelThumbnailUrl: {
+                type: 'string',
+                example: 'https://yt3.ggpht.com/...',
+              },
               viewCount: { type: 'number', example: 15589 },
               order: { type: 'number', example: 1 },
             },
@@ -405,7 +411,10 @@ export class CoursesController {
               duration: { type: 'number', example: 3998 },
               channelTitle: { type: 'string', example: 'AlfaCon' },
               channelId: { type: 'string', example: 'UC123456789' },
-              channelThumbnailUrl: { type: 'string', example: 'https://yt3.ggpht.com/...' },
+              channelThumbnailUrl: {
+                type: 'string',
+                example: 'https://yt3.ggpht.com/...',
+              },
               viewCount: { type: 'number', example: 15589 },
               order: { type: 'number', example: 1 },
             },
@@ -419,7 +428,7 @@ export class CoursesController {
     @Param('subCourseId') subCourseId: string,
   ) {
     try {
-      const result = await this.listVideosUseCase.execute({ 
+      const result = await this.listVideosUseCase.execute({
         subCourseId,
         userId: user.sub,
       });
@@ -518,7 +527,10 @@ export class CoursesController {
 
   @Post('process-youtube-playlist')
   @UseGuards(AdminGuard)
-  @ApiOperation({ summary: 'Processar playlist do YouTube e organizar em módulos (Apenas Admin)' })
+  @ApiOperation({
+    summary:
+      'Processar playlist do YouTube e organizar em módulos (Apenas Admin)',
+  })
   @ApiBody({ type: ProcessYouTubePlaylistDto })
   @ApiResponse({
     status: 201,
@@ -527,7 +539,11 @@ export class CoursesController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Playlist processada com sucesso! Criados 3 módulos com 15 vídeos.' },
+        message: {
+          type: 'string',
+          example:
+            'Playlist processada com sucesso! Criados 3 módulos com 15 vídeos.',
+        },
         data: {
           type: 'object',
           properties: {
@@ -536,7 +552,10 @@ export class CoursesController {
               properties: {
                 id: { type: 'string', example: 'uuid-do-subcurso' },
                 name: { type: 'string', example: 'Curso React Completo' },
-                description: { type: 'string', example: 'Curso completo de React do zero ao avançado' },
+                description: {
+                  type: 'string',
+                  example: 'Curso completo de React do zero ao avançado',
+                },
               },
             },
             modules: {
@@ -546,7 +565,10 @@ export class CoursesController {
                 properties: {
                   id: { type: 'string', example: 'uuid-do-modulo' },
                   name: { type: 'string', example: 'Introdução ao React' },
-                  description: { type: 'string', example: 'Conteúdo do Introdução ao React' },
+                  description: {
+                    type: 'string',
+                    example: 'Conteúdo do Introdução ao React',
+                  },
                   order: { type: 'number', example: 0 },
                   videoCount: { type: 'number', example: 5 },
                   videos: {
@@ -556,7 +578,10 @@ export class CoursesController {
                       properties: {
                         id: { type: 'string', example: 'uuid-do-video' },
                         videoId: { type: 'string', example: 'FXqX7oof0I4' },
-                        title: { type: 'string', example: 'Curso React: Introdução - #01' },
+                        title: {
+                          type: 'string',
+                          example: 'Curso React: Introdução - #01',
+                        },
                         order: { type: 'number', example: 0 },
                       },
                     },
@@ -580,7 +605,9 @@ export class CoursesController {
       },
     },
   })
-  async processYouTubePlaylist(@Body() processYouTubePlaylistDto: ProcessYouTubePlaylistDto) {
+  async processYouTubePlaylist(
+    @Body() processYouTubePlaylistDto: ProcessYouTubePlaylistDto,
+  ) {
     try {
       const result = await this.processYouTubePlaylistUseCase.execute({
         courseId: processYouTubePlaylistDto.courseId,
@@ -603,8 +630,9 @@ export class CoursesController {
 
   @Post('bulk-process-playlists')
   @UseGuards(AdminGuard)
-  @ApiOperation({ 
-    summary: 'Processar múltiplas playlists do YouTube e criar cursos, subcursos, módulos e vídeos automaticamente (Apenas Admin)' 
+  @ApiOperation({
+    summary:
+      'Processar múltiplas playlists do YouTube e criar cursos, subcursos, módulos e vídeos automaticamente (Apenas Admin)',
   })
   @ApiBody({ type: BulkProcessPlaylistsDto })
   @ApiResponse({
@@ -614,9 +642,10 @@ export class CoursesController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { 
-          type: 'string', 
-          example: 'Processamento concluído! Criados 3 curso(s), 5 subcurso(s), 15 módulo(s) e 120 vídeo(s).' 
+        message: {
+          type: 'string',
+          example:
+            'Processamento concluído! Criados 3 curso(s), 5 subcurso(s), 15 módulo(s) e 120 vídeo(s).',
         },
         data: {
           type: 'object',
@@ -637,15 +666,27 @@ export class CoursesController {
                     items: {
                       type: 'object',
                       properties: {
-                        subCourseId: { type: 'string', example: 'uuid-do-subcurso' },
-                        subCourseName: { type: 'string', example: 'Biomas do Brasil - Jubilut' },
+                        subCourseId: {
+                          type: 'string',
+                          example: 'uuid-do-subcurso',
+                        },
+                        subCourseName: {
+                          type: 'string',
+                          example: 'Biomas do Brasil - Jubilut',
+                        },
                         modules: {
                           type: 'array',
                           items: {
                             type: 'object',
                             properties: {
-                              moduleId: { type: 'string', example: 'uuid-do-modulo' },
-                              moduleName: { type: 'string', example: 'Introdução aos Biomas' },
+                              moduleId: {
+                                type: 'string',
+                                example: 'uuid-do-modulo',
+                              },
+                              moduleName: {
+                                type: 'string',
+                                example: 'Introdução aos Biomas',
+                              },
                               videoCount: { type: 'number', example: 8 },
                             },
                           },
@@ -675,7 +716,9 @@ export class CoursesController {
     status: 400,
     description: 'Erro na validação dos dados',
   })
-  async bulkProcessPlaylists(@Body() bulkProcessPlaylistsDto: BulkProcessPlaylistsDto) {
+  async bulkProcessPlaylists(
+    @Body() bulkProcessPlaylistsDto: BulkProcessPlaylistsDto,
+  ) {
     try {
       const result = await this.bulkProcessPlaylistsUseCase.execute({
         playlistIds: bulkProcessPlaylistsDto.playlistIds,
@@ -686,7 +729,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error instanceof Error ? error.message : 'Erro ao processar playlists',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao processar playlists',
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -694,7 +740,10 @@ export class CoursesController {
   }
 
   @Post('generate-mind-map')
-  @ApiOperation({ summary: 'Gerar ou regenerar mapa mental de um vídeo usando IA Gemini focado em ENEM' })
+  @ApiOperation({
+    summary:
+      'Gerar ou regenerar mapa mental de um vídeo usando IA Gemini focado em ENEM',
+  })
   @ApiBody({ type: GenerateMindMapDto })
   @ApiResponse({
     status: 201,
@@ -709,10 +758,17 @@ export class CoursesController {
             id: { type: 'string', example: 'uuid-do-mapa-mental' },
             content: {
               type: 'string',
-              example: '# Tema Central - Preparação ENEM\n\n## Tópico Principal 1\n### Subtópico 1.1\n- **Conceito importante**\n- 💡 Como cai no ENEM',
+              example:
+                '# Tema Central - Preparação ENEM\n\n## Tópico Principal 1\n### Subtópico 1.1\n- **Conceito importante**\n- 💡 Como cai no ENEM',
             },
-            videoTitle: { type: 'string', example: 'Primeira Guerra Mundial - História ENEM' },
-            videoUrl: { type: 'string', example: 'https://youtube.com/watch?v=abc123' },
+            videoTitle: {
+              type: 'string',
+              example: 'Primeira Guerra Mundial - História ENEM',
+            },
+            videoUrl: {
+              type: 'string',
+              example: 'https://youtube.com/watch?v=abc123',
+            },
             createdAt: { type: 'string', example: '2025-01-15T10:30:00Z' },
             updatedAt: { type: 'string', example: '2025-01-15T10:30:00Z' },
           },
@@ -726,7 +782,7 @@ export class CoursesController {
   ) {
     try {
       const result = await this.generateMindMapUseCase.execute({
-        userId: user.userId,
+        userId: user.sub,
         videoId: generateMindMapDto.videoId,
         videoTitle: generateMindMapDto.videoTitle,
         videoDescription: generateMindMapDto.videoDescription,
@@ -740,7 +796,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error instanceof Error ? error.message : 'Erro ao gerar mapa mental',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao gerar mapa mental',
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -748,7 +807,9 @@ export class CoursesController {
   }
 
   @Get('mind-map/:videoId')
-  @ApiOperation({ summary: 'Buscar mapa mental existente de um vídeo para o usuário logado' })
+  @ApiOperation({
+    summary: 'Buscar mapa mental existente de um vídeo para o usuário logado',
+  })
   @ApiResponse({
     status: 200,
     description: 'Mapa mental encontrado',
@@ -787,7 +848,7 @@ export class CoursesController {
   ) {
     try {
       const result = await this.getMindMapByVideoUseCase.execute({
-        userId: user.userId,
+        userId: user.sub,
         videoId,
       });
 
@@ -806,7 +867,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error instanceof Error ? error.message : 'Erro ao buscar mapa mental',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao buscar mapa mental',
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -848,7 +912,7 @@ export class CoursesController {
   async listUserMindMaps(@CurrentUser() user: JwtPayload) {
     try {
       const result = await this.listUserMindMapsUseCase.execute({
-        userId: user.userId,
+        userId: user.sub,
       });
 
       return {
@@ -859,7 +923,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error instanceof Error ? error.message : 'Erro ao listar mapas mentais',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao listar mapas mentais',
         },
         HttpStatus.BAD_REQUEST,
       );

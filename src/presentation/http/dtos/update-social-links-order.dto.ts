@@ -7,7 +7,7 @@ export class UpdateSocialLinksOrderDto {
     example: ['linkedin', 'github', 'portfolio', 'instagram', 'twitter'],
     type: [String],
     minItems: 5,
-    maxItems: 5
+    maxItems: 5,
   })
   @IsArray()
   @ArrayMinSize(5, { message: 'Deve conter exatamente 5 links' })

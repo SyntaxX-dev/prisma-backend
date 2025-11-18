@@ -11,7 +11,9 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
   private db: ReturnType<typeof drizzle>;
 
   constructor() {
-    const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres';
+    const connectionString =
+      process.env.DATABASE_URL ||
+      'postgresql://postgres:postgres@localhost:5432/postgres';
     const client = postgres(connectionString);
     this.db = drizzle(client);
   }
@@ -45,11 +47,19 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
     );
   }
 
-  async findByUserAndVideo(userId: string, videoId: string): Promise<VideoProgress | null> {
+  async findByUserAndVideo(
+    userId: string,
+    videoId: string,
+  ): Promise<VideoProgress | null> {
     const [result] = await this.db
       .select()
       .from(videoProgress)
-      .where(and(eq(videoProgress.userId, userId), eq(videoProgress.videoId, videoId)))
+      .where(
+        and(
+          eq(videoProgress.userId, userId),
+          eq(videoProgress.videoId, videoId),
+        ),
+      )
       .limit(1);
 
     if (!result) return null;
@@ -67,11 +77,19 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
     );
   }
 
-  async findByUserAndSubCourse(userId: string, subCourseId: string): Promise<VideoProgress[]> {
+  async findByUserAndSubCourse(
+    userId: string,
+    subCourseId: string,
+  ): Promise<VideoProgress[]> {
     const results = await this.db
       .select()
       .from(videoProgress)
-      .where(and(eq(videoProgress.userId, userId), eq(videoProgress.subCourseId, subCourseId)));
+      .where(
+        and(
+          eq(videoProgress.userId, userId),
+          eq(videoProgress.subCourseId, subCourseId),
+        ),
+      );
 
     return results.map(
       (result) =>
@@ -105,7 +123,10 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
     await this.db.delete(videoProgress).where(eq(videoProgress.id, id));
   }
 
-  async getCourseProgress(userId: string, subCourseId: string): Promise<{
+  async getCourseProgress(
+    userId: string,
+    subCourseId: string,
+  ): Promise<{
     totalVideos: number;
     completedVideos: number;
     progressPercentage: number;
@@ -131,7 +152,8 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
       );
 
     const completedVideos = completedResult.count;
-    const progressPercentage = totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
+    const progressPercentage =
+      totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
 
     return {
       totalVideos,
@@ -140,7 +162,11 @@ export class VideoProgressDrizzleRepository implements VideoProgressRepository {
     };
   }
 
-  async findCompletionsByDateRange(userId: string, startDate: Date, endDate: Date): Promise<VideoProgress[]> {
+  async findCompletionsByDateRange(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<VideoProgress[]> {
     const results = await this.db
       .select()
       .from(videoProgress)

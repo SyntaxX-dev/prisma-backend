@@ -20,7 +20,14 @@ import { BulkProcessPlaylistsUseCase } from './use-cases/bulk-process-playlists.
 import { GenerateMindMapUseCase } from './use-cases/generate-mind-map.use-case';
 import { GetMindMapByVideoUseCase } from './use-cases/get-mind-map-by-video.use-case';
 import { ListUserMindMapsUseCase } from './use-cases/list-user-mind-maps.use-case';
-import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, MIND_MAP_REPOSITORY } from '../../domain/tokens';
+import {
+  COURSE_REPOSITORY,
+  SUB_COURSE_REPOSITORY,
+  MODULE_REPOSITORY,
+  VIDEO_REPOSITORY,
+  VIDEO_PROGRESS_REPOSITORY,
+  MIND_MAP_REPOSITORY,
+} from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
 import { GeminiService } from '../../infrastructure/services/gemini.service';
 
@@ -29,7 +36,8 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
   providers: [
     {
       provide: CreateCourseUseCase,
-      useFactory: (courseRepository) => new CreateCourseUseCase(courseRepository),
+      useFactory: (courseRepository) =>
+        new CreateCourseUseCase(courseRepository),
       inject: [COURSE_REPOSITORY],
     },
     {
@@ -46,7 +54,8 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     },
     {
       provide: ListCoursesUseCase,
-      useFactory: (courseRepository) => new ListCoursesUseCase(courseRepository),
+      useFactory: (courseRepository) =>
+        new ListCoursesUseCase(courseRepository),
       inject: [COURSE_REPOSITORY],
     },
     {
@@ -57,13 +66,29 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     },
     {
       provide: ListVideosUseCase,
-      useFactory: (subCourseRepository, videoRepository, videoProgressRepository, youtubeService) =>
-        new ListVideosUseCase(subCourseRepository, videoRepository, videoProgressRepository, youtubeService),
-      inject: [SUB_COURSE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, YouTubeService],
+      useFactory: (
+        subCourseRepository,
+        videoRepository,
+        videoProgressRepository,
+        youtubeService,
+      ) =>
+        new ListVideosUseCase(
+          subCourseRepository,
+          videoRepository,
+          videoProgressRepository,
+          youtubeService,
+        ),
+      inject: [
+        SUB_COURSE_REPOSITORY,
+        VIDEO_REPOSITORY,
+        VIDEO_PROGRESS_REPOSITORY,
+        YouTubeService,
+      ],
     },
     {
       provide: UpdateCourseSubscriptionUseCase,
-      useFactory: (courseRepository) => new UpdateCourseSubscriptionUseCase(courseRepository),
+      useFactory: (courseRepository) =>
+        new UpdateCourseSubscriptionUseCase(courseRepository),
       inject: [COURSE_REPOSITORY],
     },
     {
@@ -80,12 +105,14 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     },
     {
       provide: UpdateModuleUseCase,
-      useFactory: (moduleRepository) => new UpdateModuleUseCase(moduleRepository),
+      useFactory: (moduleRepository) =>
+        new UpdateModuleUseCase(moduleRepository),
       inject: [MODULE_REPOSITORY],
     },
     {
       provide: DeleteModuleUseCase,
-      useFactory: (moduleRepository) => new DeleteModuleUseCase(moduleRepository),
+      useFactory: (moduleRepository) =>
+        new DeleteModuleUseCase(moduleRepository),
       inject: [MODULE_REPOSITORY],
     },
     {
@@ -102,35 +129,95 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     },
     {
       provide: ListModulesWithVideosUseCase,
-      useFactory: (moduleRepository, videoRepository, videoProgressRepository, subCourseRepository, youtubeService) =>
-        new ListModulesWithVideosUseCase(moduleRepository, videoRepository, videoProgressRepository, subCourseRepository, youtubeService),
-      inject: [MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, SUB_COURSE_REPOSITORY, YouTubeService],
+      useFactory: (
+        moduleRepository,
+        videoRepository,
+        videoProgressRepository,
+        subCourseRepository,
+        youtubeService,
+      ) =>
+        new ListModulesWithVideosUseCase(
+          moduleRepository,
+          videoRepository,
+          videoProgressRepository,
+          subCourseRepository,
+          youtubeService,
+        ),
+      inject: [
+        MODULE_REPOSITORY,
+        VIDEO_REPOSITORY,
+        VIDEO_PROGRESS_REPOSITORY,
+        SUB_COURSE_REPOSITORY,
+        YouTubeService,
+      ],
     },
     {
       provide: ProcessYouTubePlaylistUseCase,
-      useFactory: (courseRepository, subCourseRepository, moduleRepository, videoRepository, geminiService) =>
-        new ProcessYouTubePlaylistUseCase(courseRepository, subCourseRepository, moduleRepository, videoRepository, geminiService),
-      inject: [COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, GeminiService],
+      useFactory: (
+        courseRepository,
+        subCourseRepository,
+        moduleRepository,
+        videoRepository,
+        geminiService,
+      ) =>
+        new ProcessYouTubePlaylistUseCase(
+          courseRepository,
+          subCourseRepository,
+          moduleRepository,
+          videoRepository,
+          geminiService,
+        ),
+      inject: [
+        COURSE_REPOSITORY,
+        SUB_COURSE_REPOSITORY,
+        MODULE_REPOSITORY,
+        VIDEO_REPOSITORY,
+        GeminiService,
+      ],
     },
     {
       provide: BulkProcessPlaylistsUseCase,
-      useFactory: (courseRepository, subCourseRepository, moduleRepository, videoRepository, geminiService, youtubeService) =>
-        new BulkProcessPlaylistsUseCase(courseRepository, subCourseRepository, moduleRepository, videoRepository, geminiService, youtubeService),
-      inject: [COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, GeminiService, YouTubeService],
+      useFactory: (
+        courseRepository,
+        subCourseRepository,
+        moduleRepository,
+        videoRepository,
+        geminiService,
+        youtubeService,
+      ) =>
+        new BulkProcessPlaylistsUseCase(
+          courseRepository,
+          subCourseRepository,
+          moduleRepository,
+          videoRepository,
+          geminiService,
+          youtubeService,
+        ),
+      inject: [
+        COURSE_REPOSITORY,
+        SUB_COURSE_REPOSITORY,
+        MODULE_REPOSITORY,
+        VIDEO_REPOSITORY,
+        GeminiService,
+        YouTubeService,
+      ],
     },
     {
       provide: GenerateMindMapUseCase,
-      useFactory: (geminiService, mindMapRepository) => new GenerateMindMapUseCase(geminiService, mindMapRepository),
+      useFactory: (geminiService, mindMapRepository) =>
+        new GenerateMindMapUseCase(geminiService, mindMapRepository),
       inject: [GeminiService, MIND_MAP_REPOSITORY],
     },
     {
       provide: GetMindMapByVideoUseCase,
-      useFactory: (mindMapRepository) => new GetMindMapByVideoUseCase(mindMapRepository),
+      useFactory: (mindMapRepository) =>
+        new GetMindMapByVideoUseCase(mindMapRepository),
       inject: [MIND_MAP_REPOSITORY],
     },
     {
       provide: ListUserMindMapsUseCase,
-      useFactory: (mindMapRepository) => new ListUserMindMapsUseCase(mindMapRepository),
+      useFactory: (mindMapRepository) =>
+        new ListUserMindMapsUseCase(mindMapRepository),
       inject: [MIND_MAP_REPOSITORY],
     },
     GeminiService,

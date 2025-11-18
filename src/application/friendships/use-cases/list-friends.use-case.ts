@@ -1,12 +1,5 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  FRIENDSHIP_REPOSITORY,
-  USER_REPOSITORY,
-} from '../../../domain/tokens';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { FRIENDSHIP_REPOSITORY, USER_REPOSITORY } from '../../../domain/tokens';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
 
@@ -59,7 +52,8 @@ export class ListFriendsUseCase {
     // Buscar informações dos amigos
     const friendsPromises = allFriendships.map(async (friendship) => {
       // Determinar qual é o outro usuário
-      const friendId = friendship.userId1 === userId ? friendship.userId2 : friendship.userId1;
+      const friendId =
+        friendship.userId1 === userId ? friendship.userId2 : friendship.userId1;
       const friend = await this.userRepository.findById(friendId);
       if (!friend) {
         return null;
@@ -73,15 +67,23 @@ export class ListFriendsUseCase {
       };
     });
 
-    let friends = (await Promise.all(friendsPromises)).filter(Boolean) as FriendOutput[];
+    let friends = (await Promise.all(friendsPromises)).filter(
+      Boolean,
+    ) as FriendOutput[];
 
     // Ordenar por data de criação da amizade (mais recentes primeiro)
-    friends.sort((a, b) => b.friendshipCreatedAt.getTime() - a.friendshipCreatedAt.getTime());
+    friends.sort(
+      (a, b) =>
+        b.friendshipCreatedAt.getTime() - a.friendshipCreatedAt.getTime(),
+    );
 
     const total = friends.length;
 
     // Aplicar paginação
-    const paginatedFriends = friends.slice(parsedOffset, parsedOffset + parsedLimit);
+    const paginatedFriends = friends.slice(
+      parsedOffset,
+      parsedOffset + parsedLimit,
+    );
 
     return {
       friends: paginatedFriends,
@@ -92,4 +94,3 @@ export class ListFriendsUseCase {
     };
   }
 }
-

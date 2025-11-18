@@ -23,7 +23,9 @@ export class CreateModuleUseCase {
 
   async execute(input: CreateModuleInput): Promise<CreateModuleOutput> {
     // Verificar se o sub-curso existe
-    const subCourse = await this.subCourseRepository.findById(input.subCourseId);
+    const subCourse = await this.subCourseRepository.findById(
+      input.subCourseId,
+    );
     if (!subCourse) {
       throw new Error(`Sub-curso com ID "${input.subCourseId}" não encontrado`);
     }

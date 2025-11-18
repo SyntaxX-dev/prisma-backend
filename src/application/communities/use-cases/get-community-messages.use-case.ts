@@ -1,4 +1,11 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  Optional,
+} from '@nestjs/common';
 import {
   COMMUNITY_MESSAGE_REPOSITORY,
   COMMUNITY_REPOSITORY,
@@ -55,7 +62,9 @@ export class GetCommunityMessagesUseCase {
     private readonly communityMessageAttachmentRepository?: CommunityMessageAttachmentRepository,
   ) {}
 
-  async execute(input: GetCommunityMessagesInput): Promise<GetCommunityMessagesOutput> {
+  async execute(
+    input: GetCommunityMessagesInput,
+  ): Promise<GetCommunityMessagesOutput> {
     const { userId, communityId, limit = 50, offset = 0 } = input;
 
     // Verificar se a comunidade existe
@@ -72,7 +81,9 @@ export class GetCommunityMessagesUseCase {
     );
 
     if (!isOwner && !member) {
-      throw new ForbiddenException('Você precisa ser membro da comunidade para ver as mensagens');
+      throw new ForbiddenException(
+        'Você precisa ser membro da comunidade para ver as mensagens',
+      );
     }
 
     // Buscar mensagens
@@ -82,7 +93,8 @@ export class GetCommunityMessagesUseCase {
       offset,
     );
 
-    const total = await this.communityMessageRepository.countByCommunity(communityId);
+    const total =
+      await this.communityMessageRepository.countByCommunity(communityId);
     const hasMore = messages.length + offset < total;
 
     // Buscar attachments para todas as mensagens
@@ -91,7 +103,10 @@ export class GetCommunityMessagesUseCase {
         // Buscar attachments da mensagem
         let attachments: any[] = [];
         if (this.communityMessageAttachmentRepository) {
-          const messageAttachments = await this.communityMessageAttachmentRepository.findByMessageId(msg.id);
+          const messageAttachments =
+            await this.communityMessageAttachmentRepository.findByMessageId(
+              msg.id,
+            );
           attachments = messageAttachments.map((att) => ({
             id: att.id,
             fileUrl: att.fileUrl,
@@ -124,4 +139,3 @@ export class GetCommunityMessagesUseCase {
     };
   }
 }
-

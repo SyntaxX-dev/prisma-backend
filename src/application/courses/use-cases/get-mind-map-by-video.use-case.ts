@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MindMapRepository } from '../../../domain/repositories/mind-map.repository';
+import type { MindMapRepository } from '../../../domain/repositories/mind-map.repository';
 
 export interface GetMindMapByVideoInput {
   userId: string;
@@ -13,13 +13,15 @@ export interface GetMindMapByVideoOutput {
   videoUrl: string;
   createdAt: Date;
   updatedAt: Date;
-} | null;
+}
 
 @Injectable()
 export class GetMindMapByVideoUseCase {
   constructor(private readonly mindMapRepository: MindMapRepository) {}
 
-  async execute(input: GetMindMapByVideoInput): Promise<GetMindMapByVideoOutput> {
+  async execute(
+    input: GetMindMapByVideoInput,
+  ): Promise<GetMindMapByVideoOutput | null> {
     const mindMap = await this.mindMapRepository.findByVideoIdAndUserId(
       input.videoId,
       input.userId,

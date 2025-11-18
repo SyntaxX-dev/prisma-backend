@@ -1,4 +1,10 @@
-import { IsEmail, IsString, MinLength, MaxLength, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 
 export class ResetPasswordDto {
   @IsEmail()
@@ -16,5 +22,4 @@ export class ResetPasswordDto {
       'A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial (@$!%*?&)',
   })
   newPassword!: string;
-} 
- 
+}

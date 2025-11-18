@@ -1,4 +1,11 @@
-import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Optional,
+} from '@nestjs/common';
 import { MESSAGE_REPOSITORY } from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
@@ -46,7 +53,9 @@ export class EditMessageUseCase {
     // 1. Validar conteúdo
     if (!newContent || newContent.trim().length === 0) {
       console.warn('[EDIT_MESSAGE] ❌ Conteúdo vazio', { messageId });
-      throw new BadRequestException('O conteúdo da mensagem não pode estar vazio');
+      throw new BadRequestException(
+        'O conteúdo da mensagem não pode estar vazio',
+      );
     }
 
     if (newContent.length > 10000) {
@@ -54,7 +63,9 @@ export class EditMessageUseCase {
         messageId,
         length: newContent.length,
       });
-      throw new BadRequestException('O conteúdo da mensagem é muito longo (máximo 10000 caracteres)');
+      throw new BadRequestException(
+        'O conteúdo da mensagem é muito longo (máximo 10000 caracteres)',
+      );
     }
 
     // 2. Buscar mensagem
@@ -71,7 +82,9 @@ export class EditMessageUseCase {
         userId,
         senderId: message.senderId,
       });
-      throw new ForbiddenException('Você só pode editar suas próprias mensagens');
+      throw new ForbiddenException(
+        'Você só pode editar suas próprias mensagens',
+      );
     }
 
     // 4. Verificar se passou menos de 5 minutos desde a criação
@@ -91,7 +104,10 @@ export class EditMessageUseCase {
     }
 
     // 5. Atualizar mensagem
-    const updatedMessage = await this.messageRepository.update(messageId, newContent.trim());
+    const updatedMessage = await this.messageRepository.update(
+      messageId,
+      newContent.trim(),
+    );
 
     console.log('[EDIT_MESSAGE] ✅ Mensagem editada com sucesso', {
       messageId,
@@ -104,13 +120,16 @@ export class EditMessageUseCase {
     // 6. Notificar o outro usuário via WebSocket/Redis em tempo real
     if (this.chatGateway) {
       const receiverId = updatedMessage.receiverId;
-      
-      console.log('[EDIT_MESSAGE] 📡 Notificando outro usuário sobre edição...', {
-        messageId,
-        senderId: userId,
-        receiverId,
-        timestamp: new Date().toISOString(),
-      });
+
+      console.log(
+        '[EDIT_MESSAGE] 📡 Notificando outro usuário sobre edição...',
+        {
+          messageId,
+          senderId: userId,
+          receiverId,
+          timestamp: new Date().toISOString(),
+        },
+      );
 
       // Publicar evento de edição no Redis para distribuir entre instâncias
       await this.chatGateway.publishToRedis({
@@ -136,7 +155,7 @@ export class EditMessageUseCase {
         content: updatedMessage.content,
         updatedAt: (updatedMessage as any).updatedAt || null,
       });
-      
+
       // Sender (quem editou) - também notificar caso tenha múltiplas abas/dispositivos
       this.chatGateway.emitToUser(userId, 'message_edited', {
         id: updatedMessage.id,
@@ -167,4 +186,3 @@ export class EditMessageUseCase {
     };
   }
 }
-

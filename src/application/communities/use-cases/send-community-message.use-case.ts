@@ -1,6 +1,6 @@
 /**
  * SendCommunityMessageUseCase - Lógica para enviar uma mensagem em uma comunidade
- * 
+ *
  * Este use case segue o padrão usado por WhatsApp, Telegram, Discord para grupos:
  * 1. Valida se o usuário é membro da comunidade
  * 2. Salva a mensagem no banco de dados (fonte da verdade)
@@ -8,7 +8,14 @@
  * 4. Envia Push Notification para membros offline
  */
 
-import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  Optional,
+} from '@nestjs/common';
 import {
   COMMUNITY_MESSAGE_REPOSITORY,
   COMMUNITY_REPOSITORY,
@@ -77,7 +84,9 @@ export class SendCommunityMessageUseCase {
     private readonly cloudinaryService?: CloudinaryService,
   ) {}
 
-  async execute(input: SendCommunityMessageInput): Promise<SendCommunityMessageOutput> {
+  async execute(
+    input: SendCommunityMessageInput,
+  ): Promise<SendCommunityMessageOutput> {
     const { communityId, senderId, content, attachments = [] } = input;
 
     // Validações
@@ -87,7 +96,9 @@ export class SendCommunityMessageUseCase {
     }
 
     if (content && content.length > 5000) {
-      throw new BadRequestException('Mensagem muito longa (máximo 5000 caracteres)');
+      throw new BadRequestException(
+        'Mensagem muito longa (máximo 5000 caracteres)',
+      );
     }
 
     // Validar anexos
@@ -105,14 +116,18 @@ export class SendCommunityMessageUseCase {
             attachment.fileType.startsWith('image/') ? 'image' : 'raw',
           );
           if (!exists) {
-            throw new BadRequestException(`Arquivo ${attachment.fileName} não encontrado no Cloudinary`);
+            throw new BadRequestException(
+              `Arquivo ${attachment.fileName} não encontrado no Cloudinary`,
+            );
           }
         }
 
         // Validar tamanho (10MB máximo)
         const MAX_FILE_SIZE = 10 * 1024 * 1024;
         if (attachment.fileSize > MAX_FILE_SIZE) {
-          throw new BadRequestException(`Arquivo ${attachment.fileName} muito grande (máximo 10MB)`);
+          throw new BadRequestException(
+            `Arquivo ${attachment.fileName} muito grande (máximo 10MB)`,
+          );
         }
 
         // Validar tipo
@@ -125,7 +140,9 @@ export class SendCommunityMessageUseCase {
           'application/pdf',
         ];
         if (!allowedTypes.includes(attachment.fileType)) {
-          throw new BadRequestException(`Tipo de arquivo não permitido: ${attachment.fileType}`);
+          throw new BadRequestException(
+            `Tipo de arquivo não permitido: ${attachment.fileType}`,
+          );
         }
       }
     }
@@ -144,12 +161,19 @@ export class SendCommunityMessageUseCase {
     );
 
     if (!isOwner && !member) {
-      throw new ForbiddenException('Você precisa ser membro da comunidade para enviar mensagens');
+      throw new ForbiddenException(
+        'Você precisa ser membro da comunidade para enviar mensagens',
+      );
     }
 
     // Criar mensagem no banco de dados (FONTE DA VERDADE)
-    const messageContent = content || (attachments.length > 0 ? '📎 Arquivo anexado' : '');
-    const message = await this.communityMessageRepository.create(communityId, senderId, messageContent);
+    const messageContent =
+      content || (attachments.length > 0 ? '📎 Arquivo anexado' : '');
+    const message = await this.communityMessageRepository.create(
+      communityId,
+      senderId,
+      messageContent,
+    );
 
     // Criar anexos se houver
     if (attachments.length > 0 && this.communityMessageAttachmentRepository) {
@@ -169,17 +193,21 @@ export class SendCommunityMessageUseCase {
       }
     }
 
-    console.log('[SEND_COMMUNITY_MESSAGE] 💾 Mensagem salva no banco de dados', {
-      messageId: message.id,
-      communityId,
-      senderId,
-      timestamp: new Date().toISOString(),
-    });
+    console.log(
+      '[SEND_COMMUNITY_MESSAGE] 💾 Mensagem salva no banco de dados',
+      {
+        messageId: message.id,
+        communityId,
+        senderId,
+        timestamp: new Date().toISOString(),
+      },
+    );
 
     // Buscar todos os membros da comunidade
-    const members = await this.communityMemberRepository.findByCommunityId(communityId);
+    const members =
+      await this.communityMemberRepository.findByCommunityId(communityId);
     const memberIds = members.map((m) => m.userId);
-    
+
     // Incluir o dono se não estiver na lista de membros
     if (!memberIds.includes(community.ownerId)) {
       memberIds.push(community.ownerId);
@@ -188,13 +216,16 @@ export class SendCommunityMessageUseCase {
     // Remover o sender da lista (não precisa receber sua própria mensagem)
     const receiverIds = memberIds.filter((id) => id !== senderId);
 
-    console.log('[SEND_COMMUNITY_MESSAGE] 📡 Enviando mensagem para membros...', {
-      communityId,
-      senderId,
-      totalMembers: memberIds.length,
-      receivers: receiverIds.length,
-      timestamp: new Date().toISOString(),
-    });
+    console.log(
+      '[SEND_COMMUNITY_MESSAGE] 📡 Enviando mensagem para membros...',
+      {
+        communityId,
+        senderId,
+        totalMembers: memberIds.length,
+        receivers: receiverIds.length,
+        timestamp: new Date().toISOString(),
+      },
+    );
 
     // Enviar para todos os membros online via WebSocket
     if (this.chatGateway) {
@@ -223,7 +254,9 @@ export class SendCommunityMessageUseCase {
             await this.pushNotificationService.sendNotification(
               receiverId,
               `Nova mensagem em ${community.name}`,
-              content.length > 100 ? content.substring(0, 100) + '...' : content,
+              content.length > 100
+                ? content.substring(0, 100) + '...'
+                : content,
               {
                 type: 'new_community_message',
                 messageId: message.id,
@@ -270,4 +303,3 @@ export class SendCommunityMessageUseCase {
     };
   }
 }
-

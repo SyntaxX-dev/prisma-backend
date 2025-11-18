@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google, youtube_v3 } from 'googleapis';
-import { YouTubeVideoDto, YouTubeSearchDto, YouTubePlaylistDto } from '../../presentation/http/dtos/youtube-video.dto';
+import {
+  YouTubeVideoDto,
+  YouTubeSearchDto,
+  YouTubePlaylistDto,
+} from '../../presentation/http/dtos/youtube-video.dto';
 import { YouTubeChannelService, ChannelInfo } from './youtube-channel.service';
 
 @Injectable()
@@ -15,9 +19,11 @@ export class YouTubeService {
     private channelService: YouTubeChannelService,
   ) {
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
-    
+
     if (!apiKey) {
-      this.logger.warn('YOUTUBE_API_KEY não configurada. YouTube Service desabilitado.');
+      this.logger.warn(
+        'YOUTUBE_API_KEY não configurada. YouTube Service desabilitado.',
+      );
       this.apiKey = null;
     } else {
       this.apiKey = apiKey;
@@ -33,7 +39,9 @@ export class YouTubeService {
    */
   async searchVideos(searchDto: YouTubeSearchDto): Promise<YouTubeVideoDto[]> {
     if (!this.youtube || !this.apiKey) {
-      this.logger.warn('YouTube API não configurada. Não é possível buscar vídeos.');
+      this.logger.warn(
+        'YouTube API não configurada. Não é possível buscar vídeos.',
+      );
       return [];
     }
 
@@ -52,7 +60,7 @@ export class YouTubeService {
 
       // Buscar detalhes adicionais dos vídeos
       const videoIds = response.data.items
-        .map(item => item.id?.videoId)
+        .map((item) => item.id?.videoId)
         .filter(Boolean) as string[];
 
       const videoDetails = await this.getVideoDetails(videoIds);
@@ -69,7 +77,9 @@ export class YouTubeService {
    */
   async getVideoDetails(videoIds: string[]): Promise<YouTubeVideoDto[]> {
     if (!this.youtube || !this.apiKey) {
-      this.logger.warn('YouTube API não configurada. Não é possível obter detalhes dos vídeos.');
+      this.logger.warn(
+        'YouTube API não configurada. Não é possível obter detalhes dos vídeos.',
+      );
       return [];
     }
 
@@ -84,7 +94,7 @@ export class YouTubeService {
       }
 
       const videos = await Promise.all(
-        response.data.items.map(video => this.mapVideoToDto(video))
+        response.data.items.map((video) => this.mapVideoToDto(video)),
       );
       return videos;
     } catch (error) {
@@ -109,9 +119,14 @@ export class YouTubeService {
   /**
    * Obtém vídeos de uma playlist
    */
-  async getPlaylistVideos(playlistId: string, maxResults: number = 50): Promise<YouTubeVideoDto[]> {
+  async getPlaylistVideos(
+    playlistId: string,
+    maxResults: number = 50,
+  ): Promise<YouTubeVideoDto[]> {
     if (!this.youtube || !this.apiKey) {
-      this.logger.warn('YouTube API não configurada. Não é possível obter vídeos da playlist.');
+      this.logger.warn(
+        'YouTube API não configurada. Não é possível obter vídeos da playlist.',
+      );
       return [];
     }
 
@@ -127,12 +142,15 @@ export class YouTubeService {
       }
 
       const videoIds = response.data.items
-        .map(item => item.snippet?.resourceId?.videoId)
+        .map((item) => item.snippet?.resourceId?.videoId)
         .filter(Boolean) as string[];
 
       return await this.getVideoDetails(videoIds);
     } catch (error) {
-      this.logger.error(`Erro ao obter vídeos da playlist ${playlistId}:`, error);
+      this.logger.error(
+        `Erro ao obter vídeos da playlist ${playlistId}:`,
+        error,
+      );
       throw new Error('Falha ao obter vídeos da playlist');
     }
   }
@@ -140,9 +158,13 @@ export class YouTubeService {
   /**
    * Obtém informações de uma playlist
    */
-  async getPlaylistInfo(playlistId: string): Promise<YouTubePlaylistDto | null> {
+  async getPlaylistInfo(
+    playlistId: string,
+  ): Promise<YouTubePlaylistDto | null> {
     if (!this.youtube || !this.apiKey) {
-      this.logger.warn('YouTube API não configurada. Não é possível obter informações da playlist.');
+      this.logger.warn(
+        'YouTube API não configurada. Não é possível obter informações da playlist.',
+      );
       return null;
     }
 
@@ -157,7 +179,7 @@ export class YouTubeService {
       }
 
       const playlist = response.data.items[0];
-      
+
       return {
         playlistId: playlist.id!,
         title: playlist.snippet?.title || '',
@@ -167,7 +189,10 @@ export class YouTubeService {
         channelTitle: playlist.snippet?.channelTitle || '',
       };
     } catch (error) {
-      this.logger.error(`Erro ao obter informações da playlist ${playlistId}:`, error);
+      this.logger.error(
+        `Erro ao obter informações da playlist ${playlistId}:`,
+        error,
+      );
       throw new Error('Falha ao obter informações da playlist');
     }
   }
@@ -189,7 +214,9 @@ export class YouTubeService {
   /**
    * Mapeia dados do YouTube para DTO
    */
-  private async mapVideoToDto(video: youtube_v3.Schema$Video): Promise<YouTubeVideoDto> {
+  private async mapVideoToDto(
+    video: youtube_v3.Schema$Video,
+  ): Promise<YouTubeVideoDto> {
     const snippet = video.snippet!;
     const statistics = video.statistics!;
     const contentDetails = video.contentDetails!;
@@ -205,7 +232,8 @@ export class YouTubeService {
       title: snippet.title || '',
       description: snippet.description || undefined,
       url: `https://www.youtube.com/watch?v=${video.id}`,
-      thumbnailUrl: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || '',
+      thumbnailUrl:
+        snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || '',
       duration: this.parseDuration(contentDetails.duration || 'PT0S'),
       channelTitle: snippet.channelTitle || '',
       channelId: snippet.channelId || undefined,

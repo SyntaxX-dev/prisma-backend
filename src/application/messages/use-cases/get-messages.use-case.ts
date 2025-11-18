@@ -1,12 +1,23 @@
 /**
  * GetMessagesUseCase - Lógica para buscar mensagens entre dois usuários
- * 
+ *
  * Este use case busca o histórico de mensagens entre dois usuários,
  * com suporte a paginação.
  */
 
-import { Injectable, Inject, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
-import { MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, USER_REPOSITORY, MESSAGE_ATTACHMENT_REPOSITORY } from '../../../domain/tokens';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
+import {
+  MESSAGE_REPOSITORY,
+  FRIENDSHIP_REPOSITORY,
+  USER_REPOSITORY,
+  MESSAGE_ATTACHMENT_REPOSITORY,
+} from '../../../domain/tokens';
 import type { MessageRepository } from '../../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../../domain/repositories/friendship.repository';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
@@ -64,7 +75,9 @@ export class GetMessagesUseCase {
 
     // Validações
     if (userId === friendId) {
-      throw new BadRequestException('Você não pode buscar mensagens consigo mesmo');
+      throw new BadRequestException(
+        'Você não pode buscar mensagens consigo mesmo',
+      );
     }
 
     // Verificar se o amigo existe
@@ -74,13 +87,23 @@ export class GetMessagesUseCase {
     }
 
     // Verificar se são amigos
-    const friendship = await this.friendshipRepository.findByUsers(userId, friendId);
+    const friendship = await this.friendshipRepository.findByUsers(
+      userId,
+      friendId,
+    );
     if (!friendship) {
-      throw new BadRequestException('Vocês precisam ser amigos para ver as mensagens');
+      throw new BadRequestException(
+        'Vocês precisam ser amigos para ver as mensagens',
+      );
     }
 
     // Buscar mensagens
-    const messages = await this.messageRepository.findByUsers(userId, friendId, limit, offset);
+    const messages = await this.messageRepository.findByUsers(
+      userId,
+      friendId,
+      limit,
+      offset,
+    );
 
     // Contar total (aproximado, pode ser otimizado)
     const total = messages.length + offset;
@@ -91,11 +114,12 @@ export class GetMessagesUseCase {
       messages.map(async (msg) => {
         // Verificar se a mensagem foi editada (tem updatedAt)
         const edited = !!(msg as any).updatedAt;
-        
+
         // Buscar attachments da mensagem
         let attachments: any[] = [];
         if (this.messageAttachmentRepository) {
-          const messageAttachments = await this.messageAttachmentRepository.findByMessageId(msg.id);
+          const messageAttachments =
+            await this.messageAttachmentRepository.findByMessageId(msg.id);
           attachments = messageAttachments.map((att) => ({
             id: att.id,
             fileUrl: att.fileUrl,
@@ -108,7 +132,7 @@ export class GetMessagesUseCase {
             duration: att.duration,
           }));
         }
-        
+
         return {
           id: msg.id,
           senderId: msg.senderId,
@@ -130,4 +154,3 @@ export class GetMessagesUseCase {
     };
   }
 }
-

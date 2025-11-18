@@ -12,7 +12,12 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { SendMessageUseCase } from '../../../application/messages/use-cases/send-message.use-case';
 import { GetMessagesUseCase } from '../../../application/messages/use-cases/get-messages.use-case';
@@ -52,7 +57,12 @@ export class MessagesController {
   @ApiResponse({ status: 200, description: 'Assinatura gerada com sucesso' })
   async getUploadSignature(
     @Request() req: any,
-    @Body() body: { fileType: string; fileSize: number; resourceType?: 'image' | 'raw' | 'video' | 'auto' },
+    @Body()
+    body: {
+      fileType: string;
+      fileSize: number;
+      resourceType?: 'image' | 'raw' | 'video' | 'auto';
+    },
   ) {
     const userId = req.user.sub;
     const { fileType, fileSize, resourceType = 'auto' } = body;
@@ -60,16 +70,28 @@ export class MessagesController {
     // Validações
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     if (fileSize > MAX_FILE_SIZE) {
-      throw new HttpException('Arquivo muito grande (máximo 10MB)', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Arquivo muito grande (máximo 10MB)',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Tipos permitidos
-    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedImageTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
     const allowedPdfTypes = ['application/pdf'];
     const allowedTypes = [...allowedImageTypes, ...allowedPdfTypes];
 
     if (!allowedTypes.includes(fileType)) {
-      throw new HttpException('Tipo de arquivo não permitido', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Tipo de arquivo não permitido',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Determinar formato e resource type
@@ -264,7 +286,11 @@ export class MessagesController {
                       receiverId: { type: 'string' },
                       isRead: { type: 'boolean' },
                       createdAt: { type: 'string', format: 'date-time' },
-                      readAt: { type: 'string', format: 'date-time', nullable: true },
+                      readAt: {
+                        type: 'string',
+                        format: 'date-time',
+                        nullable: true,
+                      },
                     },
                   },
                   unreadCount: { type: 'number' },
@@ -324,7 +350,8 @@ export class MessagesController {
       const status =
         error instanceof HttpException
           ? error.getStatus()
-          : error.message.includes('não encontrada') || error.message.includes('não encontrado')
+          : error.message.includes('não encontrada') ||
+              error.message.includes('não encontrado')
             ? HttpStatus.NOT_FOUND
             : HttpStatus.BAD_REQUEST;
 
@@ -342,7 +369,10 @@ export class MessagesController {
   @ApiOperation({ summary: 'Desfixar uma mensagem' })
   @ApiResponse({ status: 200, description: 'Mensagem desfixada com sucesso' })
   @ApiResponse({ status: 404, description: 'Mensagem não está fixada' })
-  async unpinMessage(@Request() req: any, @Param('messageId') messageId: string) {
+  async unpinMessage(
+    @Request() req: any,
+    @Param('messageId') messageId: string,
+  ) {
     try {
       const result = await this.unpinMessageUseCase.execute({
         messageId,
@@ -357,7 +387,8 @@ export class MessagesController {
       const status =
         error instanceof HttpException
           ? error.getStatus()
-          : error.message.includes('não encontrada') || error.message.includes('não está fixada')
+          : error.message.includes('não encontrada') ||
+              error.message.includes('não está fixada')
             ? HttpStatus.NOT_FOUND
             : HttpStatus.BAD_REQUEST;
 
@@ -407,7 +438,10 @@ export class MessagesController {
       },
     },
   })
-  async getPinnedMessages(@Request() req: any, @Param('friendId') friendId: string) {
+  async getPinnedMessages(
+    @Request() req: any,
+    @Param('friendId') friendId: string,
+  ) {
     try {
       const result = await this.getPinnedMessagesUseCase.execute({
         userId: req.user.sub,
@@ -432,8 +466,15 @@ export class MessagesController {
   @Put(':messageId')
   @ApiOperation({ summary: 'Editar uma mensagem' })
   @ApiResponse({ status: 200, description: 'Mensagem editada com sucesso' })
-  @ApiResponse({ status: 400, description: 'Erro ao editar mensagem (tempo limite excedido, conteúdo inválido)' })
-  @ApiResponse({ status: 403, description: 'Você não pode editar mensagens de outros usuários' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Erro ao editar mensagem (tempo limite excedido, conteúdo inválido)',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Você não pode editar mensagens de outros usuários',
+  })
   @ApiResponse({ status: 404, description: 'Mensagem não encontrada' })
   async editMessage(
     @Request() req: any,
@@ -455,9 +496,11 @@ export class MessagesController {
       const status =
         error instanceof HttpException
           ? error.getStatus()
-          : error.message.includes('não encontrada') || error.message.includes('não encontrado')
+          : error.message.includes('não encontrada') ||
+              error.message.includes('não encontrado')
             ? HttpStatus.NOT_FOUND
-            : error.message.includes('só pode editar') || error.message.includes('não pode')
+            : error.message.includes('só pode editar') ||
+                error.message.includes('não pode')
               ? HttpStatus.FORBIDDEN
               : HttpStatus.BAD_REQUEST;
 
@@ -474,9 +517,15 @@ export class MessagesController {
   @Delete(':messageId')
   @ApiOperation({ summary: 'Excluir uma mensagem' })
   @ApiResponse({ status: 200, description: 'Mensagem excluída com sucesso' })
-  @ApiResponse({ status: 403, description: 'Você não pode excluir mensagens de outros usuários' })
+  @ApiResponse({
+    status: 403,
+    description: 'Você não pode excluir mensagens de outros usuários',
+  })
   @ApiResponse({ status: 404, description: 'Mensagem não encontrada' })
-  async deleteMessage(@Request() req: any, @Param('messageId') messageId: string) {
+  async deleteMessage(
+    @Request() req: any,
+    @Param('messageId') messageId: string,
+  ) {
     try {
       const result = await this.deleteMessageUseCase.execute({
         messageId,
@@ -491,9 +540,11 @@ export class MessagesController {
       const status =
         error instanceof HttpException
           ? error.getStatus()
-          : error.message.includes('não encontrada') || error.message.includes('não encontrado')
+          : error.message.includes('não encontrada') ||
+              error.message.includes('não encontrado')
             ? HttpStatus.NOT_FOUND
-            : error.message.includes('só pode excluir') || error.message.includes('não pode')
+            : error.message.includes('só pode excluir') ||
+                error.message.includes('não pode')
               ? HttpStatus.FORBIDDEN
               : HttpStatus.BAD_REQUEST;
 
@@ -544,7 +595,10 @@ export class MessagesController {
       },
     },
   })
-  async getConversationAttachments(@Request() req: any, @Param('friendId') friendId: string) {
+  async getConversationAttachments(
+    @Request() req: any,
+    @Param('friendId') friendId: string,
+  ) {
     try {
       const result = await this.getConversationAttachmentsUseCase.execute({
         userId: req.user.sub,
@@ -566,4 +620,3 @@ export class MessagesController {
     }
   }
 }
-

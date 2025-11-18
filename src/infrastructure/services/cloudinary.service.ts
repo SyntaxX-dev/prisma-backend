@@ -11,46 +11,49 @@ export class CloudinaryService {
         {
           folder: 'profile-images',
           transformation: [
-            { 
-              width: 400, 
-              height: 400, 
-              crop: 'fill', 
+            {
+              width: 400,
+              height: 400,
+              crop: 'fill',
               gravity: 'face',
               quality: 'auto',
-              format: 'auto'
-            }
+              format: 'auto',
+            },
           ],
           resource_type: 'image',
-          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
-        }
+          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        },
       );
-      
+
       return result.secure_url;
     } catch (error) {
       throw new Error(`Erro ao fazer upload da imagem: ${error.message}`);
     }
   }
 
-  async uploadImageFromBuffer(buffer: Buffer, folder: string = 'uploads'): Promise<string> {
+  async uploadImageFromBuffer(
+    buffer: Buffer,
+    folder: string = 'uploads',
+  ): Promise<string> {
     try {
       const result = await cloudinary.uploader.upload(
         `data:image/jpeg;base64,${buffer.toString('base64')}`,
         {
           folder,
           transformation: [
-            { 
-              width: 400, 
-              height: 400, 
-              crop: 'fill', 
+            {
+              width: 400,
+              height: 400,
+              crop: 'fill',
               gravity: 'face',
               quality: 'auto',
-              format: 'auto'
-            }
+              format: 'auto',
+            },
           ],
-          resource_type: 'image'
-        }
+          resource_type: 'image',
+        },
       );
-      
+
       return result.secure_url;
     } catch (error) {
       throw new Error(`Erro ao fazer upload da imagem: ${error.message}`);
@@ -73,20 +76,20 @@ export class CloudinaryService {
         {
           folder: 'community-images',
           transformation: [
-            { 
-              width: 800, 
-              height: 600, 
-              crop: 'fill', 
+            {
+              width: 800,
+              height: 600,
+              crop: 'fill',
               gravity: 'center',
               quality: 'auto',
-              format: 'auto'
-            }
+              format: 'auto',
+            },
           ],
           resource_type: 'image',
-          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
-        }
+          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        },
       );
-      
+
       return result.secure_url;
     } catch (error) {
       throw new Error(`Erro ao fazer upload da imagem: ${error.message}`);
@@ -156,7 +159,10 @@ export class CloudinaryService {
   /**
    * Valida se um arquivo existe no Cloudinary
    */
-  async validateFileExists(publicId: string, resourceType: string = 'auto'): Promise<boolean> {
+  async validateFileExists(
+    publicId: string,
+    resourceType: string = 'auto',
+  ): Promise<boolean> {
     try {
       const result = await cloudinary.api.resource(publicId, {
         resource_type: resourceType,
@@ -170,7 +176,11 @@ export class CloudinaryService {
   /**
    * Gera URL de thumbnail para uma imagem
    */
-  generateThumbnailUrl(publicId: string, width: number = 200, height: number = 200): string {
+  generateThumbnailUrl(
+    publicId: string,
+    width: number = 200,
+    height: number = 200,
+  ): string {
     return cloudinary.url(publicId, {
       width,
       height,
@@ -183,7 +193,10 @@ export class CloudinaryService {
   /**
    * Deleta arquivo do Cloudinary usando publicId
    */
-  async deleteFile(publicId: string, resourceType: string = 'auto'): Promise<void> {
+  async deleteFile(
+    publicId: string,
+    resourceType: string = 'auto',
+  ): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId, {
         resource_type: resourceType,

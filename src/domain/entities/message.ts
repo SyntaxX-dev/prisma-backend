@@ -1,6 +1,6 @@
 /**
  * Entidade Message - Representa uma mensagem entre dois usuários
- * 
+ *
  * Esta entidade representa uma mensagem de chat entre dois usuários que são amigos.
  * Ela contém o conteúdo da mensagem, quem enviou, quem recebeu, e status de leitura.
  */
@@ -15,4 +15,3 @@ export class Message {
     public readAt: Date | null, // Quando foi lida (null se não foi lida)
   ) {}
 }
-

@@ -1,16 +1,16 @@
 /**
  * ChatGateway - Gateway WebSocket para mensagens em tempo real
- * 
+ *
  * Este gateway gerencia conexões WebSocket para chat entre usuários.
  * Ele integra com Redis Pub/Sub para permitir que múltiplas instâncias
  * do servidor compartilhem mensagens.
- * 
+ *
  * Fluxo de uma mensagem:
  * 1. Cliente A envia mensagem via WebSocket → ChatGateway
  * 2. ChatGateway salva no banco → Publica no Redis
  * 3. Redis distribui para todos os servidores conectados
  * 4. ChatGateway recebe do Redis → Envia para Cliente B via WebSocket
- * 
+ *
  * Por que usar Redis Pub/Sub aqui?
  * - Se você tiver múltiplas instâncias do servidor (escalabilidade)
  * - Uma instância recebe mensagem → Todas as instâncias sabem
@@ -30,7 +30,14 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Inject, Optional } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { JwtPayload } from '../services/auth.service';
-import { REDIS_SERVICE, MESSAGE_REPOSITORY, FRIENDSHIP_REPOSITORY, COMMUNITY_REPOSITORY, COMMUNITY_MEMBER_REPOSITORY, CALL_ROOM_REPOSITORY } from '../../domain/tokens';
+import {
+  REDIS_SERVICE,
+  MESSAGE_REPOSITORY,
+  FRIENDSHIP_REPOSITORY,
+  COMMUNITY_REPOSITORY,
+  COMMUNITY_MEMBER_REPOSITORY,
+  CALL_ROOM_REPOSITORY,
+} from '../../domain/tokens';
 import type { RedisService } from '../redis/services/redis.service';
 import type { MessageRepository } from '../../domain/repositories/message.repository';
 import type { FriendshipRepository } from '../../domain/repositories/friendship.repository';
@@ -132,7 +139,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const socketId = this.connectedUsers.get(message.receiverId);
         if (socketId) {
           this.server.to(socketId).emit('new_message', message.data);
-          this.logger.debug(`📨 Mensagem do Redis enviada para ${message.receiverId}`);
+          this.logger.debug(
+            `📨 Mensagem do Redis enviada para ${message.receiverId}`,
+          );
         }
       } else if (message.type === 'message_read') {
         // Notifica que mensagem foi lida
@@ -146,7 +155,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           for (const receiverId of message.receiverIds) {
             const socketId = this.connectedUsers.get(receiverId);
             if (socketId) {
-              this.server.to(socketId).emit('new_community_message', message.data);
+              this.server
+                .to(socketId)
+                .emit('new_community_message', message.data);
             }
           }
         }
@@ -167,7 +178,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           for (const receiverId of message.receiverIds) {
             const socketId = this.connectedUsers.get(receiverId);
             if (socketId) {
-              this.server.to(socketId).emit('community_message_edited', message.data);
+              this.server
+                .to(socketId)
+                .emit('community_message_edited', message.data);
             }
           }
         }
@@ -190,7 +203,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             userId: message.userId,
             isTyping: message.isTyping,
           });
-          this.logger.debug(`⌨️  Typing do Redis enviado para ${message.receiverId}`);
+          this.logger.debug(
+            `⌨️  Typing do Redis enviado para ${message.receiverId}`,
+          );
         }
       }
     } catch (error) {
@@ -219,7 +234,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
               });
             }
           }
-          this.logger.debug(`⌨️  Community typing do Redis enviado para membros da comunidade ${message.communityId}`);
+          this.logger.debug(
+            `⌨️  Community typing do Redis enviado para membros da comunidade ${message.communityId}`,
+          );
         }
       }
     } catch (error) {
@@ -240,12 +257,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             messageId: message.messageId,
             message: message.message, // Mensagem com conteúdo "Mensagem apagada"
           });
-          console.log('[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando receiver via WebSocket', {
-            messageId: message.messageId,
-            receiverId: message.receiverId,
-            socketId: receiverSocketId,
-            timestamp: new Date().toISOString(),
-          });
+          console.log(
+            '[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando receiver via WebSocket',
+            {
+              messageId: message.messageId,
+              receiverId: message.receiverId,
+              socketId: receiverSocketId,
+              timestamp: new Date().toISOString(),
+            },
+          );
         }
 
         // Notificar o sender (quem deletou) - caso tenha múltiplas abas/dispositivos
@@ -255,45 +275,60 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             messageId: message.messageId,
             message: message.message, // Mensagem com conteúdo "Mensagem apagada"
           });
-          console.log('[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando sender via WebSocket', {
-            messageId: message.messageId,
-            senderId: message.senderId,
-            socketId: senderSocketId,
-            timestamp: new Date().toISOString(),
-          });
+          console.log(
+            '[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando sender via WebSocket',
+            {
+              messageId: message.messageId,
+              senderId: message.senderId,
+              socketId: senderSocketId,
+              timestamp: new Date().toISOString(),
+            },
+          );
         }
 
         if (!receiverSocketId && !senderSocketId) {
-          console.log('[CHAT_GATEWAY] ℹ️ Nenhum usuário conectado - Mensagem deletada mas não notificados', {
-            messageId: message.messageId,
-            receiverId: message.receiverId,
-            senderId: message.senderId,
-            timestamp: new Date().toISOString(),
-          });
+          console.log(
+            '[CHAT_GATEWAY] ℹ️ Nenhum usuário conectado - Mensagem deletada mas não notificados',
+            {
+              messageId: message.messageId,
+              receiverId: message.receiverId,
+              senderId: message.senderId,
+              timestamp: new Date().toISOString(),
+            },
+          );
         }
       } else if (message.type === 'community_message_deleted') {
         // Notificar todos os membros da comunidade sobre a exclusão
         const communityId = message.receiverId; // receiverId é na verdade communityId aqui
-        
+
         // Emitir para todos os usuários conectados (frontend filtra por communityId)
         this.server.emit('community_message_deleted', {
           messageId: message.messageId,
           communityId: communityId,
           message: message.message, // Mensagem com conteúdo "Mensagem apagada"
         });
-        
-        console.log('[CHAT_GATEWAY] 🗑️ Mensagem de comunidade deletada - Notificando todos os membros', {
-          messageId: message.messageId,
-          communityId: communityId,
-          timestamp: new Date().toISOString(),
-        });
+
+        console.log(
+          '[CHAT_GATEWAY] 🗑️ Mensagem de comunidade deletada - Notificando todos os membros',
+          {
+            messageId: message.messageId,
+            communityId: communityId,
+            timestamp: new Date().toISOString(),
+          },
+        );
       }
     } catch (error) {
-      this.logger.error('Erro ao processar exclusão de mensagem do Redis:', error);
-      console.error('[CHAT_GATEWAY] ❌ Erro ao processar exclusão de mensagem:', {
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      });
+      this.logger.error(
+        'Erro ao processar exclusão de mensagem do Redis:',
+        error,
+      );
+      console.error(
+        '[CHAT_GATEWAY] ❌ Erro ao processar exclusão de mensagem:',
+        {
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        },
+      );
     }
   }
 
@@ -317,7 +352,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const user = client.data.user as JwtPayload;
       if (user && user.sub) {
         this.connectedUsers.set(user.sub, client.id);
-        this.logger.log(`✅ Usuário conectado ao chat: ${user.sub} (socket: ${client.id})`);
+        this.logger.log(
+          `✅ Usuário conectado ao chat: ${user.sub} (socket: ${client.id})`,
+        );
 
         // Entra em uma sala com o ID do usuário (para enviar mensagens direcionadas)
         client.join(`user:${user.sub}`);
@@ -332,13 +369,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Isso garante que mensagens enviadas enquanto estava offline sejam entregues
         if (this.messageRepository) {
           try {
-            const unreadMessages = await this.messageRepository.findUnreadByReceiverId(user.sub);
-            
-            console.log('[CHAT_GATEWAY] 📥 Buscando mensagens não lidas do banco...', {
-              userId: user.sub,
-              unreadCount: unreadMessages.length,
-              timestamp: new Date().toISOString(),
-            });
+            const unreadMessages =
+              await this.messageRepository.findUnreadByReceiverId(user.sub);
+
+            console.log(
+              '[CHAT_GATEWAY] 📥 Buscando mensagens não lidas do banco...',
+              {
+                userId: user.sub,
+                unreadCount: unreadMessages.length,
+                timestamp: new Date().toISOString(),
+              },
+            );
 
             if (unreadMessages.length > 0) {
               // Envia todas as mensagens não lidas para o usuário
@@ -352,25 +393,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                   createdAt: msg.createdAt,
                 });
               }
-              
-              console.log('[CHAT_GATEWAY] ✅ Mensagens não lidas enviadas do banco', {
-                userId: user.sub,
-                count: unreadMessages.length,
-                timestamp: new Date().toISOString(),
-              });
+
+              console.log(
+                '[CHAT_GATEWAY] ✅ Mensagens não lidas enviadas do banco',
+                {
+                  userId: user.sub,
+                  count: unreadMessages.length,
+                  timestamp: new Date().toISOString(),
+                },
+              );
             } else {
-              console.log('[CHAT_GATEWAY] ℹ️ Nenhuma mensagem não lida encontrada', {
-                userId: user.sub,
-                timestamp: new Date().toISOString(),
-              });
+              console.log(
+                '[CHAT_GATEWAY] ℹ️ Nenhuma mensagem não lida encontrada',
+                {
+                  userId: user.sub,
+                  timestamp: new Date().toISOString(),
+                },
+              );
             }
           } catch (error) {
-            this.logger.error(`Erro ao buscar mensagens não lidas para ${user.sub}:`, error);
-            console.error('[CHAT_GATEWAY] ❌ Erro ao buscar mensagens não lidas:', {
-              userId: user.sub,
-              error: error.message,
-              timestamp: new Date().toISOString(),
-            });
+            this.logger.error(
+              `Erro ao buscar mensagens não lidas para ${user.sub}:`,
+              error,
+            );
+            console.error(
+              '[CHAT_GATEWAY] ❌ Erro ao buscar mensagens não lidas:',
+              {
+                userId: user.sub,
+                error: error.message,
+                timestamp: new Date().toISOString(),
+              },
+            );
           }
         }
       }
@@ -400,7 +453,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
 
         this.connectedUsers.delete(user.sub);
-        
+
         // Limpar timer de ping
         const timer = this.userPingTimers.get(user.sub);
         if (timer) {
@@ -412,11 +465,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Isso garante que amigos vejam a mudança de status imediatamente
         await this.setUserOffline(user.sub);
 
-        console.log('[CHAT_GATEWAY] ✅ Usuário desconectado e marcado como offline', {
-          userId: user.sub,
-          socketId: client.id,
-          timestamp: new Date().toISOString(),
-        });
+        console.log(
+          '[CHAT_GATEWAY] ✅ Usuário desconectado e marcado como offline',
+          {
+            userId: user.sub,
+            socketId: client.id,
+            timestamp: new Date().toISOString(),
+          },
+        );
 
         this.logger.log(`❌ Usuário desconectado do chat: ${user.sub}`);
       } else {
@@ -457,12 +513,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Atualizar último ping no Redis (renova TTL de 60s)
     await this.updateUserPing(user.sub);
 
-    return { event: 'heartbeat_ack', data: { timestamp: new Date().toISOString() } };
+    return {
+      event: 'heartbeat_ack',
+      data: { timestamp: new Date().toISOString() },
+    };
   }
 
   /**
    * Handler para quando o usuário está digitando
-   * 
+   *
    * Formato recebido do frontend: { receiverId: string, isTyping: boolean }
    * Formato enviado para o destinatário: { userId: string, isTyping: boolean }
    */
@@ -490,7 +549,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId: user.sub,
         isTyping: data.isTyping,
       });
-      this.logger.debug(`⌨️  Typing enviado para ${data.receiverId}: ${data.isTyping ? 'digitando' : 'parou'}`);
+      this.logger.debug(
+        `⌨️  Typing enviado para ${data.receiverId}: ${data.isTyping ? 'digitando' : 'parou'}`,
+      );
     }
 
     // Publica no Redis para outras instâncias do servidor
@@ -511,7 +572,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para quando o usuário está digitando em uma comunidade
-   * 
+   *
    * Formato recebido do frontend: { communityId: string, isTyping: boolean }
    * Formato enviado para os membros: { communityId: string, userId: string, isTyping: boolean }
    */
@@ -538,16 +599,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      const community = await this.communityRepository.findById(data.communityId);
+      const community = await this.communityRepository.findById(
+        data.communityId,
+      );
       if (!community) {
         this.logger.warn(`Comunidade ${data.communityId} não encontrada`);
         return;
       }
 
       // Buscar todos os membros da comunidade
-      const members = await this.communityMemberRepository.findByCommunityId(data.communityId);
+      const members = await this.communityMemberRepository.findByCommunityId(
+        data.communityId,
+      );
       const memberIds = members.map((m) => m.userId);
-      
+
       // Incluir o dono se não estiver na lista de membros
       if (!memberIds.includes(community.ownerId)) {
         memberIds.push(community.ownerId);
@@ -561,11 +626,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       for (const memberId of receiverIds) {
         const isOnline = this.isUserOnline(memberId);
         if (isOnline) {
-          this.server.to(this.connectedUsers.get(memberId)!).emit('community_typing', {
-            communityId: data.communityId,
-            userId: user.sub,
-            isTyping: data.isTyping,
-          });
+          this.server
+            .to(this.connectedUsers.get(memberId)!)
+            .emit('community_typing', {
+              communityId: data.communityId,
+              userId: user.sub,
+              isTyping: data.isTyping,
+            });
           onlineCount++;
         }
       }
@@ -586,7 +653,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           });
           this.logger.debug('📤 Community typing publicado no Redis');
         } catch (error) {
-          this.logger.error('Erro ao publicar community typing no Redis:', error);
+          this.logger.error(
+            'Erro ao publicar community typing no Redis:',
+            error,
+          );
         }
       }
     } catch (error) {
@@ -596,7 +666,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para iniciar uma chamada de voz 1:1
-   * 
+   *
    * Formato recebido: { receiverId: string }
    * Formato enviado para receiver: { roomId: string, callerId: string, callerName?: string }
    */
@@ -618,9 +688,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Validar que são amigos
     if (this.friendshipRepository) {
-      const friendship = await this.friendshipRepository.findByUsers(user.sub, data.receiverId);
+      const friendship = await this.friendshipRepository.findByUsers(
+        user.sub,
+        data.receiverId,
+      );
       if (!friendship) {
-        this.logger.warn(`Usuário ${user.sub} tentou ligar para ${data.receiverId} sem serem amigos`);
+        this.logger.warn(
+          `Usuário ${user.sub} tentou ligar para ${data.receiverId} sem serem amigos`,
+        );
         return { error: 'Você não é amigo deste usuário' };
       }
     }
@@ -631,7 +706,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      const callRoom = await this.callRoomRepository.create(user.sub, data.receiverId);
+      const callRoom = await this.callRoomRepository.create(
+        user.sub,
+        data.receiverId,
+      );
 
       // Verificar se o receiver está online
       const receiverSocketId = this.connectedUsers.get(data.receiverId);
@@ -642,11 +720,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           callerId: user.sub,
           type: 'personal',
         });
-        this.logger.debug(`📞 Chamada iniciada: ${user.sub} → ${data.receiverId} (room: ${callRoom.id})`);
+        this.logger.debug(
+          `📞 Chamada iniciada: ${user.sub} → ${data.receiverId} (room: ${callRoom.id})`,
+        );
       } else {
         // Receiver offline - marcar como missed
         await this.callRoomRepository.updateStatus(callRoom.id, 'missed');
-        this.logger.debug(`📞 Chamada perdida: ${user.sub} → ${data.receiverId} (offline)`);
+        this.logger.debug(
+          `📞 Chamada perdida: ${user.sub} → ${data.receiverId} (offline)`,
+        );
         return { error: 'Usuário offline' };
       }
 
@@ -662,7 +744,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para aceitar uma chamada
-   * 
+   *
    * Formato recebido: { roomId: string, answer: RTCSessionDescriptionInit }
    * Formato enviado para caller: { roomId: string, answer: RTCSessionDescriptionInit }
    */
@@ -721,7 +803,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para rejeitar uma chamada
-   * 
+   *
    * Formato recebido: { roomId: string }
    */
   @SubscribeMessage('call:reject')
@@ -758,7 +840,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(callerSocketId).emit('call:rejected', {
           roomId: callRoom.id,
         });
-        this.logger.debug(`📞 Chamada rejeitada: ${callRoom.id} por ${user.sub}`);
+        this.logger.debug(
+          `📞 Chamada rejeitada: ${callRoom.id} por ${user.sub}`,
+        );
       }
 
       return { success: true };
@@ -770,7 +854,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para trocar SDP offer (do caller para receiver)
-   * 
+   *
    * Formato recebido: { roomId: string, offer: RTCSessionDescriptionInit }
    */
   @SubscribeMessage('call:offer')
@@ -817,7 +901,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para trocar SDP answer (do receiver para caller)
-   * 
+   *
    * Formato recebido: { roomId: string, answer: RTCSessionDescriptionInit }
    */
   @SubscribeMessage('call:answer')
@@ -864,7 +948,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para trocar ICE candidates
-   * 
+   *
    * Formato recebido: { roomId: string, candidate: RTCIceCandidateInit }
    */
   @SubscribeMessage('call:ice-candidate')
@@ -888,7 +972,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Determinar o destinatário (oposto do sender)
-      const targetId = callRoom.callerId === user.sub ? callRoom.receiverId : callRoom.callerId;
+      const targetId =
+        callRoom.callerId === user.sub
+          ? callRoom.receiverId
+          : callRoom.callerId;
       const targetSocketId = this.connectedUsers.get(targetId);
 
       if (targetSocketId) {
@@ -907,7 +994,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Handler para encerrar uma chamada
-   * 
+   *
    * Formato recebido: { roomId: string }
    */
   @SubscribeMessage('call:end')
@@ -938,21 +1025,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Calcular duração se a chamada foi atendida
       let duration: number | null = null;
       if (callRoom.answeredAt) {
-        duration = Math.floor((new Date().getTime() - callRoom.answeredAt.getTime()) / 1000);
+        duration = Math.floor(
+          (new Date().getTime() - callRoom.answeredAt.getTime()) / 1000,
+        );
       }
 
       // Atualizar status e duração
       await this.callRoomRepository.updateStatus(callRoom.id, 'ended');
-      await this.callRoomRepository.updateEndedAt(callRoom.id, new Date(), duration || 0);
+      await this.callRoomRepository.updateEndedAt(
+        callRoom.id,
+        new Date(),
+        duration || 0,
+      );
 
       // Notificar o outro participante
-      const otherUserId = callRoom.callerId === user.sub ? callRoom.receiverId : callRoom.callerId;
+      const otherUserId =
+        callRoom.callerId === user.sub
+          ? callRoom.receiverId
+          : callRoom.callerId;
       const otherSocketId = this.connectedUsers.get(otherUserId);
       if (otherSocketId) {
         this.server.to(otherSocketId).emit('call:ended', {
           roomId: callRoom.id,
         });
-        this.logger.debug(`📞 Chamada encerrada: ${callRoom.id} por ${user.sub}`);
+        this.logger.debug(
+          `📞 Chamada encerrada: ${callRoom.id} por ${user.sub}`,
+        );
       }
 
       return { success: true };
@@ -964,7 +1062,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Envia uma mensagem para um usuário específico
-   * 
+   *
    * @param userId - ID do usuário destinatário
    * @param event - Nome do evento (ex: 'new_message')
    * @param data - Dados da mensagem
@@ -982,7 +1080,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Publica uma mensagem no Redis para outras instâncias
-   * 
+   *
    * @param message - Mensagem a ser publicada
    */
   async publishToRedis(message: any): Promise<void> {
@@ -996,31 +1094,40 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (!this.redisService) {
       this.logger.warn('Redis não disponível, mensagem não será distribuída');
-      console.warn('[CHAT_GATEWAY] ⚠️ REDIS não disponível - Mensagem não será distribuída para outras instâncias', {
-        messageType: message?.type,
-        receiverId: message?.receiverId,
-        timestamp: new Date().toISOString(),
-      });
+      console.warn(
+        '[CHAT_GATEWAY] ⚠️ REDIS não disponível - Mensagem não será distribuída para outras instâncias',
+        {
+          messageType: message?.type,
+          receiverId: message?.receiverId,
+          timestamp: new Date().toISOString(),
+        },
+      );
       return;
     }
 
     try {
-      console.log('[CHAT_GATEWAY] 🔴 Publicando mensagem no REDIS (canal: chat:messages)...', {
-        channel: 'chat:messages',
-        messageType: message?.type,
-        receiverId: message?.receiverId,
-        timestamp: new Date().toISOString(),
-      });
-      
+      console.log(
+        '[CHAT_GATEWAY] 🔴 Publicando mensagem no REDIS (canal: chat:messages)...',
+        {
+          channel: 'chat:messages',
+          messageType: message?.type,
+          receiverId: message?.receiverId,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
       await this.redisService.publish('chat:messages', message);
-      
+
       this.logger.debug('📤 Mensagem publicada no Redis');
-      console.log('[CHAT_GATEWAY] ✅ REDIS usado com sucesso - Mensagem publicada no canal "chat:messages"', {
-        channel: 'chat:messages',
-        messageType: message?.type,
-        receiverId: message?.receiverId,
-        timestamp: new Date().toISOString(),
-      });
+      console.log(
+        '[CHAT_GATEWAY] ✅ REDIS usado com sucesso - Mensagem publicada no canal "chat:messages"',
+        {
+          channel: 'chat:messages',
+          messageType: message?.type,
+          receiverId: message?.receiverId,
+          timestamp: new Date().toISOString(),
+        },
+      );
     } catch (error) {
       this.logger.error('Erro ao publicar no Redis:', error);
       console.error('[CHAT_GATEWAY] ❌ Erro ao publicar no REDIS:', {
@@ -1034,7 +1141,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * Publica evento de exclusão de mensagem no Redis
-   * 
+   *
    * @param messageId - ID da mensagem deletada
    * @param senderId - ID do usuário que deletou
    * @param receiverId - ID do usuário que deve ser notificado (ou communityId para comunidades)
@@ -1049,11 +1156,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     isCommunity: boolean = false,
   ): Promise<void> {
     if (!this.redisService) {
-      console.warn('[CHAT_GATEWAY] ⚠️ REDIS não disponível - Exclusão não será distribuída', {
-        messageId,
-        receiverId,
-        timestamp: new Date().toISOString(),
-      });
+      console.warn(
+        '[CHAT_GATEWAY] ⚠️ REDIS não disponível - Exclusão não será distribuída',
+        {
+          messageId,
+          receiverId,
+          timestamp: new Date().toISOString(),
+        },
+      );
       return;
     }
 
@@ -1084,7 +1194,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       };
 
       await this.redisService.publish('chat:message_deleted', message);
-      
+
       console.log('[CHAT_GATEWAY] ✅ Evento de exclusão publicado no Redis', {
         channel: 'chat:message_deleted',
         messageId,
@@ -1232,10 +1342,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Verificar se ainda está conectado
       if (this.connectedUsers.has(userId)) {
         // Se ainda está conectado mas não enviou heartbeat, marcar como offline
-        console.log('[CHAT_GATEWAY] ⏰ Timeout de heartbeat - marcando como offline', {
-          userId,
-          timestamp: new Date().toISOString(),
-        });
+        console.log(
+          '[CHAT_GATEWAY] ⏰ Timeout de heartbeat - marcando como offline',
+          {
+            userId,
+            timestamp: new Date().toISOString(),
+          },
+        );
         await this.setUserOffline(userId);
         this.connectedUsers.delete(userId);
       }
@@ -1248,13 +1361,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /**
    * Notifica amigos sobre mudança de status
    */
-  private async notifyFriendsStatusChange(userId: string, status: 'online' | 'offline'): Promise<void> {
+  private async notifyFriendsStatusChange(
+    userId: string,
+    status: 'online' | 'offline',
+  ): Promise<void> {
     if (!this.friendshipRepository) return;
 
     try {
       // Buscar todos os amigos do usuário
       const friendships = await this.friendshipRepository.findByUserId(userId);
-      
+
       // Extrair IDs dos amigos
       const friendIds = friendships.map((friendship) =>
         friendship.userId1 === userId ? friendship.userId2 : friendship.userId1,
@@ -1280,7 +1396,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      this.logger.error(`Erro ao notificar amigos sobre status de ${userId}:`, error);
+      this.logger.error(
+        `Erro ao notificar amigos sobre status de ${userId}:`,
+        error,
+      );
     }
   }
 
@@ -1298,7 +1417,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             .findByUserId(message.userId)
             .then((friendships) => {
               const friendIds = friendships.map((friendship) =>
-                friendship.userId1 === message.userId ? friendship.userId2 : friendship.userId1,
+                friendship.userId1 === message.userId
+                  ? friendship.userId2
+                  : friendship.userId1,
               );
 
               // Notificar cada amigo online nesta instância
@@ -1314,7 +1435,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
               }
             })
             .catch((error) => {
-              this.logger.error(`Erro ao processar status do Redis para ${message.userId}:`, error);
+              this.logger.error(
+                `Erro ao processar status do Redis para ${message.userId}:`,
+                error,
+              );
             });
         }
       }
@@ -1345,7 +1469,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /**
    * Obtém status completo de um usuário
    */
-  async getUserStatus(userId: string): Promise<{ status: 'online' | 'offline'; lastSeen: string } | null> {
+  async getUserStatus(
+    userId: string,
+  ): Promise<{ status: 'online' | 'offline'; lastSeen: string } | null> {
     if (!this.redisService) {
       return this.isUserOnline(userId)
         ? { status: 'online', lastSeen: new Date().toISOString() }
@@ -1355,7 +1481,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const statusKey = `user:status:${userId}`;
       const status = await this.redisService.get<any>(statusKey);
-      
+
       if (status) {
         return {
           status: status.status === 'online' ? 'online' : 'offline',
@@ -1373,4 +1499,3 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 }
-

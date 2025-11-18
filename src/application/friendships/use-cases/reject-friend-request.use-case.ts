@@ -36,18 +36,23 @@ export class RejectFriendRequestUseCase {
     private readonly notificationsGateway?: NotificationsGateway,
   ) {}
 
-  async execute(input: RejectFriendRequestInput): Promise<RejectFriendRequestOutput> {
+  async execute(
+    input: RejectFriendRequestInput,
+  ): Promise<RejectFriendRequestOutput> {
     const { userId, friendRequestId } = input;
 
     // Buscar o pedido de amizade
-    const friendRequest = await this.friendRequestRepository.findById(friendRequestId);
+    const friendRequest =
+      await this.friendRequestRepository.findById(friendRequestId);
     if (!friendRequest) {
       throw new NotFoundException('Pedido de amizade não encontrado');
     }
 
     // Verificar se o usuário é o receptor do pedido
     if (friendRequest.receiverId !== userId) {
-      throw new ForbiddenException('Você não tem permissão para rejeitar este pedido');
+      throw new ForbiddenException(
+        'Você não tem permissão para rejeitar este pedido',
+      );
     }
 
     // Verificar se o pedido está pendente
@@ -56,23 +61,32 @@ export class RejectFriendRequestUseCase {
     }
 
     // Atualizar o status do pedido para REJECTED
-    await this.friendRequestRepository.updateStatus(friendRequestId, FriendRequestStatus.REJECTED);
+    await this.friendRequestRepository.updateStatus(
+      friendRequestId,
+      FriendRequestStatus.REJECTED,
+    );
 
     // Buscar informações do receptor para notificar o requester
-    const receiver = await this.userRepository.findById(friendRequest.receiverId);
-    
+    const receiver = await this.userRepository.findById(
+      friendRequest.receiverId,
+    );
+
     // Enviar notificação em tempo real via WebSocket para o requester
     if (this.notificationsGateway && receiver) {
-      this.notificationsGateway.emitToUser(friendRequest.requesterId, 'friend_request_rejected', {
-        friendRequestId: friendRequest.id,
-        receiverId: friendRequest.receiverId,
-        receiver: {
-          id: receiver.id,
-          name: receiver.name,
-          profileImage: receiver.profileImage,
+      this.notificationsGateway.emitToUser(
+        friendRequest.requesterId,
+        'friend_request_rejected',
+        {
+          friendRequestId: friendRequest.id,
+          receiverId: friendRequest.receiverId,
+          receiver: {
+            id: receiver.id,
+            name: receiver.name,
+            profileImage: receiver.profileImage,
+          },
+          rejectedAt: new Date(),
         },
-        rejectedAt: new Date(),
-      });
+      );
     }
 
     return {
@@ -81,4 +95,3 @@ export class RejectFriendRequestUseCase {
     };
   }
 }
-

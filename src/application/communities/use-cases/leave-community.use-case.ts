@@ -1,4 +1,10 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   COMMUNITY_REPOSITORY,
   COMMUNITY_MEMBER_REPOSITORY,
@@ -52,7 +58,10 @@ export class LeaveCommunityUseCase {
     }
 
     // Remover o membro
-    await this.communityMemberRepository.delete(input.communityId, input.userId);
+    await this.communityMemberRepository.delete(
+      input.communityId,
+      input.userId,
+    );
 
     return {
       success: true,
@@ -60,4 +69,3 @@ export class LeaveCommunityUseCase {
     };
   }
 }
-

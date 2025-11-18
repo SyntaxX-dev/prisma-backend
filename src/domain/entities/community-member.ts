@@ -6,4 +6,3 @@ export class CommunityMember {
     public readonly joinedAt: Date = new Date(),
   ) {}
 }
-

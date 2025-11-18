@@ -1,12 +1,5 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  NOTIFICATION_REPOSITORY,
-  USER_REPOSITORY,
-} from '../../domain/tokens';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { NOTIFICATION_REPOSITORY, USER_REPOSITORY } from '../../domain/tokens';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 
@@ -46,7 +39,9 @@ export class ListNotificationsUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(input: ListNotificationsInput): Promise<ListNotificationsOutput> {
+  async execute(
+    input: ListNotificationsInput,
+  ): Promise<ListNotificationsOutput> {
     const { userId, isRead, limit = 20, offset = 0 } = input;
 
     // Verificar se o usuário existe
@@ -59,7 +54,10 @@ export class ListNotificationsUseCase {
     const parsedOffset = Math.max(0, offset);
 
     // Buscar todas as notificações
-    const allNotifications = await this.notificationRepository.findByUserId(userId, isRead);
+    const allNotifications = await this.notificationRepository.findByUserId(
+      userId,
+      isRead,
+    );
 
     // Contar não lidas
     const unreadCount = allNotifications.filter((n) => !n.isRead).length;
@@ -96,4 +94,3 @@ export class ListNotificationsUseCase {
     };
   }
 }
-

@@ -61,7 +61,12 @@ export class NodemailerMailerService implements MailerServicePort {
     });
   }
 
-  async sendEmail(to: string, subject: string, html: string, text?: string): Promise<void> {
+  async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+    text?: string,
+  ): Promise<void> {
     if (!this.transporter) {
       console.log(`[Mailer] ${subject} para ${to} (simulado)`);
       return;

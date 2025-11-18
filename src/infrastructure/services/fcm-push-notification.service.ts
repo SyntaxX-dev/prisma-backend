@@ -1,10 +1,10 @@
 /**
  * WebPushNotificationService - Implementação de Web Push Notifications para sites web
- * 
+ *
  * Este serviço envia notificações push para navegadores web quando usuários estão offline.
  * Usa VAPID keys (Voluntary Application Server Identification) do Firebase.
  * Segue o padrão moderno usado por WhatsApp Web, Telegram Web, Discord Web, etc.
- * 
+ *
  * Como funciona:
  * 1. Frontend solicita permissão e registra subscription (push subscription)
  * 2. Frontend envia subscription para o backend (salvar no banco)
@@ -13,14 +13,22 @@
  * 5. Ao abrir navegador, busca mensagens do banco de dados
  */
 
-import { Injectable, Logger, Optional, Inject, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Optional,
+  Inject,
+  OnModuleInit,
+} from '@nestjs/common';
 import * as webpush from 'web-push';
 import type { PushNotificationService } from '../../domain/services/push-notification.service';
 import { PUSH_SUBSCRIPTION_REPOSITORY } from '../../domain/tokens';
 import type { PushSubscriptionRepository } from '../../domain/repositories/push-subscription.repository';
 
 @Injectable()
-export class FCMPushNotificationService implements PushNotificationService, OnModuleInit {
+export class FCMPushNotificationService
+  implements PushNotificationService, OnModuleInit
+{
   private readonly logger = new Logger(FCMPushNotificationService.name);
   private readonly vapidPublicKey: string | null;
   private readonly vapidPrivateKey: string | null;
@@ -32,10 +40,13 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
     @Optional()
     private readonly subscriptionRepository?: PushSubscriptionRepository,
   ) {
-    console.log('[WEB_PUSH] 🏗️  Inicializando Web Push Notification Service...', {
-      timestamp: new Date().toISOString(),
-      hasSubscriptionRepository: !!this.subscriptionRepository,
-    });
+    console.log(
+      '[WEB_PUSH] 🏗️  Inicializando Web Push Notification Service...',
+      {
+        timestamp: new Date().toISOString(),
+        hasSubscriptionRepository: !!this.subscriptionRepository,
+      },
+    );
 
     // VAPID Keys para Web Push (o que você viu no Firebase)
     // Obter em: Firebase Console → Project Settings → Cloud Messaging → Certificados push da Web
@@ -61,19 +72,30 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
     });
 
     if (!hasVapidKeys && !hasFcmKey) {
-      this.logger.warn('⚠️ Web Push não configurado. Push notifications desabilitadas.');
+      this.logger.warn(
+        '⚠️ Web Push não configurado. Push notifications desabilitadas.',
+      );
       console.warn('[WEB_PUSH] ⚠️ Web Push não configurado.');
       console.warn('[WEB_PUSH] 📖 Como configurar:');
-      console.warn('[WEB_PUSH]   1. Firebase Console → Project Settings → Cloud Messaging');
+      console.warn(
+        '[WEB_PUSH]   1. Firebase Console → Project Settings → Cloud Messaging',
+      );
       console.warn('[WEB_PUSH]   2. Aba "Certificados push da Web"');
-      console.warn('[WEB_PUSH]   3. Copie o "Par de chaves" → VAPID_PUBLIC_KEY');
-      console.warn('[WEB_PUSH]   4. Clique no par de chaves para ver a chave privada → VAPID_PRIVATE_KEY');
-      console.warn('[WEB_PUSH]   5. Configure no Railway: VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY');
+      console.warn(
+        '[WEB_PUSH]   3. Copie o "Par de chaves" → VAPID_PUBLIC_KEY',
+      );
+      console.warn(
+        '[WEB_PUSH]   4. Clique no par de chaves para ver a chave privada → VAPID_PRIVATE_KEY',
+      );
+      console.warn(
+        '[WEB_PUSH]   5. Configure no Railway: VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY',
+      );
     } else {
       if (hasVapidKeys) {
         // Configurar VAPID details para web-push
-        const vapidEmail = process.env.VAPID_EMAIL || 'mailto:noreply@prisma.com';
-        
+        const vapidEmail =
+          process.env.VAPID_EMAIL || 'mailto:noreply@prisma.com';
+
         console.log('[WEB_PUSH] 🔧 Configurando web-push com VAPID keys...', {
           vapidEmail,
           publicKeyPrefix: this.vapidPublicKey!.substring(0, 20) + '...',
@@ -83,16 +105,30 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
         });
 
         try {
-          webpush.setVapidDetails(vapidEmail, this.vapidPublicKey!, this.vapidPrivateKey!);
-          this.vapidConfigured = true;
-          
-          this.logger.log('✅ Web Push Notification Service inicializado (VAPID Keys)');
-          console.log('[WEB_PUSH] ✅ Web Push inicializado usando VAPID Keys (Firebase)');
-          console.log('[WEB_PUSH] 📋 Chave pública:', this.vapidPublicKey.substring(0, 20) + '...');
-          console.log('[WEB_PUSH] ✅ Biblioteca web-push configurada com sucesso', {
+          webpush.setVapidDetails(
             vapidEmail,
-            timestamp: new Date().toISOString(),
-          });
+            this.vapidPublicKey!,
+            this.vapidPrivateKey!,
+          );
+          this.vapidConfigured = true;
+
+          this.logger.log(
+            '✅ Web Push Notification Service inicializado (VAPID Keys)',
+          );
+          console.log(
+            '[WEB_PUSH] ✅ Web Push inicializado usando VAPID Keys (Firebase)',
+          );
+          console.log(
+            '[WEB_PUSH] 📋 Chave pública:',
+            this.vapidPublicKey.substring(0, 20) + '...',
+          );
+          console.log(
+            '[WEB_PUSH] ✅ Biblioteca web-push configurada com sucesso',
+            {
+              vapidEmail,
+              timestamp: new Date().toISOString(),
+            },
+          );
         } catch (error: any) {
           console.error('[WEB_PUSH] ❌ Erro ao configurar web-push:', {
             error: error.message,
@@ -101,8 +137,12 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
           this.vapidConfigured = false;
         }
       } else {
-        this.logger.log('✅ Web Push Notification Service inicializado (FCM Server Key - legado)');
-        console.log('[WEB_PUSH] ✅ Web Push inicializado usando FCM Server Key (método legado)');
+        this.logger.log(
+          '✅ Web Push Notification Service inicializado (FCM Server Key - legado)',
+        );
+        console.log(
+          '[WEB_PUSH] ✅ Web Push inicializado usando FCM Server Key (método legado)',
+        );
         console.log('[WEB_PUSH] ⚠️ Recomendado usar VAPID Keys para Web Push');
       }
     }
@@ -121,19 +161,22 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
    * Garante que os logs apareçam mesmo se o serviço não for usado imediatamente
    */
   onModuleInit() {
-    console.log('[WEB_PUSH] 🔄 onModuleInit executado - Serviço Web Push está ativo', {
-      vapidConfigured: this.vapidConfigured,
-      hasVapidPublicKey: !!this.vapidPublicKey,
-      hasVapidPrivateKey: !!this.vapidPrivateKey,
-      hasFcmKey: !!this.fcmServerKey,
-      subscriptionRepositoryAvailable: !!this.subscriptionRepository,
-      timestamp: new Date().toISOString(),
-    });
+    console.log(
+      '[WEB_PUSH] 🔄 onModuleInit executado - Serviço Web Push está ativo',
+      {
+        vapidConfigured: this.vapidConfigured,
+        hasVapidPublicKey: !!this.vapidPublicKey,
+        hasVapidPrivateKey: !!this.vapidPrivateKey,
+        hasFcmKey: !!this.fcmServerKey,
+        subscriptionRepositoryAvailable: !!this.subscriptionRepository,
+        timestamp: new Date().toISOString(),
+      },
+    );
   }
 
   /**
    * Envia uma notificação Web Push para um usuário
-   * 
+   *
    * @param userId - ID do usuário destinatário
    * @param title - Título da notificação
    * @param body - Corpo da notificação
@@ -150,11 +193,14 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
 
     if (!hasVapidKeys && !hasFcmKey) {
       this.logger.debug('Web Push não configurado, notificação não enviada');
-      console.warn('[WEB_PUSH] ⚠️ Web Push não configurado - Notificação não enviada', {
-        userId,
-        title,
-        timestamp: new Date().toISOString(),
-      });
+      console.warn(
+        '[WEB_PUSH] ⚠️ Web Push não configurado - Notificação não enviada',
+        {
+          userId,
+          title,
+          timestamp: new Date().toISOString(),
+        },
+      );
       return false;
     }
 
@@ -179,17 +225,21 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
         return false;
       }
 
-      console.log('[WEB_PUSH] 🔍 Buscando subscriptions do usuário no banco...', {
-        userId,
-        timestamp: new Date().toISOString(),
-      });
+      console.log(
+        '[WEB_PUSH] 🔍 Buscando subscriptions do usuário no banco...',
+        {
+          userId,
+          timestamp: new Date().toISOString(),
+        },
+      );
 
-      const subscriptions = await this.subscriptionRepository.findByUserId(userId);
+      const subscriptions =
+        await this.subscriptionRepository.findByUserId(userId);
 
       console.log('[WEB_PUSH] 📋 Subscriptions encontradas:', {
         userId,
         count: subscriptions.length,
-        subscriptions: subscriptions.map(s => ({
+        subscriptions: subscriptions.map((s) => ({
           id: s.id,
           endpoint: s.endpoint.substring(0, 50) + '...',
           hasToken: !!s.token,
@@ -229,13 +279,16 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
         try {
           if (hasVapidKeys && this.vapidConfigured) {
             // Enviar usando web-push com VAPID
-            console.log('[WEB_PUSH] 🚀 Enviando via web-push (VAPID/Firebase)...', {
-              userId,
-              subscriptionId: subscription.id,
-              endpoint: subscription.endpoint.substring(0, 50) + '...',
-              payloadSize: payload.length,
-              timestamp: new Date().toISOString(),
-            });
+            console.log(
+              '[WEB_PUSH] 🚀 Enviando via web-push (VAPID/Firebase)...',
+              {
+                userId,
+                subscriptionId: subscription.id,
+                endpoint: subscription.endpoint.substring(0, 50) + '...',
+                payloadSize: payload.length,
+                timestamp: new Date().toISOString(),
+              },
+            );
 
             const pushSubscription = {
               endpoint: subscription.endpoint,
@@ -249,48 +302,60 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
             await webpush.sendNotification(pushSubscription, payload);
             const duration = Date.now() - startTime;
             successCount++;
-            
-            console.log('[WEB_PUSH] ✅ Notificação enviada com sucesso via Firebase/web-push', {
-              userId,
-              subscriptionId: subscription.id,
-              duration: `${duration}ms`,
-              endpoint: subscription.endpoint.substring(0, 50) + '...',
-              timestamp: new Date().toISOString(),
-            });
+
+            console.log(
+              '[WEB_PUSH] ✅ Notificação enviada com sucesso via Firebase/web-push',
+              {
+                userId,
+                subscriptionId: subscription.id,
+                duration: `${duration}ms`,
+                endpoint: subscription.endpoint.substring(0, 50) + '...',
+                timestamp: new Date().toISOString(),
+              },
+            );
           } else if (hasFcmKey && subscription.token) {
             // Enviar usando FCM Server Key (método legado)
-            console.log('[WEB_PUSH] 🚀 Enviando via FCM API (método legado)...', {
-              userId,
-              subscriptionId: subscription.id,
-              token: subscription.token.substring(0, 20) + '...',
-              timestamp: new Date().toISOString(),
-            });
+            console.log(
+              '[WEB_PUSH] 🚀 Enviando via FCM API (método legado)...',
+              {
+                userId,
+                subscriptionId: subscription.id,
+                token: subscription.token.substring(0, 20) + '...',
+                timestamp: new Date().toISOString(),
+              },
+            );
 
             const startTime = Date.now();
-            const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-              method: 'POST',
-              headers: {
-                'Authorization': `key=${this.fcmServerKey}`,
-                'Content-Type': 'application/json',
+            const response = await fetch(
+              'https://fcm.googleapis.com/fcm/send',
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `key=${this.fcmServerKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  to: subscription.token,
+                  notification: { title, body },
+                  data: data || {},
+                }),
               },
-              body: JSON.stringify({
-                to: subscription.token,
-                notification: { title, body },
-                data: data || {},
-              }),
-            });
+            );
             const duration = Date.now() - startTime;
 
             if (response.ok) {
               successCount++;
               const responseData = await response.json();
-              console.log('[WEB_PUSH] ✅ Notificação enviada com sucesso via FCM API', {
-                userId,
-                subscriptionId: subscription.id,
-                duration: `${duration}ms`,
-                response: responseData,
-                timestamp: new Date().toISOString(),
-              });
+              console.log(
+                '[WEB_PUSH] ✅ Notificação enviada com sucesso via FCM API',
+                {
+                  userId,
+                  subscriptionId: subscription.id,
+                  duration: `${duration}ms`,
+                  response: responseData,
+                  timestamp: new Date().toISOString(),
+                },
+              );
             } else {
               failCount++;
               const errorText = await response.text();
@@ -305,59 +370,76 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
               });
             }
           } else {
-            console.warn('[WEB_PUSH] ⚠️ Método de envio não disponível para esta subscription', {
-              userId,
-              subscriptionId: subscription.id,
-              hasVapidKeys,
-              vapidConfigured: this.vapidConfigured,
-              hasFcmKey,
-              hasToken: !!subscription.token,
-              timestamp: new Date().toISOString(),
-            });
+            console.warn(
+              '[WEB_PUSH] ⚠️ Método de envio não disponível para esta subscription',
+              {
+                userId,
+                subscriptionId: subscription.id,
+                hasVapidKeys,
+                vapidConfigured: this.vapidConfigured,
+                hasFcmKey,
+                hasToken: !!subscription.token,
+                timestamp: new Date().toISOString(),
+              },
+            );
           }
         } catch (error: any) {
           failCount++;
-          
-          console.error('[WEB_PUSH] ❌ Erro ao enviar notificação para subscription', {
-            userId,
-            subscriptionId: subscription.id,
-            endpoint: subscription.endpoint.substring(0, 50) + '...',
-            error: error.message,
-            errorName: error.name,
-            statusCode: error.statusCode,
-            stack: error.stack?.substring(0, 200),
-            timestamp: new Date().toISOString(),
-          });
-          
-          // Se subscription inválida, remover do banco
-          if (error.statusCode === 410 || error.statusCode === 404) {
-            console.warn('[WEB_PUSH] 🗑️ Subscription inválida (410/404), removendo do banco...', {
+
+          console.error(
+            '[WEB_PUSH] ❌ Erro ao enviar notificação para subscription',
+            {
               userId,
               subscriptionId: subscription.id,
-              statusCode: error.statusCode,
+              endpoint: subscription.endpoint.substring(0, 50) + '...',
               error: error.message,
+              errorName: error.name,
+              statusCode: error.statusCode,
+              stack: error.stack?.substring(0, 200),
               timestamp: new Date().toISOString(),
-            });
+            },
+          );
+
+          // Se subscription inválida, remover do banco
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            console.warn(
+              '[WEB_PUSH] 🗑️ Subscription inválida (410/404), removendo do banco...',
+              {
+                userId,
+                subscriptionId: subscription.id,
+                statusCode: error.statusCode,
+                error: error.message,
+                timestamp: new Date().toISOString(),
+              },
+            );
             try {
               await this.subscriptionRepository.delete(subscription.id);
-              console.log('[WEB_PUSH] ✅ Subscription inválida removida do banco', {
-                subscriptionId: subscription.id,
-                timestamp: new Date().toISOString(),
-              });
+              console.log(
+                '[WEB_PUSH] ✅ Subscription inválida removida do banco',
+                {
+                  subscriptionId: subscription.id,
+                  timestamp: new Date().toISOString(),
+                },
+              );
             } catch (deleteError: any) {
-              console.error('[WEB_PUSH] ❌ Erro ao remover subscription inválida:', {
-                subscriptionId: subscription.id,
-                error: deleteError.message,
-                timestamp: new Date().toISOString(),
-              });
+              console.error(
+                '[WEB_PUSH] ❌ Erro ao remover subscription inválida:',
+                {
+                  subscriptionId: subscription.id,
+                  error: deleteError.message,
+                  timestamp: new Date().toISOString(),
+                },
+              );
             }
           }
         }
       }
 
       const success = successCount > 0;
-      
-      this.logger.debug(`🌐 Web Push: ${successCount} enviadas, ${failCount} falharam para ${userId}`);
+
+      this.logger.debug(
+        `🌐 Web Push: ${successCount} enviadas, ${failCount} falharam para ${userId}`,
+      );
       console.log('[WEB_PUSH] ✅ Processamento concluído', {
         userId,
         title,
@@ -369,7 +451,10 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
 
       return success;
     } catch (error) {
-      this.logger.error(`Erro ao enviar Web Push notification para ${userId}:`, error);
+      this.logger.error(
+        `Erro ao enviar Web Push notification para ${userId}:`,
+        error,
+      );
       console.error('[WEB_PUSH] ❌ Erro ao enviar Web Push notification:', {
         userId,
         error: error.message,
@@ -391,4 +476,3 @@ export class FCMPushNotificationService implements PushNotificationService, OnMo
     return this.vapidPublicKey;
   }
 }
-

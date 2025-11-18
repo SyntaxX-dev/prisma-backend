@@ -2,7 +2,7 @@ import { CommunityMessage } from '../entities/community-message';
 
 /**
  * Interface CommunityMessageRepository - Define como acessar mensagens de comunidades no banco de dados
- * 
+ *
  * Esta interface define os métodos que qualquer implementação de repositório
  * de mensagens de comunidades deve ter.
  */
@@ -10,7 +10,11 @@ export interface CommunityMessageRepository {
   /**
    * Cria uma nova mensagem em uma comunidade
    */
-  create(communityId: string, senderId: string, content: string): Promise<CommunityMessage>;
+  create(
+    communityId: string,
+    senderId: string,
+    content: string,
+  ): Promise<CommunityMessage>;
 
   /**
    * Busca uma mensagem pelo ID
@@ -44,4 +48,3 @@ export interface CommunityMessageRepository {
    */
   delete(messageId: string): Promise<void>;
 }
-

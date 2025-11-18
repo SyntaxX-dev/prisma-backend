@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { MailerServicePort } from '../../../domain/services/mailer';
 import { Resend } from 'resend';
-import { WelcomeEmailTemplate, type WelcomeEmailData } from '../templates/welcome-email.template';
+import {
+  WelcomeEmailTemplate,
+  type WelcomeEmailData,
+} from '../templates/welcome-email.template';
 
 @Injectable()
 export class ResendMailerService implements MailerServicePort {
@@ -19,7 +22,9 @@ export class ResendMailerService implements MailerServicePort {
 
     if (!apiKey) {
       this.resend = null;
-      console.log('[Email][Resend] RESEND_API_KEY ausente. Usando modo simulado.');
+      console.log(
+        '[Email][Resend] RESEND_API_KEY ausente. Usando modo simulado.',
+      );
     } else {
       this.resend = new Resend(apiKey);
     }
@@ -27,7 +32,9 @@ export class ResendMailerService implements MailerServicePort {
 
   async sendWelcomeEmail(toEmail: string, toName: string): Promise<void> {
     if (!this.resend) {
-      console.log(`[Email][Resend] Bem-vindo ${toName} <${toEmail}> (simulado)`);
+      console.log(
+        `[Email][Resend] Bem-vindo ${toName} <${toEmail}> (simulado)`,
+      );
       return;
     }
 
@@ -52,7 +59,12 @@ export class ResendMailerService implements MailerServicePort {
     });
   }
 
-  async sendEmail(to: string, subject: string, html: string, text?: string): Promise<void> {
+  async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+    text?: string,
+  ): Promise<void> {
     if (!this.resend) {
       console.log(`[Email][Resend] ${subject} para ${to} (simulado)`);
       return;
@@ -66,4 +78,4 @@ export class ResendMailerService implements MailerServicePort {
       text: text || '',
     });
   }
-} 
+}
