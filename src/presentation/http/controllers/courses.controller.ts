@@ -26,13 +26,15 @@ import { UpdateCourseSubscriptionUseCase } from '../../../application/courses/us
 import { ProcessYouTubePlaylistUseCase } from '../../../application/courses/use-cases/process-youtube-playlist.use-case';
 import { BulkProcessPlaylistsUseCase } from '../../../application/courses/use-cases/bulk-process-playlists.use-case';
 import { GenerateMindMapUseCase } from '../../../application/courses/use-cases/generate-mind-map.use-case';
+import { GetMindMapByVideoUseCase } from '../../../application/courses/use-cases/get-mind-map-by-video.use-case';
+import { ListUserMindMapsUseCase } from '../../../application/courses/use-cases/list-user-mind-maps.use-case';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
 import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
 import { ProcessYouTubePlaylistDto } from '../dtos/process-youtube-playlist.dto';
 import { BulkProcessPlaylistsDto } from '../dtos/bulk-process-playlists.dto';
-import { GenerateMindMapDto } from '../dtos/generate-mind-map.dto';
+import { GenerateMindMapDto, GetMindMapByVideoDto } from '../dtos/generate-mind-map.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
@@ -54,6 +56,8 @@ export class CoursesController {
     private readonly processYouTubePlaylistUseCase: ProcessYouTubePlaylistUseCase,
     private readonly bulkProcessPlaylistsUseCase: BulkProcessPlaylistsUseCase,
     private readonly generateMindMapUseCase: GenerateMindMapUseCase,
+    private readonly getMindMapByVideoUseCase: GetMindMapByVideoUseCase,
+    private readonly listUserMindMapsUseCase: ListUserMindMapsUseCase,
   ) {}
 
   @Post()
@@ -690,11 +694,11 @@ export class CoursesController {
   }
 
   @Post('generate-mind-map')
-  @ApiOperation({ summary: 'Gerar mapa mental de um vídeo usando IA Gemini' })
+  @ApiOperation({ summary: 'Gerar ou regenerar mapa mental de um vídeo usando IA Gemini focado em ENEM' })
   @ApiBody({ type: GenerateMindMapDto })
   @ApiResponse({
     status: 201,
-    description: 'Mapa mental gerado com sucesso',
+    description: 'Mapa mental gerado com sucesso e salvo no banco de dados',
     schema: {
       type: 'object',
       properties: {
@@ -702,44 +706,160 @@ export class CoursesController {
         data: {
           type: 'object',
           properties: {
-            mindMap: {
+            id: { type: 'string', example: 'uuid-do-mapa-mental' },
+            content: {
               type: 'string',
-              example: '# Tema Central\n\n## Tópico Principal 1\n### Subtópico 1.1\n- Ponto-chave importante',
+              example: '# Tema Central - Preparação ENEM\n\n## Tópico Principal 1\n### Subtópico 1.1\n- **Conceito importante**\n- 💡 Como cai no ENEM',
             },
+            videoTitle: { type: 'string', example: 'Primeira Guerra Mundial - História ENEM' },
+            videoUrl: { type: 'string', example: 'https://youtube.com/watch?v=abc123' },
+            createdAt: { type: 'string', example: '2025-01-15T10:30:00Z' },
+            updatedAt: { type: 'string', example: '2025-01-15T10:30:00Z' },
           },
         },
       },
     },
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Erro ao gerar mapa mental',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: false },
-        message: { type: 'string', example: 'Erro ao gerar mapa mental' },
-      },
-    },
-  })
-  async generateMindMap(@Body() generateMindMapDto: GenerateMindMapDto) {
+  async generateMindMap(
+    @Body() generateMindMapDto: GenerateMindMapDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
     try {
       const result = await this.generateMindMapUseCase.execute({
+        userId: user.userId,
+        videoId: generateMindMapDto.videoId,
         videoTitle: generateMindMapDto.videoTitle,
         videoDescription: generateMindMapDto.videoDescription,
         videoUrl: generateMindMapDto.videoUrl,
       });
       return {
         success: true,
-        data: {
-          mindMap: result.mindMap,
-        },
+        data: result,
       };
     } catch (error) {
       throw new HttpException(
         {
           success: false,
           message: error instanceof Error ? error.message : 'Erro ao gerar mapa mental',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('mind-map/:videoId')
+  @ApiOperation({ summary: 'Buscar mapa mental existente de um vídeo para o usuário logado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Mapa mental encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            content: { type: 'string' },
+            videoTitle: { type: 'string' },
+            videoUrl: { type: 'string' },
+            createdAt: { type: 'string' },
+            updatedAt: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Mapa mental não encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: 'Mapa mental não encontrado' },
+      },
+    },
+  })
+  async getMindMapByVideo(
+    @Param('videoId') videoId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    try {
+      const result = await this.getMindMapByVideoUseCase.execute({
+        userId: user.userId,
+        videoId,
+      });
+
+      if (!result) {
+        return {
+          success: false,
+          message: 'Mapa mental não encontrado',
+        };
+      }
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error instanceof Error ? error.message : 'Erro ao buscar mapa mental',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('mind-maps')
+  @ApiOperation({ summary: 'Listar todos os mapas mentais do usuário logado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de mapas mentais',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            mindMaps: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  videoId: { type: 'string' },
+                  videoTitle: { type: 'string' },
+                  videoUrl: { type: 'string' },
+                  createdAt: { type: 'string' },
+                  updatedAt: { type: 'string' },
+                },
+              },
+            },
+            total: { type: 'number', example: 5 },
+          },
+        },
+      },
+    },
+  })
+  async listUserMindMaps(@CurrentUser() user: JwtPayload) {
+    try {
+      const result = await this.listUserMindMapsUseCase.execute({
+        userId: user.userId,
+      });
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error instanceof Error ? error.message : 'Erro ao listar mapas mentais',
         },
         HttpStatus.BAD_REQUEST,
       );

@@ -1,17 +1,24 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsUUID } from 'class-validator';
 
 export class GenerateMindMapDto {
   @ApiProperty({
+    description: 'ID do vídeo',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsUUID()
+  videoId: string;
+
+  @ApiProperty({
     description: 'Título do vídeo',
-    example: 'Introdução ao React - Hooks e Components',
+    example: 'Introdução à Primeira Guerra Mundial - História para o ENEM',
   })
   @IsString()
   videoTitle: string;
 
   @ApiProperty({
     description: 'Descrição do vídeo',
-    example: 'Neste vídeo você aprenderá sobre React Hooks, componentes funcionais e state management',
+    example: 'Neste vídeo você aprenderá sobre as causas e consequências da Primeira Guerra Mundial',
   })
   @IsString()
   videoDescription: string;
@@ -22,4 +29,13 @@ export class GenerateMindMapDto {
   })
   @IsString()
   videoUrl: string;
+}
+
+export class GetMindMapByVideoDto {
+  @ApiProperty({
+    description: 'ID do vídeo',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsUUID()
+  videoId: string;
 }

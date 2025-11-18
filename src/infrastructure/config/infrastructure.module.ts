@@ -27,6 +27,7 @@ import {
   PINNED_COMMUNITY_MESSAGE_REPOSITORY,
   MESSAGE_ATTACHMENT_REPOSITORY,
   COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
+  MIND_MAP_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -57,6 +58,7 @@ import { CommunityMessageDrizzleRepository } from '../repositories/community-mes
 import { PinnedCommunityMessageDrizzleRepository } from '../repositories/pinned-community-message.drizzle.repository';
 import { MessageAttachmentDrizzleRepository } from '../repositories/message-attachment.drizzle.repository';
 import { CommunityMessageAttachmentDrizzleRepository } from '../repositories/community-message-attachment.drizzle.repository';
+import { MindMapDrizzleRepository } from '../repositories/mind-map.drizzle.repository';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -100,6 +102,10 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     {
       provide: VIDEO_PROGRESS_REPOSITORY,
       useClass: VideoProgressDrizzleRepository,
+    },
+    {
+      provide: MIND_MAP_REPOSITORY,
+      useClass: MindMapDrizzleRepository,
     },
     {
       provide: NOTIFICATION_SERVICE,
@@ -219,6 +225,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     PINNED_COMMUNITY_MESSAGE_REPOSITORY,
     MESSAGE_ATTACHMENT_REPOSITORY,
     COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
+    MIND_MAP_REPOSITORY,
     CloudinaryService,
   ],
 })

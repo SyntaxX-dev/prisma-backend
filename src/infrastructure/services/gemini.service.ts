@@ -412,14 +412,31 @@ Responda APENAS com um JSON no seguinte formato:
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    try {
-      const prompt = this.buildMindMapPrompt(videoTitle, videoDescription, videoUrl);
-      const response = await this.callGeminiAPI(prompt);
-      return response;
-    } catch (error) {
-      console.error('Erro ao gerar mapa mental:', error);
-      throw error;
+    const maxRetries = 3;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando mapa mental`);
+        const prompt = this.buildMindMapPrompt(videoTitle, videoDescription, videoUrl);
+        const response = await this.callGeminiAPI(prompt);
+        console.log('[MindMap] ✅ Mapa mental gerado com sucesso');
+        return response;
+      } catch (error) {
+        lastError = error;
+        console.error(`[MindMap] ❌ Erro na tentativa ${attempt}:`, error);
+
+        // Se não for a última tentativa, aguardar antes de retry
+        if (attempt < maxRetries) {
+          const waitTime = attempt * 2000; // 2s, 4s, 6s
+          console.log(`[MindMap] ⏳ Aguardando ${waitTime}ms antes de tentar novamente...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
     }
+
+    console.error('[MindMap] ❌ Todas as tentativas falhar');
+    throw new Error(`Erro ao gerar mapa mental após ${maxRetries} tentativas: ${lastError?.message || 'Erro desconhecido'}`);
   }
 
   private buildMindMapPrompt(
@@ -428,48 +445,62 @@ Responda APENAS com um JSON no seguinte formato:
     videoUrl: string
   ): string {
     return `
-Crie um mapa mental detalhado e estruturado sobre o seguinte vídeo educacional do YouTube:
+Crie um mapa mental detalhado e estruturado para ESTUDO DO ENEM sobre o seguinte vídeo educacional:
 
 **Título do Vídeo:** ${videoTitle}
 **Descrição:** ${videoDescription}
 **URL:** ${videoUrl}
 
+**CONTEXTO IMPORTANTE:**
+Este mapa mental será usado por estudantes que estão se preparando para o ENEM (Exame Nacional do Ensino Médio).
+Portanto, foque em:
+- Conceitos que caem no ENEM
+- Relações interdisciplinares
+- Aplicações práticas dos conteúdos
+- Dicas de como o tema pode ser cobrado no exame
+- Conexões com outras disciplinas
+
 **INSTRUÇÕES:**
-1. Analise o título e a descrição do vídeo para entender o conteúdo
-2. Organize o mapa mental em formato hierárquico com:
+1. Analise o título e a descrição do vídeo para identificar o conteúdo
+2. Organize o mapa mental em formato hierárquico pensando no ENEM:
    - Tema Central (baseado no título do vídeo)
-   - 3-5 Tópicos Principais
+   - 3-5 Tópicos Principais (conceitos-chave para o ENEM)
    - 2-4 Subtópicos para cada tópico principal
-   - Pontos-chave e conceitos importantes
+   - Pontos-chave focados em: teoria, aplicação prática, e como pode cair no ENEM
 
 3. Formate a resposta em **Markdown** com estrutura clara:
    - # para o tema central
    - ## para tópicos principais
    - ### para subtópicos
    - - para pontos-chave
-   - **negrito** para conceitos importantes
+   - **negrito** para conceitos importantes que frequentemente aparecem no ENEM
+   - 💡 para dicas de como o tema cai no ENEM
+   - 🔗 para conexões interdisciplinares
 
 4. Mantenha o conteúdo:
-   - Conciso e direto
-   - Educativo e bem organizado
-   - Focado nos principais conceitos
+   - Conciso e direto ao ponto
+   - Focado em preparação para o ENEM
+   - Com exemplos de como o tema pode ser cobrado
    - Em português brasileiro
+   - Com ênfase em competências e habilidades do ENEM
 
 **EXEMPLO DE FORMATO:**
 
-# Tema Central do Vídeo
+# Tema Central do Vídeo - Preparação ENEM
 
-## Tópico Principal 1
+## Tópico Principal 1 (Conceito-chave)
 ### Subtópico 1.1
-- Ponto-chave importante
-- Outro conceito **relevante**
+- **Definição importante** para o ENEM
+- Aplicação prática do conceito
+- 💡 Como costuma cair: [exemplo de questão típica]
+- 🔗 Conexão com [outra disciplina]
 
 ### Subtópico 1.2
-- Informação adicional
-- Detalhes importantes
+- Conceito secundário relevante
+- Exemplo contextualizado
+- 💡 Dica: [estratégia de resolução]
 
 ## Tópico Principal 2
-### Subtópico 2.1
 - Conceito fundamental
 - Aplicação prática
 

@@ -18,7 +18,9 @@ import { ListModulesWithVideosUseCase } from './use-cases/list-modules-with-vide
 import { ProcessYouTubePlaylistUseCase } from './use-cases/process-youtube-playlist.use-case';
 import { BulkProcessPlaylistsUseCase } from './use-cases/bulk-process-playlists.use-case';
 import { GenerateMindMapUseCase } from './use-cases/generate-mind-map.use-case';
-import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY } from '../../domain/tokens';
+import { GetMindMapByVideoUseCase } from './use-cases/get-mind-map-by-video.use-case';
+import { ListUserMindMapsUseCase } from './use-cases/list-user-mind-maps.use-case';
+import { COURSE_REPOSITORY, SUB_COURSE_REPOSITORY, MODULE_REPOSITORY, VIDEO_REPOSITORY, VIDEO_PROGRESS_REPOSITORY, MIND_MAP_REPOSITORY } from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
 import { GeminiService } from '../../infrastructure/services/gemini.service';
 
@@ -118,8 +120,18 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     },
     {
       provide: GenerateMindMapUseCase,
-      useFactory: (geminiService) => new GenerateMindMapUseCase(geminiService),
-      inject: [GeminiService],
+      useFactory: (geminiService, mindMapRepository) => new GenerateMindMapUseCase(geminiService, mindMapRepository),
+      inject: [GeminiService, MIND_MAP_REPOSITORY],
+    },
+    {
+      provide: GetMindMapByVideoUseCase,
+      useFactory: (mindMapRepository) => new GetMindMapByVideoUseCase(mindMapRepository),
+      inject: [MIND_MAP_REPOSITORY],
+    },
+    {
+      provide: ListUserMindMapsUseCase,
+      useFactory: (mindMapRepository) => new ListUserMindMapsUseCase(mindMapRepository),
+      inject: [MIND_MAP_REPOSITORY],
     },
     GeminiService,
   ],
@@ -141,6 +153,8 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     ProcessYouTubePlaylistUseCase,
     BulkProcessPlaylistsUseCase,
     GenerateMindMapUseCase,
+    GetMindMapByVideoUseCase,
+    ListUserMindMapsUseCase,
   ],
 })
 export class CoursesModule {}

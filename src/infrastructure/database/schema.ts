@@ -751,3 +751,39 @@ export const userPushSubscriptions = pgTable(
     endpointIdx: uniqueIndex('user_push_subscriptions_endpoint_idx').on(table.endpoint),
   }),
 );
+
+/**
+ * Tabela mind_maps - Armazena mapas mentais gerados por IA para vídeos
+ *
+ * Esta tabela armazena os mapas mentais focados em ENEM gerados pela IA Gemini.
+ * Permite reutilizar mapas já gerados ao invés de gerar novamente.
+ */
+export const mindMaps = pgTable(
+  'mind_maps',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(), // Conteúdo do mapa mental em Markdown
+    videoTitle: text('video_title').notNull(), // Título do vídeo (para referência)
+    videoUrl: text('video_url').notNull(), // URL do vídeo
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Índice para buscar mapas mentais de um usuário
+    userIdIdx: index('mind_maps_user_id_idx').on(table.userId),
+    // Índice para buscar mapa mental de um vídeo específico de um usuário
+    userVideoIdx: index('mind_maps_user_video_idx').on(table.userId, table.videoId),
+    // Índice para ordenar por data de criação
+    createdAtIdx: index('mind_maps_created_at_idx').on(table.createdAt),
+  }),
+);
