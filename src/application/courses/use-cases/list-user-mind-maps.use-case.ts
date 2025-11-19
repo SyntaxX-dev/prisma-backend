@@ -8,6 +8,7 @@ export interface ListUserMindMapsInput {
 export interface MindMapSummary {
   id: string;
   videoId: string;
+  content: string;
   videoTitle: string;
   videoUrl: string;
   createdAt: Date;
@@ -30,6 +31,7 @@ export class ListUserMindMapsUseCase {
       mindMaps: mindMaps.map((mindMap) => ({
         id: mindMap.id,
         videoId: mindMap.videoId,
+        content: mindMap.content,
         videoTitle: mindMap.videoTitle,
         videoUrl: mindMap.videoUrl,
         createdAt: mindMap.createdAt,

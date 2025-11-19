@@ -490,7 +490,7 @@ Responda APENAS com um JSON no seguinte formato:
     videoUrl: string,
   ): string {
     return `
-Crie um mapa mental RESUMIDO E CONCISO para ESTUDO DO ENEM sobre o seguinte vídeo educacional:
+Crie um mapa mental DETALHADO E COMPLETO para ESTUDO DO ENEM sobre o seguinte vídeo educacional:
 
 **Título do Vídeo:** ${videoTitle}
 **Descrição:** ${videoDescription}
@@ -498,55 +498,78 @@ Crie um mapa mental RESUMIDO E CONCISO para ESTUDO DO ENEM sobre o seguinte víd
 
 **CONTEXTO IMPORTANTE:**
 Este mapa mental será usado por estudantes que estão se preparando para o ENEM (Exame Nacional do Ensino Médio).
-Portanto, foque APENAS nos pontos mais essenciais:
-- Conceitos-chave que caem no ENEM
-- Dicas práticas de como pode ser cobrado
-- Conexões interdisciplinares importantes
+Portanto, explore profundamente:
+- Todos os conceitos relevantes que caem no ENEM
+- Relações interdisciplinares detalhadas
+- Aplicações práticas dos conteúdos
+- Dicas de como o tema pode ser cobrado no exame
+- Conexões com outras disciplinas
+- Exemplos práticos e contextualizações
 
-**INSTRUÇÕES CRÍTICAS:**
-⚠️ **SEJA EXTREMAMENTE CONCISO - apenas os pontos ESSENCIAIS!**
+**INSTRUÇÕES:**
+1. Analise o título e a descrição do vídeo para identificar o conteúdo completo
+2. Organize o mapa mental em formato hierárquico DETALHADO:
+   - Tema Central (baseado no título do vídeo)
+   - 4-7 Tópicos Principais (conceitos-chave para o ENEM)
+   - 3-6 Subtópicos para cada tópico principal
+   - Múltiplos pontos-chave para cada subtópico (quantos forem necessários para cobrir o assunto)
+   - Use até 4 ou 5 níveis de profundidade quando necessário
 
-1. Analise o título e a descrição do vídeo para identificar o conteúdo
-2. Organize o mapa mental em formato hierárquico RESUMIDO:
-   - Tema Central (curto e direto)
-   - **APENAS 2-3 Tópicos Principais** (conceitos-chave para o ENEM)
-   - **APENAS 1-2 Subtópicos** para cada tópico principal
-   - **MÁXIMO 2-3 pontos-chave** por subtópico
-
-3. Formate a resposta em **Markdown** com estrutura clara:
+3. Formate a resposta em **Markdown** com estrutura hierárquica clara:
    - # para o tema central
    - ## para tópicos principais
-   - ### para subtópicos (OPCIONAL - use apenas se realmente necessário)
-   - - para pontos-chave (MÁXIMO 2-3 por seção)
-   - **negrito** para conceitos importantes
-   - 💡 para dicas de como cai no ENEM
+   - ### para subtópicos de nível 1
+   - #### para subtópicos de nível 2
+   - ##### para subtópicos de nível 3
+   - - para pontos-chave e detalhes
+   - **negrito** para conceitos importantes que frequentemente aparecem no ENEM
+   - 💡 para dicas de como o tema cai no ENEM
    - 🔗 para conexões interdisciplinares
+   - Exemplos práticos e aplicações
+   - Fórmulas, definições e conceitos fundamentais
 
 4. Mantenha o conteúdo:
-   - **EXTREMAMENTE CONCISO** - menos é mais!
-   - Apenas o essencial para o ENEM
-   - Frases curtas e diretas
-   - Sem repetições ou explicações longas
+   - Completo e abrangente
+   - Focado em preparação para o ENEM
+   - Com exemplos de como o tema pode ser cobrado
+   - Em português brasileiro
+   - Com ênfase em competências e habilidades do ENEM
+   - Rico em detalhes e conexões
 
 **EXEMPLO DE FORMATO:**
 
-# Tema Central (curto)
+# Tema Central do Vídeo - Preparação ENEM
 
-## Tópico 1
-- **Conceito essencial**
-- 💡 Como cai no ENEM
-- 🔗 Conexão importante
+## Tópico Principal 1 (Conceito-chave)
+### Subtópico 1.1
+- **Definição importante** para o ENEM
+- Aplicação prática do conceito
+- 💡 Como costuma cair: [exemplo de questão típica]
+- 🔗 Conexão com [outra disciplina]
+- Exemplo detalhado
+- Fórmula ou regra fundamental
 
-## Tópico 2
+#### Sub-subtópico 1.1.1
+- Detalhamento específico
+- Caso particular importante
+- Exceções e observações
+
+### Subtópico 1.2
+- Conceito secundário relevante
+- Exemplo contextualizado
+- 💡 Dica: [estratégia de resolução]
+
+## Tópico Principal 2
 ### Subtópico 2.1
-- Ponto-chave 1
-- Ponto-chave 2
-
-## Tópico 3
-- **Conceito principal**
+- Conceito fundamental
 - Aplicação prática
+- Exemplos múltiplos
 
-⚠️ LEMBRE-SE: Seja BREVE! Menos conteúdo, mais qualidade!
+### Subtópico 2.2
+- Outro aspecto importante
+- Relações e conexões
+
+**IMPORTANTE:** Gere um mapa mental COMPLETO e DETALHADO, explorando todos os aspectos relevantes do tema para o ENEM. Não economize em detalhes e informações úteis!
 
 Gere agora o mapa mental seguindo exatamente este formato:
 `;

@@ -896,6 +896,7 @@ export class CoursesController {
                 properties: {
                   id: { type: 'string' },
                   videoId: { type: 'string' },
+                  content: { type: 'string' },
                   videoTitle: { type: 'string' },
                   videoUrl: { type: 'string' },
                   createdAt: { type: 'string' },
