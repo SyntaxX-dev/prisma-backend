@@ -492,19 +492,21 @@ Responda APENAS com um JSON no seguinte formato:
     return `
 Crie um mapa mental ESTRUTURADO para ESTUDO DO ENEM sobre o seguinte vídeo educacional:
 
-**Título do Vídeo:** ${videoTitle}
-**Descrição:** ${videoDescription}
-**URL:** ${videoUrl}
+Título do Vídeo: ${videoTitle}
+Descrição: ${videoDescription}
+URL: ${videoUrl}
 
-**CONTEXTO:**
-Este mapa mental será usado por estudantes preparando-se para o ENEM.
+CONTEXTO:
+Este mapa mental será usado por estudantes preparando-se para o Exame Nacional do Ensino Médio (ENEM).
+O estudante precisa de informações CLARAS e RÁPIDAS sobre conteúdos que provavelmente cairão na prova.
+
 Foque em:
 - Conceitos principais que caem no ENEM
 - Aplicações práticas
 - Dicas objetivas de como é cobrado
 - Conexões interdisciplinares
 
-**INSTRUÇÕES:**
+INSTRUÇÕES:
 1. Organize hierarquicamente:
    - Tema Central
    - 3-5 Tópicos Principais
@@ -516,34 +518,48 @@ Foque em:
    - # tema central
    - ## tópicos principais
    - ### subtópicos
-   - - pontos-chave
-   - **negrito** para conceitos importantes
+   - - pontos-chave (informações diretas, SEM repetir o título do nó anterior)
+   - NÃO use negrito ou formatação especial
    - 💡 para dicas ENEM
    - 🔗 para conexões interdisciplinares
 
-3. Seja OBJETIVO:
+3. REGRA IMPORTANTE:
+   - Quando um nó for um título (ex: "Floresta Amazônica"), os pontos que discorrem sobre ele NÃO devem repetir o título
+   - Vá direto à informação essencial
+   - Exemplo CORRETO:
+     ### Floresta Amazônica
+     - Maior floresta tropical do mundo
+     - Biodiversidade única
+   - Exemplo ERRADO:
+     ### Floresta Amazônica
+     - Floresta Amazônica é a maior floresta tropical
+     - A Floresta Amazônica tem biodiversidade única
+
+4. Seja OBJETIVO:
    - Frases curtas e diretas
    - Conceitos essenciais
    - Sem repetições
+   - Informações rápidas para memorização
 
-**EXEMPLO:**
+EXEMPLO:
 
-# Tema - ENEM
+# Biomas Brasileiros - ENEM
 
-## Tópico 1
-### Subtópico 1.1
-- **Conceito essencial**
-- Aplicação prática
-- 💡 Cai no ENEM como...
+## Floresta Amazônica
+### Características
+- Maior floresta tropical do mundo
+- 60% no território brasileiro
+- 💡 ENEM cobra: biodiversidade e desmatamento
 
-### Subtópico 1.2
-- Ponto-chave 1
-- Ponto-chave 2
+### Importância Ambiental
+- Regulação climática global
+- 🔗 Relação com aquecimento global
 
-## Tópico 2
-### Subtópico 2.1
-- **Conceito importante**
-- 🔗 Relação com...
+## Cerrado
+### Características
+- Savana brasileira
+- Vegetação adaptada ao fogo
+- 💡 ENEM cobra: queimadas e agricultura
 
 Gere o mapa mental:
 `;
