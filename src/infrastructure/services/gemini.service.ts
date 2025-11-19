@@ -490,88 +490,62 @@ Responda APENAS com um JSON no seguinte formato:
     videoUrl: string,
   ): string {
     return `
-Crie um mapa mental DETALHADO E COMPLETO para ESTUDO DO ENEM sobre o seguinte vídeo educacional:
+Crie um mapa mental ESTRUTURADO para ESTUDO DO ENEM sobre o seguinte vídeo educacional:
 
 **Título do Vídeo:** ${videoTitle}
 **Descrição:** ${videoDescription}
 **URL:** ${videoUrl}
 
-**CONTEXTO IMPORTANTE:**
-Este mapa mental será usado por estudantes que estão se preparando para o ENEM (Exame Nacional do Ensino Médio).
-Portanto, explore profundamente:
-- Todos os conceitos relevantes que caem no ENEM
-- Relações interdisciplinares detalhadas
-- Aplicações práticas dos conteúdos
-- Dicas de como o tema pode ser cobrado no exame
-- Conexões com outras disciplinas
-- Exemplos práticos e contextualizações
+**CONTEXTO:**
+Este mapa mental será usado por estudantes preparando-se para o ENEM.
+Foque em:
+- Conceitos principais que caem no ENEM
+- Aplicações práticas
+- Dicas objetivas de como é cobrado
+- Conexões interdisciplinares
 
 **INSTRUÇÕES:**
-1. Analise o título e a descrição do vídeo para identificar o conteúdo completo
-2. Organize o mapa mental em formato hierárquico DETALHADO:
-   - Tema Central (baseado no título do vídeo)
-   - 4-7 Tópicos Principais (conceitos-chave para o ENEM)
-   - 3-6 Subtópicos para cada tópico principal
-   - Múltiplos pontos-chave para cada subtópico (quantos forem necessários para cobrir o assunto)
-   - Use até 4 ou 5 níveis de profundidade quando necessário
+1. Organize hierarquicamente:
+   - Tema Central
+   - 3-5 Tópicos Principais
+   - 2-3 Subtópicos por tópico
+   - Use até 3 níveis (###)
+   - 2-3 pontos por seção
 
-3. Formate a resposta em **Markdown** com estrutura hierárquica clara:
-   - # para o tema central
-   - ## para tópicos principais
-   - ### para subtópicos de nível 1
-   - #### para subtópicos de nível 2
-   - ##### para subtópicos de nível 3
-   - - para pontos-chave e detalhes
-   - **negrito** para conceitos importantes que frequentemente aparecem no ENEM
-   - 💡 para dicas de como o tema cai no ENEM
+2. Formato Markdown:
+   - # tema central
+   - ## tópicos principais
+   - ### subtópicos
+   - - pontos-chave
+   - **negrito** para conceitos importantes
+   - 💡 para dicas ENEM
    - 🔗 para conexões interdisciplinares
-   - Exemplos práticos e aplicações
-   - Fórmulas, definições e conceitos fundamentais
 
-4. Mantenha o conteúdo:
-   - Completo e abrangente
-   - Focado em preparação para o ENEM
-   - Com exemplos de como o tema pode ser cobrado
-   - Em português brasileiro
-   - Com ênfase em competências e habilidades do ENEM
-   - Rico em detalhes e conexões
+3. Seja OBJETIVO:
+   - Frases curtas e diretas
+   - Conceitos essenciais
+   - Sem repetições
 
-**EXEMPLO DE FORMATO:**
+**EXEMPLO:**
 
-# Tema Central do Vídeo - Preparação ENEM
+# Tema - ENEM
 
-## Tópico Principal 1 (Conceito-chave)
+## Tópico 1
 ### Subtópico 1.1
-- **Definição importante** para o ENEM
-- Aplicação prática do conceito
-- 💡 Como costuma cair: [exemplo de questão típica]
-- 🔗 Conexão com [outra disciplina]
-- Exemplo detalhado
-- Fórmula ou regra fundamental
-
-#### Sub-subtópico 1.1.1
-- Detalhamento específico
-- Caso particular importante
-- Exceções e observações
+- **Conceito essencial**
+- Aplicação prática
+- 💡 Cai no ENEM como...
 
 ### Subtópico 1.2
-- Conceito secundário relevante
-- Exemplo contextualizado
-- 💡 Dica: [estratégia de resolução]
+- Ponto-chave 1
+- Ponto-chave 2
 
-## Tópico Principal 2
+## Tópico 2
 ### Subtópico 2.1
-- Conceito fundamental
-- Aplicação prática
-- Exemplos múltiplos
+- **Conceito importante**
+- 🔗 Relação com...
 
-### Subtópico 2.2
-- Outro aspecto importante
-- Relações e conexões
-
-**IMPORTANTE:** Gere um mapa mental COMPLETO e DETALHADO, explorando todos os aspectos relevantes do tema para o ENEM. Não economize em detalhes e informações úteis!
-
-Gere agora o mapa mental seguindo exatamente este formato:
+Gere o mapa mental:
 `;
   }
 }
