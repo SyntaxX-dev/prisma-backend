@@ -3,6 +3,7 @@ import { InfrastructureModule } from '../../infrastructure/config/infrastructure
 import { CreateCommunityUseCase } from './use-cases/create-community.use-case';
 import { JoinCommunityUseCase } from './use-cases/join-community.use-case';
 import { LeaveCommunityUseCase } from './use-cases/leave-community.use-case';
+import { RemoveCommunityMemberUseCase } from './use-cases/remove-community-member.use-case';
 import { InviteToCommunityUseCase } from './use-cases/invite-to-community.use-case';
 import { ListCommunitiesUseCase } from './use-cases/list-communities.use-case';
 import { GetCommunityUseCase } from './use-cases/get-community.use-case';
@@ -24,6 +25,7 @@ import { forwardRef } from '@nestjs/common';
     CreateCommunityUseCase,
     JoinCommunityUseCase,
     LeaveCommunityUseCase,
+    RemoveCommunityMemberUseCase,
     InviteToCommunityUseCase,
     ListCommunitiesUseCase,
     GetCommunityUseCase,
@@ -41,6 +43,7 @@ import { forwardRef } from '@nestjs/common';
     CreateCommunityUseCase,
     JoinCommunityUseCase,
     LeaveCommunityUseCase,
+    RemoveCommunityMemberUseCase,
     InviteToCommunityUseCase,
     ListCommunitiesUseCase,
     GetCommunityUseCase,

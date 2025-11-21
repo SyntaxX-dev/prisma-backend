@@ -35,6 +35,7 @@ export interface ListCommunityMembersOutput {
   limit: number;
   offset: number;
   hasMore: boolean;
+  isCurrentUserOwner: boolean;
 }
 
 @Injectable()
@@ -141,12 +142,18 @@ export class ListCommunityMembersUseCase {
       }
     }
 
+    // Verificar se o usuário autenticado é o dono
+    const isCurrentUserOwner = input.userId
+      ? community.ownerId === input.userId
+      : false;
+
     return {
       members,
       total,
       limit,
       offset,
       hasMore: offset + limit < total,
+      isCurrentUserOwner,
     };
   }
 }

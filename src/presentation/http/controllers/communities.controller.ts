@@ -29,6 +29,7 @@ import { OptionalJwtAuthGuard } from '../../../infrastructure/guards/optional-jw
 import { CreateCommunityUseCase } from '../../../application/communities/use-cases/create-community.use-case';
 import { JoinCommunityUseCase } from '../../../application/communities/use-cases/join-community.use-case';
 import { LeaveCommunityUseCase } from '../../../application/communities/use-cases/leave-community.use-case';
+import { RemoveCommunityMemberUseCase } from '../../../application/communities/use-cases/remove-community-member.use-case';
 import { InviteToCommunityUseCase } from '../../../application/communities/use-cases/invite-to-community.use-case';
 import { ListCommunitiesUseCase } from '../../../application/communities/use-cases/list-communities.use-case';
 import { GetCommunityUseCase } from '../../../application/communities/use-cases/get-community.use-case';
@@ -43,6 +44,7 @@ import { GetPinnedCommunityMessagesUseCase } from '../../../application/communit
 import { GetCommunityAttachmentsUseCase } from '../../../application/communities/use-cases/get-community-attachments.use-case';
 import { CreateCommunityDto } from '../dtos/create-community.dto';
 import { JoinCommunityDto } from '../dtos/join-community.dto';
+import { RemoveCommunityMemberDto } from '../dtos/remove-community-member.dto';
 import { InviteToCommunityDto } from '../dtos/invite-to-community.dto';
 import { CloudinaryService } from '../../../infrastructure/services/cloudinary.service';
 import { COMMUNITY_REPOSITORY } from '../../../domain/tokens';
@@ -56,6 +58,7 @@ export class CommunitiesController {
     private readonly createCommunityUseCase: CreateCommunityUseCase,
     private readonly joinCommunityUseCase: JoinCommunityUseCase,
     private readonly leaveCommunityUseCase: LeaveCommunityUseCase,
+    private readonly removeCommunityMemberUseCase: RemoveCommunityMemberUseCase,
     private readonly inviteToCommunityUseCase: InviteToCommunityUseCase,
     private readonly listCommunitiesUseCase: ListCommunitiesUseCase,
     private readonly getCommunityUseCase: GetCommunityUseCase,
@@ -267,6 +270,60 @@ export class CommunitiesController {
     return result;
   }
 
+  @Delete('members')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remover um membro da comunidade (apenas dono)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Membro removido com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Membro removido da comunidade com sucesso',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'O dono da comunidade não pode ser removido',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: 'O dono da comunidade não pode ser removido',
+        error: 'Bad Request',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Apenas o dono da comunidade pode remover membros',
+    schema: {
+      example: {
+        statusCode: 403,
+        message: 'Apenas o dono da comunidade pode remover membros',
+        error: 'Forbidden',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Comunidade não encontrada ou membro não encontrado',
+  })
+  async removeCommunityMember(
+    @Request() req: any,
+    @Body() removeCommunityMemberDto: RemoveCommunityMemberDto,
+  ) {
+    const result = await this.removeCommunityMemberUseCase.execute({
+      ownerId: req.user.sub,
+      communityId: removeCommunityMemberDto.communityId,
+      memberId: removeCommunityMemberDto.memberId,
+    });
+
+    return result;
+  }
+
   @Post('invite')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -395,9 +452,10 @@ export class CommunitiesController {
           limit: 20,
           offset: 0,
           hasMore: true,
-        },
-      },
-    },
+          isCurrentUserOwner: true
+        }
+      }
+    }
   })
   @ApiResponse({ status: 404, description: 'Comunidade não encontrada' })
   @ApiResponse({
