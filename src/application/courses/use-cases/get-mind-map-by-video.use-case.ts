@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { MindMapRepository } from '../../../domain/repositories/mind-map.repository';
+import type { GenerationType } from '../../../domain/entities/mind-map';
 
 export interface GetMindMapByVideoInput {
   userId: string;
@@ -11,6 +12,7 @@ export interface GetMindMapByVideoOutput {
   content: string;
   videoTitle: string;
   videoUrl: string;
+  generationType: GenerationType;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +38,7 @@ export class GetMindMapByVideoUseCase {
       content: mindMap.content,
       videoTitle: mindMap.videoTitle,
       videoUrl: mindMap.videoUrl,
+      generationType: mindMap.generationType,
       createdAt: mindMap.createdAt,
       updatedAt: mindMap.updatedAt,
     };

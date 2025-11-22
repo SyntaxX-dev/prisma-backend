@@ -90,6 +90,11 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'FRIEND_ACCEPTED',
 ]);
 
+export const generationTypeEnum = pgEnum('generation_type', [
+  'mindmap',
+  'text',
+]);
+
 export const users = pgTable(
   'users',
   {
@@ -823,6 +828,7 @@ export const mindMaps = pgTable(
     content: text('content').notNull(), // Conteúdo do mapa mental em Markdown
     videoTitle: text('video_title').notNull(), // Título do vídeo (para referência)
     videoUrl: text('video_url').notNull(), // URL do vídeo
+    generationType: generationTypeEnum('generation_type').notNull().default('mindmap'), // Tipo de geração: mindmap ou text
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),

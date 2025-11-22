@@ -1,3 +1,5 @@
+export type GenerationType = 'mindmap' | 'text';
+
 export class MindMap {
   constructor(
     public readonly id: string,
@@ -6,6 +8,7 @@ export class MindMap {
     public readonly content: string,
     public readonly videoTitle: string,
     public readonly videoUrl: string,
+    public readonly generationType: GenerationType,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
   ) {}
@@ -16,6 +19,7 @@ export class MindMap {
     content: string,
     videoTitle: string,
     videoUrl: string,
+    generationType: GenerationType = 'mindmap',
   ): Omit<MindMap, 'id' | 'createdAt' | 'updatedAt'> {
     return {
       userId,
@@ -23,6 +27,7 @@ export class MindMap {
       content,
       videoTitle,
       videoUrl,
+      generationType,
     };
   }
 }

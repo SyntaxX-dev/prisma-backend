@@ -86,6 +86,7 @@ export class GenerateMindMapUseCase {
         content,
         videoTitle: input.videoTitle,
         videoUrl: input.videoUrl,
+        generationType, // Atualizar o tipo de geração
       });
 
       // Incrementar contador de gerações do tipo específico
@@ -116,6 +117,7 @@ export class GenerateMindMapUseCase {
       content,
       input.videoTitle,
       input.videoUrl,
+      generationType, // Salvar o tipo de geração
     );
 
     const created = await this.mindMapRepository.create(mindMapData);
