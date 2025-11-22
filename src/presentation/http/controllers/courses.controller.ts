@@ -28,6 +28,7 @@ import { BulkProcessPlaylistsUseCase } from '../../../application/courses/use-ca
 import { GenerateMindMapUseCase } from '../../../application/courses/use-cases/generate-mind-map.use-case';
 import { GetMindMapByVideoUseCase } from '../../../application/courses/use-cases/get-mind-map-by-video.use-case';
 import { ListUserMindMapsUseCase } from '../../../application/courses/use-cases/list-user-mind-maps.use-case';
+import { UpdateAllVideoDurationsUseCase } from '../../../application/courses/use-cases/update-all-video-durations.use-case';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
@@ -64,6 +65,7 @@ export class CoursesController {
     private readonly generateMindMapUseCase: GenerateMindMapUseCase,
     private readonly getMindMapByVideoUseCase: GetMindMapByVideoUseCase,
     private readonly listUserMindMapsUseCase: ListUserMindMapsUseCase,
+    private readonly updateAllVideoDurationsUseCase: UpdateAllVideoDurationsUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {}
 
@@ -1007,6 +1009,52 @@ export class CoursesController {
             error instanceof Error
               ? error.message
               : 'Erro ao listar mapas mentais',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('update-video-durations')
+  @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary:
+      'Atualizar durações de todos os vídeos que estão sem duração (Apenas Admin)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Durações atualizadas com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            totalVideos: { type: 'number', example: 50 },
+            updatedVideos: { type: 'number', example: 45 },
+            failedVideos: { type: 'number', example: 3 },
+            skippedVideos: { type: 'number', example: 2 },
+          },
+        },
+      },
+    },
+  })
+  async updateAllVideoDurations() {
+    try {
+      const result = await this.updateAllVideoDurationsUseCase.execute();
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao atualizar durações dos vídeos',
         },
         HttpStatus.BAD_REQUEST,
       );

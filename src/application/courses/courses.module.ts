@@ -20,6 +20,8 @@ import { BulkProcessPlaylistsUseCase } from './use-cases/bulk-process-playlists.
 import { GenerateMindMapUseCase } from './use-cases/generate-mind-map.use-case';
 import { GetMindMapByVideoUseCase } from './use-cases/get-mind-map-by-video.use-case';
 import { ListUserMindMapsUseCase } from './use-cases/list-user-mind-maps.use-case';
+import { UpdateVideoDurationUseCase } from './use-cases/update-video-duration.use-case';
+import { UpdateAllVideoDurationsUseCase } from './use-cases/update-all-video-durations.use-case';
 import {
   COURSE_REPOSITORY,
   SUB_COURSE_REPOSITORY,
@@ -221,6 +223,18 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
         new ListUserMindMapsUseCase(mindMapRepository),
       inject: [MIND_MAP_REPOSITORY],
     },
+    {
+      provide: UpdateVideoDurationUseCase,
+      useFactory: (videoRepository, youtubeService) =>
+        new UpdateVideoDurationUseCase(videoRepository, youtubeService),
+      inject: [VIDEO_REPOSITORY, YouTubeService],
+    },
+    {
+      provide: UpdateAllVideoDurationsUseCase,
+      useFactory: (videoRepository, youtubeService) =>
+        new UpdateAllVideoDurationsUseCase(videoRepository, youtubeService),
+      inject: [VIDEO_REPOSITORY, YouTubeService],
+    },
     GeminiService,
   ],
   exports: [
@@ -243,6 +257,8 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     GenerateMindMapUseCase,
     GetMindMapByVideoUseCase,
     ListUserMindMapsUseCase,
+    UpdateVideoDurationUseCase,
+    UpdateAllVideoDurationsUseCase,
   ],
 })
 export class CoursesModule {}

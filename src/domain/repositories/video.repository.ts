@@ -15,4 +15,5 @@ export interface VideoRepository {
   createMany(
     videos: Omit<Video, 'id' | 'createdAt' | 'updatedAt'>[],
   ): Promise<Video[]>;
+  findVideosWithoutDuration(): Promise<Video[]>;
 }
