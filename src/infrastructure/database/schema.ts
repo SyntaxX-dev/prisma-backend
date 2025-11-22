@@ -117,6 +117,10 @@ export const users = pgTable(
     instagram: text('instagram'),
     twitter: text('twitter'),
     socialLinksOrder: text('social_links_order'),
+    // Limite de gerações de mapa mental
+    mindMapGenerationsToday: integer('mind_map_generations_today').notNull().default(0),
+    mindMapLastResetDate: timestamp('mind_map_last_reset_date', { withTimezone: false }),
+    mindMapDailyLimit: integer('mind_map_daily_limit').notNull().default(5), // Limite padrão: 5 por dia
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),

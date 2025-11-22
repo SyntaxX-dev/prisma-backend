@@ -490,20 +490,20 @@ Responda APENAS com um JSON no seguinte formato:
     videoUrl: string,
   ): string {
     return `
-Crie um mapa mental ESTRUTURADO para ESTUDO DO ENEM sobre o seguinte vídeo educacional:
+Crie um mapa mental ESTRUTURADO sobre o seguinte vídeo educacional:
 
 Título do Vídeo: ${videoTitle}
 Descrição: ${videoDescription}
 URL: ${videoUrl}
 
 CONTEXTO:
-Este mapa mental será usado por estudantes preparando-se para o Exame Nacional do Ensino Médio (ENEM).
-O estudante precisa de informações CLARAS e RÁPIDAS sobre conteúdos que provavelmente cairão na prova.
+Este mapa mental será usado por estudantes preparando-se para provas e concursos.
+O estudante precisa de informações CLARAS e RÁPIDAS sobre conteúdos que provavelmente serão cobrados.
 
 Foque em:
-- Conceitos principais que caem no ENEM
+- Conceitos principais frequentemente cobrados em provas e concursos
 - Aplicações práticas
-- Dicas objetivas de como é cobrado
+- Dicas objetivas de como o tema costuma ser cobrado
 - Conexões interdisciplinares
 
 INSTRUÇÕES:
@@ -520,7 +520,7 @@ INSTRUÇÕES:
    - ### subtópicos
    - - pontos-chave (informações diretas, SEM repetir o título do nó anterior)
    - NÃO use negrito ou formatação especial
-   - 💡 para dicas ENEM
+   - 💡 para dicas de como os concursos costumam cobrar
    - 🔗 para conexões interdisciplinares
 
 3. REGRA IMPORTANTE:
@@ -543,13 +543,13 @@ INSTRUÇÕES:
 
 EXEMPLO:
 
-# Biomas Brasileiros - ENEM
+# Biomas Brasileiros
 
 ## Floresta Amazônica
 ### Características
 - Maior floresta tropical do mundo
 - 60% no território brasileiro
-- 💡 ENEM cobra: biodiversidade e desmatamento
+- 💡 Os concursos costumam cobrar: biodiversidade e desmatamento
 
 ### Importância Ambiental
 - Regulação climática global
@@ -559,7 +559,7 @@ EXEMPLO:
 ### Características
 - Savana brasileira
 - Vegetação adaptada ao fogo
-- 💡 ENEM cobra: queimadas e agricultura
+- 💡 Os concursos costumam cobrar: queimadas e agricultura
 
 Gere o mapa mental:
 `;

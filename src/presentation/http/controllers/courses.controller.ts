@@ -42,6 +42,9 @@ import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../infrastructure/auth/jwt.strategy';
+import type { UserRepository } from '../../../domain/repositories/user.repository';
+import { Inject } from '@nestjs/common';
+import { USER_REPOSITORY } from '../../../domain/tokens';
 
 @ApiTags('Courses')
 @ApiBearerAuth('JWT-auth')
@@ -61,6 +64,7 @@ export class CoursesController {
     private readonly generateMindMapUseCase: GenerateMindMapUseCase,
     private readonly getMindMapByVideoUseCase: GetMindMapByVideoUseCase,
     private readonly listUserMindMapsUseCase: ListUserMindMapsUseCase,
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {}
 
   @Post()
@@ -793,6 +797,17 @@ export class CoursesController {
         data: result,
       };
     } catch (error) {
+      // Verificar se é erro de limite excedido
+      if (error instanceof Error && error.name === 'MindMapLimitExceededError') {
+        throw new HttpException(
+          {
+            success: false,
+            code: 'MIND_MAP_LIMIT_EXCEEDED',
+            message: error.message,
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       throw new HttpException(
         {
           success: false,
@@ -800,6 +815,50 @@ export class CoursesController {
             error instanceof Error
               ? error.message
               : 'Erro ao gerar mapa mental',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('mind-map-limit')
+  @ApiOperation({
+    summary: 'Verificar limite de gerações de mapa mental do usuário',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Informações do limite de gerações',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            generationsToday: { type: 'number', example: 2 },
+            dailyLimit: { type: 'number', example: 5 },
+            remainingGenerations: { type: 'number', example: 3 },
+            canGenerate: { type: 'boolean', example: true },
+          },
+        },
+      },
+    },
+  })
+  async getMindMapLimit(@CurrentUser() user: JwtPayload) {
+    try {
+      const limitInfo = await this.userRepository.getMindMapLimitInfo(user.sub);
+      return {
+        success: true,
+        data: limitInfo,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao verificar limite',
         },
         HttpStatus.BAD_REQUEST,
       );

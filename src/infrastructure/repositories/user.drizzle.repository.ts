@@ -1,6 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { users } from '../database/schema';
-import type { UserRepository } from '../../domain/repositories/user.repository';
+import type {
+  UserRepository,
+  MindMapLimitInfo,
+} from '../../domain/repositories/user.repository';
 import type { User } from '../../domain/entities/user';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { UserRole } from '../../domain/enums/user-role';
@@ -239,5 +242,90 @@ export class UserDrizzleRepository implements UserRepository {
       createdAt: row.createdAt,
     };
     return user;
+  }
+
+  async getMindMapLimitInfo(userId: string): Promise<MindMapLimitInfo> {
+    const rows = await this.db
+      .select({
+        generationsToday: users.mindMapGenerationsToday,
+        dailyLimit: users.mindMapDailyLimit,
+        lastResetDate: users.mindMapLastResetDate,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    // Verificar se precisa resetar o contador (novo dia)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let generationsToday = row.generationsToday;
+    const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
+
+    if (!lastReset || lastReset < today) {
+      // É um novo dia, resetar contador
+      generationsToday = 0;
+      await this.db
+        .update(users)
+        .set({
+          mindMapGenerationsToday: 0,
+          mindMapLastResetDate: today,
+        })
+        .where(eq(users.id, userId));
+    }
+
+    const remainingGenerations = Math.max(0, row.dailyLimit - generationsToday);
+
+    return {
+      generationsToday,
+      dailyLimit: row.dailyLimit,
+      remainingGenerations,
+      canGenerate: remainingGenerations > 0,
+    };
+  }
+
+  async incrementMindMapGeneration(userId: string): Promise<void> {
+    const rows = await this.db
+      .select({
+        generationsToday: users.mindMapGenerationsToday,
+        lastResetDate: users.mindMapLastResetDate,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
+
+    if (!lastReset || lastReset < today) {
+      // É um novo dia, resetar e começar com 1
+      await this.db
+        .update(users)
+        .set({
+          mindMapGenerationsToday: 1,
+          mindMapLastResetDate: today,
+        })
+        .where(eq(users.id, userId));
+    } else {
+      // Mesmo dia, incrementar
+      await this.db
+        .update(users)
+        .set({
+          mindMapGenerationsToday: row.generationsToday + 1,
+        })
+        .where(eq(users.id, userId));
+    }
   }
 }

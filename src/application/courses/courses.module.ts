@@ -27,6 +27,7 @@ import {
   VIDEO_REPOSITORY,
   VIDEO_PROGRESS_REPOSITORY,
   MIND_MAP_REPOSITORY,
+  USER_REPOSITORY,
 } from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
 import { GeminiService } from '../../infrastructure/services/gemini.service';
@@ -204,9 +205,9 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     },
     {
       provide: GenerateMindMapUseCase,
-      useFactory: (geminiService, mindMapRepository) =>
-        new GenerateMindMapUseCase(geminiService, mindMapRepository),
-      inject: [GeminiService, MIND_MAP_REPOSITORY],
+      useFactory: (geminiService, mindMapRepository, userRepository) =>
+        new GenerateMindMapUseCase(geminiService, mindMapRepository, userRepository),
+      inject: [GeminiService, MIND_MAP_REPOSITORY, USER_REPOSITORY],
     },
     {
       provide: GetMindMapByVideoUseCase,
