@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsUUID, IsOptional, IsIn } from 'class-validator';
 
 export class GenerateMindMapDto {
   @ApiProperty({
@@ -30,6 +30,16 @@ export class GenerateMindMapDto {
   })
   @IsString()
   videoUrl: string;
+
+  @ApiPropertyOptional({
+    description: 'Tipo de geração: mindmap (mapa mental visual) ou text (resumo em texto)',
+    example: 'mindmap',
+    enum: ['mindmap', 'text'],
+    default: 'mindmap',
+  })
+  @IsOptional()
+  @IsIn(['mindmap', 'text'])
+  generationType?: 'mindmap' | 'text';
 }
 
 export class GetMindMapByVideoDto {

@@ -785,12 +785,14 @@ export class CoursesController {
     @CurrentUser() user: JwtPayload,
   ) {
     try {
+      const generationType = generateMindMapDto.generationType || 'mindmap';
       const result = await this.generateMindMapUseCase.execute({
         userId: user.sub,
         videoId: generateMindMapDto.videoId,
         videoTitle: generateMindMapDto.videoTitle,
         videoDescription: generateMindMapDto.videoDescription,
         videoUrl: generateMindMapDto.videoUrl,
+        generationType,
       });
       return {
         success: true,
@@ -798,11 +800,15 @@ export class CoursesController {
       };
     } catch (error) {
       // Verificar se é erro de limite excedido
-      if (error instanceof Error && error.name === 'MindMapLimitExceededError') {
+      if (error instanceof Error && error.name === 'GenerationLimitExceededError') {
+        const generationType = generateMindMapDto.generationType || 'mindmap';
+        const errorCode = generationType === 'mindmap'
+          ? 'MIND_MAP_LIMIT_EXCEEDED'
+          : 'TEXT_LIMIT_EXCEEDED';
         throw new HttpException(
           {
             success: false,
-            code: 'MIND_MAP_LIMIT_EXCEEDED',
+            code: errorCode,
             message: error.message,
           },
           HttpStatus.TOO_MANY_REQUESTS,
@@ -814,20 +820,20 @@ export class CoursesController {
           message:
             error instanceof Error
               ? error.message
-              : 'Erro ao gerar mapa mental',
+              : 'Erro ao gerar conteúdo',
         },
         HttpStatus.BAD_REQUEST,
       );
     }
   }
 
-  @Get('mind-map-limit')
+  @Get('generation-limits')
   @ApiOperation({
-    summary: 'Verificar limite de gerações de mapa mental do usuário',
+    summary: 'Verificar limites de gerações do usuário (mapa mental e texto)',
   })
   @ApiResponse({
     status: 200,
-    description: 'Informações do limite de gerações',
+    description: 'Informações dos limites de gerações',
     schema: {
       type: 'object',
       properties: {
@@ -835,21 +841,35 @@ export class CoursesController {
         data: {
           type: 'object',
           properties: {
-            generationsToday: { type: 'number', example: 2 },
-            dailyLimit: { type: 'number', example: 5 },
-            remainingGenerations: { type: 'number', example: 3 },
-            canGenerate: { type: 'boolean', example: true },
+            mindmap: {
+              type: 'object',
+              properties: {
+                generationsToday: { type: 'number', example: 2 },
+                dailyLimit: { type: 'number', example: 5 },
+                remainingGenerations: { type: 'number', example: 3 },
+                canGenerate: { type: 'boolean', example: true },
+              },
+            },
+            text: {
+              type: 'object',
+              properties: {
+                generationsToday: { type: 'number', example: 1 },
+                dailyLimit: { type: 'number', example: 5 },
+                remainingGenerations: { type: 'number', example: 4 },
+                canGenerate: { type: 'boolean', example: true },
+              },
+            },
           },
         },
       },
     },
   })
-  async getMindMapLimit(@CurrentUser() user: JwtPayload) {
+  async getGenerationLimits(@CurrentUser() user: JwtPayload) {
     try {
-      const limitInfo = await this.userRepository.getMindMapLimitInfo(user.sub);
+      const limitsInfo = await this.userRepository.getAllLimitsInfo(user.sub);
       return {
         success: true,
-        data: limitInfo,
+        data: limitsInfo,
       };
     } catch (error) {
       throw new HttpException(
@@ -858,7 +878,7 @@ export class CoursesController {
           message:
             error instanceof Error
               ? error.message
-              : 'Erro ao verificar limite',
+              : 'Erro ao verificar limites',
         },
         HttpStatus.BAD_REQUEST,
       );

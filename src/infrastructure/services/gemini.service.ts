@@ -436,12 +436,14 @@ Responda APENAS com um JSON no seguinte formato:
   }
 
   /**
-   * Gera um mapa mental detalhado sobre um vídeo usando Gemini AI
+   * Gera um mapa mental ou resumo em texto sobre um vídeo usando Gemini AI
+   * @param generationType 'mindmap' para mapa mental visual, 'text' para resumo em texto
    */
   async generateMindMap(
     videoTitle: string,
     videoDescription: string,
     videoUrl: string,
+    generationType: 'mindmap' | 'text' = 'mindmap',
   ): Promise<string> {
     if (!this.apiKey) {
       throw new Error('GEMINI_API_KEY não configurada');
@@ -450,18 +452,18 @@ Responda APENAS com um JSON no seguinte formato:
     const maxRetries = 3;
     let lastError: any;
 
+    const typeLabel = generationType === 'mindmap' ? 'mapa mental' : 'resumo em texto';
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(
-          `[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando mapa mental`,
+          `[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando ${typeLabel}`,
         );
-        const prompt = this.buildMindMapPrompt(
-          videoTitle,
-          videoDescription,
-          videoUrl,
-        );
+        const prompt = generationType === 'mindmap'
+          ? this.buildMindMapPrompt(videoTitle, videoDescription, videoUrl)
+          : this.buildTextSummaryPrompt(videoTitle, videoDescription, videoUrl);
         const response = await this.callGeminiAPI(prompt);
-        console.log('[MindMap] ✅ Mapa mental gerado com sucesso');
+        console.log(`[MindMap] ✅ ${typeLabel} gerado com sucesso`);
         return response;
       } catch (error) {
         lastError = error;
@@ -562,6 +564,72 @@ EXEMPLO:
 - 💡 Os concursos costumam cobrar: queimadas e agricultura
 
 Gere o mapa mental:
+`;
+  }
+
+  private buildTextSummaryPrompt(
+    videoTitle: string,
+    videoDescription: string,
+    videoUrl: string,
+  ): string {
+    return `
+Crie um RESUMO DETALHADO em texto corrido sobre o seguinte vídeo educacional:
+
+Título do Vídeo: ${videoTitle}
+Descrição: ${videoDescription}
+URL: ${videoUrl}
+
+CONTEXTO:
+Este resumo será usado por estudantes preparando-se para provas e concursos.
+O estudante precisa de informações CLARAS e COMPLETAS sobre o conteúdo do vídeo.
+
+INSTRUÇÕES:
+1. Estruture o resumo em seções claras com títulos
+2. Use linguagem acessível e didática
+3. Destaque conceitos importantes
+4. Inclua exemplos práticos quando relevante
+5. Mencione como os concursos costumam cobrar os temas abordados
+6. Faça conexões interdisciplinares quando possível
+
+FORMATO:
+- Use markdown para formatação
+- # para título principal
+- ## para seções
+- ### para subseções
+- Use parágrafos completos e bem desenvolvidos
+- Inclua listas quando apropriado para facilitar a memorização
+- Use 💡 para dicas de como os concursos costumam cobrar
+- Use 🔗 para conexões interdisciplinares
+- Use 📌 para pontos importantes a memorizar
+
+EXEMPLO DE ESTRUTURA:
+
+# [Título do Tema]
+
+## Introdução
+[Parágrafo introdutório contextualizando o tema e sua importância]
+
+## Conceitos Fundamentais
+[Explicação detalhada dos conceitos principais]
+
+### [Subtema 1]
+[Explicação completa com exemplos]
+
+💡 **Como cai nas provas:** [Explicação de como o tema é cobrado]
+
+### [Subtema 2]
+[Explicação completa com exemplos]
+
+## Aplicações Práticas
+[Como o conhecimento se aplica na prática]
+
+## Pontos-Chave para Memorização
+📌 [Lista dos pontos mais importantes]
+
+## Conexões com Outros Temas
+🔗 [Relações interdisciplinares]
+
+Gere o resumo:
 `;
   }
 }

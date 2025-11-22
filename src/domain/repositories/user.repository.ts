@@ -1,10 +1,17 @@
 import { User } from '../entities/user';
 
-export interface MindMapLimitInfo {
+export type GenerationType = 'mindmap' | 'text';
+
+export interface GenerationLimitInfo {
   generationsToday: number;
   dailyLimit: number;
   remainingGenerations: number;
   canGenerate: boolean;
+}
+
+export interface AllLimitsInfo {
+  mindmap: GenerationLimitInfo;
+  text: GenerationLimitInfo;
 }
 
 export interface UserRepository {
@@ -14,7 +21,8 @@ export interface UserRepository {
   findByName(name: string): Promise<User | null>;
   updatePassword(userId: string, hashedPassword: string): Promise<void>;
   updateProfile(userId: string, profileData: Partial<User>): Promise<void>;
-  // Mind Map Limit Methods
-  getMindMapLimitInfo(userId: string): Promise<MindMapLimitInfo>;
-  incrementMindMapGeneration(userId: string): Promise<void>;
+  // Generation Limit Methods
+  getGenerationLimitInfo(userId: string, type: GenerationType): Promise<GenerationLimitInfo>;
+  getAllLimitsInfo(userId: string): Promise<AllLimitsInfo>;
+  incrementGeneration(userId: string, type: GenerationType): Promise<void>;
 }

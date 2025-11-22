@@ -2,7 +2,9 @@ import { eq } from 'drizzle-orm';
 import { users } from '../database/schema';
 import type {
   UserRepository,
-  MindMapLimitInfo,
+  GenerationLimitInfo,
+  AllLimitsInfo,
+  GenerationType,
 } from '../../domain/repositories/user.repository';
 import type { User } from '../../domain/entities/user';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -244,12 +246,18 @@ export class UserDrizzleRepository implements UserRepository {
     return user;
   }
 
-  async getMindMapLimitInfo(userId: string): Promise<MindMapLimitInfo> {
+  async getGenerationLimitInfo(
+    userId: string,
+    type: GenerationType,
+  ): Promise<GenerationLimitInfo> {
     const rows = await this.db
       .select({
-        generationsToday: users.mindMapGenerationsToday,
-        dailyLimit: users.mindMapDailyLimit,
-        lastResetDate: users.mindMapLastResetDate,
+        mindMapGenerationsToday: users.mindMapGenerationsToday,
+        mindMapDailyLimit: users.mindMapDailyLimit,
+        mindMapLastResetDate: users.mindMapLastResetDate,
+        textGenerationsToday: users.textGenerationsToday,
+        textDailyLimit: users.textDailyLimit,
+        textLastResetDate: users.textLastResetDate,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -260,72 +268,150 @@ export class UserDrizzleRepository implements UserRepository {
       throw new Error('Usuário não encontrado');
     }
 
-    // Verificar se precisa resetar o contador (novo dia)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let generationsToday = row.generationsToday;
-    const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
+    if (type === 'mindmap') {
+      let generationsToday = row.mindMapGenerationsToday;
+      const lastReset = row.mindMapLastResetDate
+        ? new Date(row.mindMapLastResetDate)
+        : null;
 
-    if (!lastReset || lastReset < today) {
-      // É um novo dia, resetar contador
-      generationsToday = 0;
-      await this.db
-        .update(users)
-        .set({
-          mindMapGenerationsToday: 0,
-          mindMapLastResetDate: today,
-        })
-        .where(eq(users.id, userId));
+      if (!lastReset || lastReset < today) {
+        generationsToday = 0;
+        await this.db
+          .update(users)
+          .set({
+            mindMapGenerationsToday: 0,
+            mindMapLastResetDate: today,
+          })
+          .where(eq(users.id, userId));
+      }
+
+      const remainingGenerations = Math.max(
+        0,
+        row.mindMapDailyLimit - generationsToday,
+      );
+
+      return {
+        generationsToday,
+        dailyLimit: row.mindMapDailyLimit,
+        remainingGenerations,
+        canGenerate: remainingGenerations > 0,
+      };
+    } else {
+      let generationsToday = row.textGenerationsToday;
+      const lastReset = row.textLastResetDate
+        ? new Date(row.textLastResetDate)
+        : null;
+
+      if (!lastReset || lastReset < today) {
+        generationsToday = 0;
+        await this.db
+          .update(users)
+          .set({
+            textGenerationsToday: 0,
+            textLastResetDate: today,
+          })
+          .where(eq(users.id, userId));
+      }
+
+      const remainingGenerations = Math.max(
+        0,
+        row.textDailyLimit - generationsToday,
+      );
+
+      return {
+        generationsToday,
+        dailyLimit: row.textDailyLimit,
+        remainingGenerations,
+        canGenerate: remainingGenerations > 0,
+      };
     }
-
-    const remainingGenerations = Math.max(0, row.dailyLimit - generationsToday);
-
-    return {
-      generationsToday,
-      dailyLimit: row.dailyLimit,
-      remainingGenerations,
-      canGenerate: remainingGenerations > 0,
-    };
   }
 
-  async incrementMindMapGeneration(userId: string): Promise<void> {
-    const rows = await this.db
-      .select({
-        generationsToday: users.mindMapGenerationsToday,
-        lastResetDate: users.mindMapLastResetDate,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+  async getAllLimitsInfo(userId: string): Promise<AllLimitsInfo> {
+    const [mindmap, text] = await Promise.all([
+      this.getGenerationLimitInfo(userId, 'mindmap'),
+      this.getGenerationLimitInfo(userId, 'text'),
+    ]);
 
-    const row = rows[0];
-    if (!row) {
-      throw new Error('Usuário não encontrado');
-    }
+    return { mindmap, text };
+  }
 
+  async incrementGeneration(
+    userId: string,
+    type: GenerationType,
+  ): Promise<void> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
+    if (type === 'mindmap') {
+      const rows = await this.db
+        .select({
+          generationsToday: users.mindMapGenerationsToday,
+          lastResetDate: users.mindMapLastResetDate,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
-    if (!lastReset || lastReset < today) {
-      // É um novo dia, resetar e começar com 1
-      await this.db
-        .update(users)
-        .set({
-          mindMapGenerationsToday: 1,
-          mindMapLastResetDate: today,
-        })
-        .where(eq(users.id, userId));
+      const row = rows[0];
+      if (!row) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
+
+      if (!lastReset || lastReset < today) {
+        await this.db
+          .update(users)
+          .set({
+            mindMapGenerationsToday: 1,
+            mindMapLastResetDate: today,
+          })
+          .where(eq(users.id, userId));
+      } else {
+        await this.db
+          .update(users)
+          .set({
+            mindMapGenerationsToday: row.generationsToday + 1,
+          })
+          .where(eq(users.id, userId));
+      }
     } else {
-      // Mesmo dia, incrementar
-      await this.db
-        .update(users)
-        .set({
-          mindMapGenerationsToday: row.generationsToday + 1,
+      const rows = await this.db
+        .select({
+          generationsToday: users.textGenerationsToday,
+          lastResetDate: users.textLastResetDate,
         })
-        .where(eq(users.id, userId));
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const row = rows[0];
+      if (!row) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
+
+      if (!lastReset || lastReset < today) {
+        await this.db
+          .update(users)
+          .set({
+            textGenerationsToday: 1,
+            textLastResetDate: today,
+          })
+          .where(eq(users.id, userId));
+      } else {
+        await this.db
+          .update(users)
+          .set({
+            textGenerationsToday: row.generationsToday + 1,
+          })
+          .where(eq(users.id, userId));
+      }
     }
   }
 }
