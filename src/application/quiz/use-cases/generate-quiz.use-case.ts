@@ -3,7 +3,6 @@ import type { QuizSessionRepository } from '../../../domain/repositories/quiz-se
 import type { QuizQuestionRepository } from '../../../domain/repositories/quiz-question.repository';
 import type { QuizOptionRepository } from '../../../domain/repositories/quiz-option.repository';
 import { QuizSession } from '../../../domain/entities/quiz-session';
-import { GeminiService } from '../../../infrastructure/services/gemini.service';
 import {
   QUIZ_SESSION_REPOSITORY,
   QUIZ_QUESTION_REPOSITORY,
@@ -46,7 +45,6 @@ export class GenerateQuizUseCase {
     private readonly questionRepository: QuizQuestionRepository,
     @Inject(QUIZ_OPTION_REPOSITORY)
     private readonly optionRepository: QuizOptionRepository,
-    private readonly geminiService: GeminiService,
   ) {}
 
   async execute(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
