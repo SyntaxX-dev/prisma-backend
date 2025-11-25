@@ -7,6 +7,7 @@ export const educationLevel = pgEnum("education_level", ['ELEMENTARY', 'HIGH_SCH
 export const offensiveType = pgEnum("offensive_type", ['NORMAL', 'SUPER', 'ULTRA', 'KING', 'INFINITY'])
 export const userFocus = pgEnum("user_focus", ['ENEM', 'CONCURSO', 'ENSINO_MEDIO', 'FACULDADE'])
 export const userRole = pgEnum("user_role", ['STUDENT', 'ADMIN'])
+export const quizStatus = pgEnum("quiz_status", ['IN_PROGRESS', 'COMPLETED'])
 
 
 export const modules = pgTable("modules", {
@@ -180,5 +181,81 @@ export const videoProgress = pgTable("video_progress", {
 			columns: [table.subCourseId],
 			foreignColumns: [subCourses.id],
 			name: "video_progress_sub_course_id_sub_courses_id_fk"
+		}).onDelete("cascade"),
+]);
+
+export const quizSessions = pgTable("quiz_sessions", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	userId: uuid("user_id").notNull(),
+	topic: text().notNull(),
+	status: quizStatus().default('IN_PROGRESS').notNull(),
+	score: integer().default(0),
+	totalQuestions: integer("total_questions").default(10).notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	completedAt: timestamp("completed_at", { mode: 'string' }),
+}, (table) => [
+	index("quiz_sessions_user_id_idx").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
+	index("quiz_sessions_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+	index("quiz_sessions_created_at_idx").using("btree", table.createdAt.asc().nullsLast().op("timestamp_ops")),
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "quiz_sessions_user_id_users_id_fk"
+		}).onDelete("cascade"),
+]);
+
+export const quizQuestions = pgTable("quiz_questions", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	sessionId: uuid("session_id").notNull(),
+	questionText: text("question_text").notNull(),
+	correctOption: integer("correct_option").notNull(),
+	explanation: text().notNull(),
+	order: integer().default(0).notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("quiz_questions_session_id_idx").using("btree", table.sessionId.asc().nullsLast().op("uuid_ops")),
+	index("quiz_questions_order_idx").using("btree", table.order.asc().nullsLast().op("int4_ops")),
+	foreignKey({
+			columns: [table.sessionId],
+			foreignColumns: [quizSessions.id],
+			name: "quiz_questions_session_id_quiz_sessions_id_fk"
+		}).onDelete("cascade"),
+]);
+
+export const quizOptions = pgTable("quiz_options", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	questionId: uuid("question_id").notNull(),
+	optionText: text("option_text").notNull(),
+	optionNumber: integer("option_number").notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("quiz_options_question_id_idx").using("btree", table.questionId.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+			columns: [table.questionId],
+			foreignColumns: [quizQuestions.id],
+			name: "quiz_options_question_id_quiz_questions_id_fk"
+		}).onDelete("cascade"),
+]);
+
+export const quizAnswers = pgTable("quiz_answers", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	sessionId: uuid("session_id").notNull(),
+	questionId: uuid("question_id").notNull(),
+	selectedOption: integer("selected_option").notNull(),
+	isCorrect: text("is_correct").notNull(),
+	answeredAt: timestamp("answered_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("quiz_answers_session_id_idx").using("btree", table.sessionId.asc().nullsLast().op("uuid_ops")),
+	index("quiz_answers_question_id_idx").using("btree", table.questionId.asc().nullsLast().op("uuid_ops")),
+	uniqueIndex("quiz_answers_session_question_unique").using("btree", table.sessionId.asc().nullsLast().op("uuid_ops"), table.questionId.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+			columns: [table.sessionId],
+			foreignColumns: [quizSessions.id],
+			name: "quiz_answers_session_id_quiz_sessions_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.questionId],
+			foreignColumns: [quizQuestions.id],
+			name: "quiz_answers_question_id_quiz_questions_id_fk"
 		}).onDelete("cascade"),
 ]);

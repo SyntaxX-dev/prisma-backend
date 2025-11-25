@@ -95,6 +95,11 @@ export const generationTypeEnum = pgEnum('generation_type', [
   'text',
 ]);
 
+export const quizStatusEnum = pgEnum('quiz_status', [
+  'IN_PROGRESS',
+  'COMPLETED',
+]);
+
 export const users = pgTable(
   'users',
   {
@@ -882,5 +887,116 @@ export const callRooms = pgTable(
     receiverIdIdx: index('call_rooms_receiver_id_idx').on(table.receiverId),
     // Índice para buscar chamadas recentes
     startedAtIdx: index('call_rooms_started_at_idx').on(table.startedAt),
+  }),
+);
+
+/**
+ * Tabela quiz_sessions - Armazena sessões de quiz geradas pela IA
+ *
+ * Cada sessão representa um conjunto de 10 questões sobre um tópico específico
+ * gerado pela IA Gemini baseado no prompt do usuário.
+ */
+export const quizSessions = pgTable(
+  'quiz_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    topic: text('topic').notNull(), // Tópico escolhido pelo usuário (ex: "física", "biologia")
+    status: quizStatusEnum('status').notNull().default('IN_PROGRESS'),
+    score: integer('score').default(0), // Pontuação do usuário (calculada ao finalizar)
+    totalQuestions: integer('total_questions').notNull().default(10),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: false }), // Quando foi finalizado
+  },
+  (table) => ({
+    userIdIdx: index('quiz_sessions_user_id_idx').on(table.userId),
+    statusIdx: index('quiz_sessions_status_idx').on(table.status),
+    createdAtIdx: index('quiz_sessions_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
+ * Tabela quiz_questions - Armazena questões de cada sessão de quiz
+ *
+ * Cada questão é gerada pela IA e possui 4 alternativas.
+ * A resposta correta e explicação são armazenadas para mostrar o gabarito.
+ */
+export const quizQuestions = pgTable(
+  'quiz_questions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => quizSessions.id, { onDelete: 'cascade' }),
+    questionText: text('question_text').notNull(), // Texto da pergunta
+    correctOption: integer('correct_option').notNull(), // Número da alternativa correta (1-4)
+    explanation: text('explanation').notNull(), // Explicação da resposta correta
+    order: integer('order').notNull().default(0), // Ordem da questão no quiz
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    sessionIdIdx: index('quiz_questions_session_id_idx').on(table.sessionId),
+    orderIdx: index('quiz_questions_order_idx').on(table.order),
+  }),
+);
+
+/**
+ * Tabela quiz_options - Armazena as alternativas de cada questão
+ *
+ * Cada questão possui 4 opções de resposta geradas pela IA.
+ */
+export const quizOptions = pgTable(
+  'quiz_options',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => quizQuestions.id, { onDelete: 'cascade' }),
+    optionText: text('option_text').notNull(), // Texto da alternativa
+    optionNumber: integer('option_number').notNull(), // Número da alternativa (1-4)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    questionIdIdx: index('quiz_options_question_id_idx').on(table.questionId),
+  }),
+);
+
+/**
+ * Tabela quiz_answers - Armazena as respostas do usuário
+ *
+ * Registra qual alternativa o usuário selecionou para cada questão.
+ */
+export const quizAnswers = pgTable(
+  'quiz_answers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => quizSessions.id, { onDelete: 'cascade' }),
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => quizQuestions.id, { onDelete: 'cascade' }),
+    selectedOption: integer('selected_option').notNull(), // Alternativa selecionada pelo usuário (1-4)
+    isCorrect: text('is_correct').notNull(), // 'true' ou 'false'
+    answeredAt: timestamp('answered_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    sessionIdIdx: index('quiz_answers_session_id_idx').on(table.sessionId),
+    questionIdIdx: index('quiz_answers_question_id_idx').on(table.questionId),
+    // Garante que cada questão só pode ser respondida uma vez por sessão
+    sessionQuestionIdx: uniqueIndex('quiz_answers_session_question_unique').on(
+      table.sessionId,
+      table.questionId,
+    ),
   }),
 );
