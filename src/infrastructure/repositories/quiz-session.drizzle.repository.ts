@@ -86,7 +86,7 @@ export class QuizSessionDrizzleRepository implements QuizSessionRepository {
         ...(session.status && { status: session.status }),
         ...(session.score !== undefined && { score: session.score }),
         ...(session.completedAt && {
-          completedAt: session.completedAt.toISOString(),
+          completedAt: session.completedAt,
         }),
       })
       .where(eq(quizSessions.id, id))
