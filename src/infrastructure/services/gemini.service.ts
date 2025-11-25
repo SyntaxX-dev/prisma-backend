@@ -632,4 +632,151 @@ EXEMPLO DE ESTRUTURA:
 Gere o resumo:
 `;
   }
+
+  /**
+   * Gera questões de múltipla escolha sobre um tema usando Gemini AI
+   */
+  async generateQuizQuestions(topic: string): Promise<{
+    questions: Array<{
+      question: string;
+      options: string[];
+      correctOption: number;
+      explanation: string;
+    }>;
+  }> {
+    if (!this.apiKey) {
+      throw new Error('GEMINI_API_KEY não configurada');
+    }
+
+    const maxRetries = 3;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `[Quiz] Tentativa ${attempt}/${maxRetries} - Gerando questões sobre: ${topic}`,
+        );
+        const prompt = this.buildQuizPrompt(topic);
+        const response = await this.callGeminiAPI(prompt);
+        const parsed = this.parseQuizResponse(response);
+        console.log(
+          `[Quiz] ✅ ${parsed.questions.length} questões geradas com sucesso`,
+        );
+        return parsed;
+      } catch (error) {
+        lastError = error;
+        console.error(`[Quiz] ❌ Erro na tentativa ${attempt}:`, error);
+
+        if (attempt < maxRetries) {
+          const waitTime = attempt * 2000;
+          console.log(
+            `[Quiz] ⏳ Aguardando ${waitTime}ms antes de tentar novamente...`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+      }
+    }
+
+    console.error('[Quiz] ❌ Todas as tentativas falharam');
+    throw new Error(
+      `Erro ao gerar questões após ${maxRetries} tentativas: ${lastError?.message || 'Erro desconhecido'}`,
+    );
+  }
+
+  private buildQuizPrompt(topic: string): string {
+    return `
+Você é um professor especialista. Gere exatamente 10 questões de múltipla escolha sobre o tema: "${topic}"
+
+REGRAS OBRIGATÓRIAS:
+- Exatamente 10 questões
+- Cada questão deve ter exatamente 4 alternativas
+- correctOption deve ser um número de 1 a 4 (não índice 0-3)
+- Explicação clara e educativa de 2-3 linhas
+- Nível: Ensino Médio/ENEM
+- Questões devem ser desafiadoras mas justas
+- Alternativas incorretas devem ser plausíveis
+
+FORMATO DE RESPOSTA - RETORNE APENAS O JSON, SEM MARKDOWN:
+{
+  "questions": [
+    {
+      "question": "Texto da pergunta aqui?",
+      "options": ["Alternativa 1", "Alternativa 2", "Alternativa 3", "Alternativa 4"],
+      "correctOption": 2,
+      "explanation": "Explicação detalhada da resposta correta"
+    }
+  ]
+}
+
+IMPORTANTE:
+- Retorne APENAS o JSON puro, sem \`\`\`json ou markdown
+- O array "questions" deve ter EXATAMENTE 10 itens
+- correctOption: número de 1 a 4
+`.trim();
+  }
+
+  private parseQuizResponse(response: string): {
+    questions: Array<{
+      question: string;
+      options: string[];
+      correctOption: number;
+      explanation: string;
+    }>;
+  } {
+    let cleanedResponse = response.trim();
+    if (cleanedResponse.startsWith('```json')) {
+      cleanedResponse = cleanedResponse
+        .replace(/^```json\n?/, '')
+        .replace(/\n?```$/, '');
+    } else if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse
+        .replace(/^```\n?/, '')
+        .replace(/\n?```$/, '');
+    }
+
+    try {
+      const parsed = JSON.parse(cleanedResponse);
+
+      if (!parsed.questions || !Array.isArray(parsed.questions)) {
+        throw new Error(
+          'Estrutura de resposta inválida - campo "questions" não encontrado',
+        );
+      }
+
+      if (parsed.questions.length !== 10) {
+        throw new Error(
+          `IA gerou ${parsed.questions.length} questões ao invés de 10`,
+        );
+      }
+
+      parsed.questions.forEach((q: any, index: number) => {
+        if (!q.question || typeof q.question !== 'string') {
+          throw new Error(`Questão ${index + 1} inválida: texto ausente`);
+        }
+        if (!Array.isArray(q.options) || q.options.length !== 4) {
+          throw new Error(
+            `Questão ${index + 1} inválida: deve ter 4 alternativas`,
+          );
+        }
+        if (
+          typeof q.correctOption !== 'number' ||
+          q.correctOption < 1 ||
+          q.correctOption > 4
+        ) {
+          throw new Error(
+            `Questão ${index + 1} inválida: correctOption deve ser 1-4`,
+          );
+        }
+        if (!q.explanation || typeof q.explanation !== 'string') {
+          throw new Error(`Questão ${index + 1} inválida: explicação ausente`);
+        }
+      });
+
+      return parsed;
+    } catch (error) {
+      console.error('Erro ao parsear resposta do Gemini:', error);
+      console.error('Resposta recebida:', response);
+      throw error;
+    }
+  }
 }
