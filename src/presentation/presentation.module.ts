@@ -10,6 +10,7 @@ import { CommunitiesModule } from '../application/communities/communities.module
 import { FriendshipsModule } from '../application/friendships/friendships.module';
 import { MessagesModule } from '../application/messages/messages.module';
 import { WebSocketsModule } from '../infrastructure/websockets/websockets.module';
+import { QuizModule } from '../application/quiz/quiz.module';
 import { AppController } from './http/controllers/app.controller';
 import { AuthController } from './http/controllers/auth.controller';
 import { UserController } from './http/controllers/user.controller';
@@ -25,6 +26,7 @@ import { CommunitiesController } from './http/controllers/communities.controller
 import { FriendshipsController } from './http/controllers/friendships.controller';
 import { MessagesController } from './http/controllers/messages.controller';
 import { PushController } from './http/controllers/push.controller';
+import { QuizController } from './http/controllers/quiz.controller';
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { PushController } from './http/controllers/push.controller';
     FriendshipsModule,
     MessagesModule,
     WebSocketsModule,
+    QuizModule,
   ],
   controllers: [
     AppController,
@@ -56,6 +59,7 @@ import { PushController } from './http/controllers/push.controller';
     FriendshipsController,
     MessagesController,
     PushController,
+    QuizController,
   ],
 })
 export class PresentationModule {}

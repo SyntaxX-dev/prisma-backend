@@ -22,7 +22,7 @@ interface GenerateQuizInput {
   topic: string;
 }
 
-interface GenerateQuizOutput {
+export interface GenerateQuizOutput {
   sessionId: string;
   topic: string;
   questions: Array<{
