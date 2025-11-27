@@ -60,8 +60,30 @@ export class GenerateQuizUseCase {
         input.topic,
       );
 
-      // 3. Salvar questões no banco
-      const questionsToCreate = generatedQuestions.map((q, index) => ({
+      // 3. Embaralhar opções de cada questão e atualizar correctOption
+      const shuffledQuestions = generatedQuestions.map((q) => {
+        // Criar array com índices para embaralhar
+        const indices = [0, 1, 2, 3];
+        this.shuffleArray(indices);
+
+        // Embaralhar as opções
+        const shuffledOptions = indices.map((originalIndex) => q.options[originalIndex]);
+
+        // Encontrar a nova posição da resposta correta (1-4, não índice 0-3)
+        const originalCorrectIndex = q.correctOption - 1; // Converter para índice 0-3
+        const newCorrectIndex = indices.indexOf(originalCorrectIndex);
+        const newCorrectOption = newCorrectIndex + 1; // Converter de volta para 1-4
+
+        return {
+          question: q.question,
+          options: shuffledOptions,
+          correctOption: newCorrectOption,
+          explanation: q.explanation,
+        };
+      });
+
+      // 4. Salvar questões no banco
+      const questionsToCreate = shuffledQuestions.map((q, index) => ({
         sessionId: session.id,
         questionText: q.question,
         correctOption: q.correctOption,
@@ -72,7 +94,7 @@ export class GenerateQuizUseCase {
       const savedQuestions =
         await this.questionRepository.createMany(questionsToCreate);
 
-      // 4. Salvar opções no banco
+      // 5. Salvar opções no banco
       const allOptions: Array<{
         questionId: string;
         optionText: string;
@@ -80,7 +102,7 @@ export class GenerateQuizUseCase {
       }> = [];
 
       savedQuestions.forEach((question, qIndex) => {
-        generatedQuestions[qIndex].options.forEach((optionText, oIndex) => {
+        shuffledQuestions[qIndex].options.forEach((optionText, oIndex) => {
           allOptions.push({
             questionId: question.id,
             optionText,
@@ -91,7 +113,7 @@ export class GenerateQuizUseCase {
 
       const savedOptions = await this.optionRepository.createMany(allOptions);
 
-      // 5. Organizar resposta
+      // 6. Organizar resposta
       const questionsWithOptions = savedQuestions.map((question) => {
         const questionOptions = savedOptions.filter(
           (opt) => opt.questionId === question.id,
@@ -132,6 +154,17 @@ export class GenerateQuizUseCase {
       throw new BadRequestException(
         'Não foi possível gerar as questões. Tente novamente ou mude o tema.',
       );
+    }
+  }
+
+  /**
+   * Embaralha um array usando o algoritmo Fisher-Yates
+   * Garante que cada geração tenha as opções em ordem diferente
+   */
+  private shuffleArray<T>(array: T[]): void {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
     }
   }
 }

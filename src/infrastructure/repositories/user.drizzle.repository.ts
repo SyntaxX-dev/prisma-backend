@@ -268,13 +268,26 @@ export class UserDrizzleRepository implements UserRepository {
       throw new Error('Usuário não encontrado');
     }
 
-    const today = new Date();
+    // Calcular data atual e reset no horário de Brasília (UTC-3)
+    const now = new Date();
+    const brazilOffset = -3 * 60; // UTC-3 em minutos
+    const nowInBrazil = new Date(now.getTime() + (now.getTimezoneOffset() + brazilOffset) * 60000);
+
+    // Meia-noite de hoje no horário de Brasília
+    const today = new Date(nowInBrazil);
     today.setHours(0, 0, 0, 0);
 
-    // Calcular o horário de reset (meia-noite do próximo dia)
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const resetTime = tomorrow.toISOString();
+    // Meia-noite do próximo dia no horário de Brasília
+    const tomorrowBrazil = new Date(today);
+    tomorrowBrazil.setDate(tomorrowBrazil.getDate() + 1);
+
+    // Converter para UTC para armazenar
+    const tomorrowUTC = new Date(tomorrowBrazil.getTime() - (now.getTimezoneOffset() + brazilOffset) * 60000);
+    const resetTime = tomorrowUTC.toISOString();
+
+    // Para comparação, usar meia-noite de hoje em UTC
+    const todayUTC = new Date(today.getTime() - (now.getTimezoneOffset() + brazilOffset) * 60000);
+    todayUTC.setHours(0, 0, 0, 0);
 
     if (type === 'mindmap') {
       let generationsToday = row.mindMapGenerationsToday;
@@ -282,13 +295,13 @@ export class UserDrizzleRepository implements UserRepository {
         ? new Date(row.mindMapLastResetDate)
         : null;
 
-      if (!lastReset || lastReset < today) {
+      if (!lastReset || lastReset < todayUTC) {
         generationsToday = 0;
         await this.db
           .update(users)
           .set({
             mindMapGenerationsToday: 0,
-            mindMapLastResetDate: today,
+            mindMapLastResetDate: todayUTC,
           })
           .where(eq(users.id, userId));
       }
@@ -311,13 +324,13 @@ export class UserDrizzleRepository implements UserRepository {
         ? new Date(row.textLastResetDate)
         : null;
 
-      if (!lastReset || lastReset < today) {
+      if (!lastReset || lastReset < todayUTC) {
         generationsToday = 0;
         await this.db
           .update(users)
           .set({
             textGenerationsToday: 0,
-            textLastResetDate: today,
+            textLastResetDate: todayUTC,
           })
           .where(eq(users.id, userId));
       }
@@ -350,8 +363,18 @@ export class UserDrizzleRepository implements UserRepository {
     userId: string,
     type: GenerationType,
   ): Promise<void> {
-    const today = new Date();
+    // Calcular data atual e reset no horário de Brasília (UTC-3)
+    const now = new Date();
+    const brazilOffset = -3 * 60; // UTC-3 em minutos
+    const nowInBrazil = new Date(now.getTime() + (now.getTimezoneOffset() + brazilOffset) * 60000);
+
+    // Meia-noite de hoje no horário de Brasília
+    const today = new Date(nowInBrazil);
     today.setHours(0, 0, 0, 0);
+
+    // Converter para UTC para armazenar
+    const todayUTC = new Date(today.getTime() - (now.getTimezoneOffset() + brazilOffset) * 60000);
+    todayUTC.setHours(0, 0, 0, 0);
 
     if (type === 'mindmap') {
       const rows = await this.db
@@ -370,12 +393,12 @@ export class UserDrizzleRepository implements UserRepository {
 
       const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
 
-      if (!lastReset || lastReset < today) {
+      if (!lastReset || lastReset < todayUTC) {
         await this.db
           .update(users)
           .set({
             mindMapGenerationsToday: 1,
-            mindMapLastResetDate: today,
+            mindMapLastResetDate: todayUTC,
           })
           .where(eq(users.id, userId));
       } else {
@@ -403,12 +426,12 @@ export class UserDrizzleRepository implements UserRepository {
 
       const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
 
-      if (!lastReset || lastReset < today) {
+      if (!lastReset || lastReset < todayUTC) {
         await this.db
           .update(users)
           .set({
             textGenerationsToday: 1,
-            textLastResetDate: today,
+            textLastResetDate: todayUTC,
           })
           .where(eq(users.id, userId));
       } else {
