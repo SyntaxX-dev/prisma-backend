@@ -5,9 +5,11 @@ import { CreateCourseUseCase } from './use-cases/create-course.use-case';
 import { CreateSubCourseUseCase } from './use-cases/create-sub-course.use-case';
 import { CreateVideosUseCase } from './use-cases/create-videos.use-case';
 import { ListCoursesUseCase } from './use-cases/list-courses.use-case';
+import { ListProducerCoursesUseCase } from './use-cases/list-producer-courses.use-case';
 import { ListSubCoursesUseCase } from './use-cases/list-sub-courses.use-case';
 import { ListVideosUseCase } from './use-cases/list-videos.use-case';
 import { UpdateCourseSubscriptionUseCase } from './use-cases/update-course-subscription.use-case';
+import { UpdateCourseProducerStatusUseCase } from './use-cases/update-course-producer-status.use-case';
 import { CreateModuleUseCase } from './use-cases/create-module.use-case';
 import { ListModulesUseCase } from './use-cases/list-modules.use-case';
 import { UpdateModuleUseCase } from './use-cases/update-module.use-case';
@@ -62,6 +64,12 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
       inject: [COURSE_REPOSITORY],
     },
     {
+      provide: ListProducerCoursesUseCase,
+      useFactory: (courseRepository) =>
+        new ListProducerCoursesUseCase(courseRepository),
+      inject: [COURSE_REPOSITORY],
+    },
+    {
       provide: ListSubCoursesUseCase,
       useFactory: (courseRepository, subCourseRepository) =>
         new ListSubCoursesUseCase(courseRepository, subCourseRepository),
@@ -92,6 +100,12 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
       provide: UpdateCourseSubscriptionUseCase,
       useFactory: (courseRepository) =>
         new UpdateCourseSubscriptionUseCase(courseRepository),
+      inject: [COURSE_REPOSITORY],
+    },
+    {
+      provide: UpdateCourseProducerStatusUseCase,
+      useFactory: (courseRepository) =>
+        new UpdateCourseProducerStatusUseCase(courseRepository),
       inject: [COURSE_REPOSITORY],
     },
     {
@@ -242,9 +256,11 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     CreateSubCourseUseCase,
     CreateVideosUseCase,
     ListCoursesUseCase,
+    ListProducerCoursesUseCase,
     ListSubCoursesUseCase,
     ListVideosUseCase,
     UpdateCourseSubscriptionUseCase,
+    UpdateCourseProducerStatusUseCase,
     CreateModuleUseCase,
     ListModulesUseCase,
     UpdateModuleUseCase,

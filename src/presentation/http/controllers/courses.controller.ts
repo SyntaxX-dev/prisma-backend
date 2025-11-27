@@ -23,16 +23,19 @@ import { ListCoursesUseCase } from '../../../application/courses/use-cases/list-
 import { ListSubCoursesUseCase } from '../../../application/courses/use-cases/list-sub-courses.use-case';
 import { ListVideosUseCase } from '../../../application/courses/use-cases/list-videos.use-case';
 import { UpdateCourseSubscriptionUseCase } from '../../../application/courses/use-cases/update-course-subscription.use-case';
+import { UpdateCourseProducerStatusUseCase } from '../../../application/courses/use-cases/update-course-producer-status.use-case';
 import { ProcessYouTubePlaylistUseCase } from '../../../application/courses/use-cases/process-youtube-playlist.use-case';
 import { BulkProcessPlaylistsUseCase } from '../../../application/courses/use-cases/bulk-process-playlists.use-case';
 import { GenerateMindMapUseCase } from '../../../application/courses/use-cases/generate-mind-map.use-case';
 import { GetMindMapByVideoUseCase } from '../../../application/courses/use-cases/get-mind-map-by-video.use-case';
 import { ListUserMindMapsUseCase } from '../../../application/courses/use-cases/list-user-mind-maps.use-case';
 import { UpdateAllVideoDurationsUseCase } from '../../../application/courses/use-cases/update-all-video-durations.use-case';
+import { ListProducerCoursesUseCase } from '../../../application/courses/use-cases/list-producer-courses.use-case';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
 import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
+import { UpdateCourseProducerDto } from '../dtos/update-course-producer.dto';
 import { ProcessYouTubePlaylistDto } from '../dtos/process-youtube-playlist.dto';
 import { BulkProcessPlaylistsDto } from '../dtos/bulk-process-playlists.dto';
 import {
@@ -60,6 +63,7 @@ export class CoursesController {
     private readonly listSubCoursesUseCase: ListSubCoursesUseCase,
     private readonly listVideosUseCase: ListVideosUseCase,
     private readonly updateCourseSubscriptionUseCase: UpdateCourseSubscriptionUseCase,
+    private readonly updateCourseProducerStatusUseCase: UpdateCourseProducerStatusUseCase,
     private readonly processYouTubePlaylistUseCase: ProcessYouTubePlaylistUseCase,
     private readonly bulkProcessPlaylistsUseCase: BulkProcessPlaylistsUseCase,
     private readonly generateMindMapUseCase: GenerateMindMapUseCase,
@@ -67,6 +71,7 @@ export class CoursesController {
     private readonly listUserMindMapsUseCase: ListUserMindMapsUseCase,
     private readonly updateAllVideoDurationsUseCase: UpdateAllVideoDurationsUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    private readonly listProducerCoursesUseCase: ListProducerCoursesUseCase,
   ) {}
 
   @Post()
@@ -94,6 +99,7 @@ export class CoursesController {
               example: 'https://exemplo.com/prf-logo.png',
             },
             isPaid: { type: 'boolean', example: false },
+            isProducerCourse: { type: 'boolean', example: false },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -158,6 +164,7 @@ export class CoursesController {
                 example: 'https://exemplo.com/prf-logo.png',
               },
               isPaid: { type: 'boolean', example: false },
+              isProducerCourse: { type: 'boolean', example: false },
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
             },
@@ -169,6 +176,58 @@ export class CoursesController {
   async listCourses() {
     try {
       const result = await this.listCoursesUseCase.execute();
+      return {
+        success: true,
+        data: result.courses,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('producers')
+  @ApiOperation({ summary: 'Listar cursos de produtores' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de cursos de produtores retornada com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'uuid-do-curso' },
+              name: { type: 'string', example: 'Curso do Produtor X' },
+              description: {
+                type: 'string',
+                example: 'Treinamento exclusivo do produtor X',
+              },
+              imageUrl: {
+                type: 'string',
+                example: 'https://exemplo.com/produtor.png',
+              },
+              isPaid: { type: 'boolean', example: true },
+              isProducerCourse: { type: 'boolean', example: true },
+              createdAt: { type: 'string', format: 'date-time' },
+              updatedAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async listProducerCourses() {
+    try {
+      const result = await this.listProducerCoursesUseCase.execute();
       return {
         success: true,
         data: result.courses,
@@ -486,6 +545,7 @@ export class CoursesController {
               example: 'https://exemplo.com/prf-logo.png',
             },
             isPaid: { type: 'boolean', example: true },
+              isProducerCourse: { type: 'boolean', example: false },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -516,6 +576,71 @@ export class CoursesController {
         courseId,
         isPaid: updateCourseSubscriptionDto.isPaid,
       });
+      return {
+        success: true,
+        data: result.course,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post(':courseId/producer-status')
+  @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'Marcar ou desmarcar curso como curso de produtor (Apenas Admin)',
+  })
+  @ApiParam({
+    name: 'courseId',
+    description: 'ID do curso',
+    example: 'uuid-do-curso',
+  })
+  @ApiBody({ type: UpdateCourseProducerDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Status de produtor atualizado com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-do-curso' },
+            name: { type: 'string', example: 'Curso do Produtor' },
+            description: {
+              type: 'string',
+              example: 'Conteúdo avançado exclusivo',
+            },
+            imageUrl: {
+              type: 'string',
+              example: 'https://exemplo.com/produtor.png',
+            },
+            isPaid: { type: 'boolean', example: true },
+            isProducerCourse: { type: 'boolean', example: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  })
+  async updateCourseProducerStatus(
+    @Param('courseId') courseId: string,
+    @Body() updateCourseProducerDto: UpdateCourseProducerDto,
+  ) {
+    try {
+      const result =
+        await this.updateCourseProducerStatusUseCase.execute({
+          courseId,
+          isProducerCourse: updateCourseProducerDto.isProducerCourse,
+        });
       return {
         success: true,
         data: result.course,
