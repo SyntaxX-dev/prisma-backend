@@ -271,6 +271,11 @@ export class UserDrizzleRepository implements UserRepository {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Calcular o horário de reset (meia-noite do próximo dia)
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const resetTime = tomorrow.toISOString();
+
     if (type === 'mindmap') {
       let generationsToday = row.mindMapGenerationsToday;
       const lastReset = row.mindMapLastResetDate
@@ -298,6 +303,7 @@ export class UserDrizzleRepository implements UserRepository {
         dailyLimit: row.mindMapDailyLimit,
         remainingGenerations,
         canGenerate: remainingGenerations > 0,
+        resetTime,
       };
     } else {
       let generationsToday = row.textGenerationsToday;
@@ -326,6 +332,7 @@ export class UserDrizzleRepository implements UserRepository {
         dailyLimit: row.textDailyLimit,
         remainingGenerations,
         canGenerate: remainingGenerations > 0,
+        resetTime,
       };
     }
   }

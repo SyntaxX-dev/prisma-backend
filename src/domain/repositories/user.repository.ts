@@ -7,6 +7,7 @@ export interface GenerationLimitInfo {
   dailyLimit: number;
   remainingGenerations: number;
   canGenerate: boolean;
+  resetTime?: string; // ISO string do horário de reset (meia-noite do próximo dia)
 }
 
 export interface AllLimitsInfo {
