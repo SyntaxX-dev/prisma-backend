@@ -6,7 +6,9 @@
       "Bash(test:*)",
       "Bash(psql:*)",
       "Bash(git add:*)",
-      "Bash(bun run build:*)"
+      "Bash(bun run build:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
