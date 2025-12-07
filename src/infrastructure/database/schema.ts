@@ -1001,3 +1001,151 @@ export const quizAnswers = pgTable(
     ),
   }),
 );
+
+// ============================================
+// ASSINATURAS E PAGAMENTOS
+// ============================================
+
+export const subscriptionPlanEnum = pgEnum('subscription_plan', [
+  'START',
+  'PRO',
+  'ULTRA',
+]);
+
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'PENDING', // Aguardando primeiro pagamento
+  'ACTIVE', // Ativa e em dia
+  'OVERDUE', // Em atraso
+  'CANCELLED', // Cancelada pelo usuário
+  'EXPIRED', // Expirada
+]);
+
+export const paymentMethodEnum = pgEnum('payment_method', [
+  'PIX',
+  'CREDIT_CARD',
+  'BOLETO',
+]);
+
+/**
+ * Tabela subscriptions - Armazena assinaturas dos usuários
+ *
+ * Esta tabela armazena informações sobre as assinaturas dos usuários,
+ * incluindo o plano, status, datas e referências ao Asaas.
+ */
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    asaasCustomerId: text('asaas_customer_id').notNull(), // ID do cliente no Asaas
+    asaasSubscriptionId: text('asaas_subscription_id'), // ID da assinatura no Asaas
+    plan: subscriptionPlanEnum('plan').notNull(),
+    status: subscriptionStatusEnum('status').notNull().default('PENDING'),
+    paymentMethod: paymentMethodEnum('payment_method'),
+    // Preço atual da assinatura
+    currentPrice: integer('current_price').notNull(), // Em centavos
+    // Plano para o qual o usuário quer mudar (upgrade/downgrade)
+    pendingPlanChange: subscriptionPlanEnum('pending_plan_change'),
+    // Datas importantes
+    startDate: timestamp('start_date', { withTimezone: false }),
+    currentPeriodStart: timestamp('current_period_start', {
+      withTimezone: false,
+    }),
+    currentPeriodEnd: timestamp('current_period_end', { withTimezone: false }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: false }),
+    // Email do comprador (antes de criar conta)
+    customerEmail: text('customer_email').notNull(),
+    customerName: text('customer_name').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index('subscriptions_user_id_idx').on(table.userId),
+    asaasCustomerIdIdx: index('subscriptions_asaas_customer_id_idx').on(
+      table.asaasCustomerId,
+    ),
+    asaasSubscriptionIdIdx: index('subscriptions_asaas_subscription_id_idx').on(
+      table.asaasSubscriptionId,
+    ),
+    statusIdx: index('subscriptions_status_idx').on(table.status),
+    customerEmailIdx: index('subscriptions_customer_email_idx').on(
+      table.customerEmail,
+    ),
+    createdAtIdx: index('subscriptions_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
+ * Tabela registration_tokens - Tokens para registro após pagamento
+ *
+ * Quando o usuário paga, recebe um email com link contendo um token.
+ * Este token é usado para permitir o cadastro na plataforma.
+ */
+export const registrationTokens = pgTable(
+  'registration_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subscriptionId: uuid('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: 'cascade' }),
+    token: text('token').notNull(), // Token único para o link de registro
+    email: text('email').notNull(), // Email do usuário
+    isUsed: text('is_used').notNull().default('false'),
+    usedAt: timestamp('used_at', { withTimezone: false }),
+    expiresAt: timestamp('expires_at', { withTimezone: false }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tokenIdx: uniqueIndex('registration_tokens_token_unique').on(table.token),
+    subscriptionIdIdx: index('registration_tokens_subscription_id_idx').on(
+      table.subscriptionId,
+    ),
+    emailIdx: index('registration_tokens_email_idx').on(table.email),
+    expiresAtIdx: index('registration_tokens_expires_at_idx').on(
+      table.expiresAt,
+    ),
+  }),
+);
+
+/**
+ * Tabela payment_history - Histórico de pagamentos
+ *
+ * Armazena o histórico de todos os pagamentos recebidos via webhook do Asaas.
+ */
+export const paymentHistory = pgTable(
+  'payment_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subscriptionId: uuid('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: 'cascade' }),
+    asaasPaymentId: text('asaas_payment_id').notNull(), // ID do pagamento no Asaas
+    amount: integer('amount').notNull(), // Em centavos
+    netAmount: integer('net_amount'), // Valor líquido em centavos
+    paymentMethod: paymentMethodEnum('payment_method'),
+    status: text('status').notNull(), // Status do pagamento no Asaas
+    paidAt: timestamp('paid_at', { withTimezone: false }),
+    dueDate: timestamp('due_date', { withTimezone: false }),
+    invoiceUrl: text('invoice_url'),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    subscriptionIdIdx: index('payment_history_subscription_id_idx').on(
+      table.subscriptionId,
+    ),
+    asaasPaymentIdIdx: uniqueIndex('payment_history_asaas_payment_id_unique').on(
+      table.asaasPaymentId,
+    ),
+    statusIdx: index('payment_history_status_idx').on(table.status),
+    paidAtIdx: index('payment_history_paid_at_idx').on(table.paidAt),
+    createdAtIdx: index('payment_history_created_at_idx').on(table.createdAt),
+  }),
+);

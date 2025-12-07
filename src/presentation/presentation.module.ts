@@ -11,6 +11,7 @@ import { FriendshipsModule } from '../application/friendships/friendships.module
 import { MessagesModule } from '../application/messages/messages.module';
 import { WebSocketsModule } from '../infrastructure/websockets/websockets.module';
 import { QuizModule } from '../application/quiz/quiz.module';
+import { SubscriptionsModule } from '../application/subscriptions/subscriptions.module';
 import { AppController } from './http/controllers/app.controller';
 import { AuthController } from './http/controllers/auth.controller';
 import { UserController } from './http/controllers/user.controller';
@@ -27,6 +28,9 @@ import { FriendshipsController } from './http/controllers/friendships.controller
 import { MessagesController } from './http/controllers/messages.controller';
 import { PushController } from './http/controllers/push.controller';
 import { QuizController } from './http/controllers/quiz.controller';
+import { SubscriptionsController } from './http/controllers/subscriptions.controller';
+import { InvoicesController } from './http/controllers/invoices.controller';
+import { AuthRegistrationController } from './http/controllers/auth-registration.controller';
 
 @Module({
   imports: [
@@ -42,6 +46,7 @@ import { QuizController } from './http/controllers/quiz.controller';
     MessagesModule,
     WebSocketsModule,
     QuizModule,
+    SubscriptionsModule,
   ],
   controllers: [
     AppController,
@@ -60,6 +65,9 @@ import { QuizController } from './http/controllers/quiz.controller';
     MessagesController,
     PushController,
     QuizController,
+    SubscriptionsController,
+    InvoicesController,
+    AuthRegistrationController,
   ],
 })
 export class PresentationModule {}

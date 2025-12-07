@@ -5,6 +5,10 @@ import {
   WelcomeEmailTemplate,
   type WelcomeEmailData,
 } from '../templates/welcome-email.template';
+import {
+  RegistrationEmailTemplate,
+  type RegistrationEmailData,
+} from '../templates/registration-email.template';
 
 @Injectable()
 export class ResendMailerService implements MailerServicePort {
@@ -76,6 +80,39 @@ export class ResendMailerService implements MailerServicePort {
       subject,
       html,
       text: text || '',
+    });
+  }
+
+  async sendRegistrationEmail(
+    toEmail: string,
+    toName: string,
+    registrationLink: string,
+    planName: string,
+  ): Promise<void> {
+    if (!this.resend) {
+      console.log(
+        `[Email][Resend] Registro ${toName} <${toEmail}> - Link: ${registrationLink} (simulado)`,
+      );
+      return;
+    }
+
+    const emailData: RegistrationEmailData = {
+      toName,
+      toEmail,
+      fromName: this.fromName,
+      fromEmail: this.fromEmail,
+      registrationLink,
+      planName,
+    };
+
+    const { html, text, subject } = RegistrationEmailTemplate.generate(emailData);
+
+    await this.resend.emails.send({
+      from: `${this.fromName} <${this.fromEmail}>`,
+      to: [toEmail],
+      subject,
+      html,
+      text,
     });
   }
 }

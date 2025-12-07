@@ -6,4 +6,10 @@ export interface MailerServicePort {
     html: string,
     text?: string,
   ): Promise<void>;
+  sendRegistrationEmail(
+    toEmail: string,
+    toName: string,
+    registrationLink: string,
+    planName: string,
+  ): Promise<void>;
 }

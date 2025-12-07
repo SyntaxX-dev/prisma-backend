@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
   Res,
+  BadRequestException,
 } from '@nestjs/common';
 import { RegisterUserUseCase } from '../../../application/use-cases/register-user.use-case';
 import {
@@ -84,46 +85,19 @@ export class AuthController {
     private readonly chatGateway?: ChatGateway,
   ) {}
 
+  /**
+   * @deprecated Este endpoint foi desabilitado.
+   * Use POST /auth/register com token de pagamento.
+   * 
+   * O registro agora só é permitido após pagamento confirmado.
+   * O usuário recebe um token por email após o pagamento.
+   */
   @Post('register')
-  @ApiBody({
-    schema: {
-      example: {
-        name: 'João Silva',
-        email: 'joao@exemplo.com',
-        password: 'minhasenha',
-        confirmPassword: 'minhasenha',
-        age: 18,
-        educationLevel: 'GRADUACAO',
-      },
-    },
-  })
-  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ status: 410, description: 'Endpoint desabilitado' })
   async register(@Body() body: RegisterUserDto) {
-    const incomingLevel = body.educationLevel as unknown as string;
-    const levelEn =
-      educationLevelMapPtToEn[incomingLevel] ??
-      (EducationLevel[incomingLevel as keyof typeof EducationLevel] as
-        | EducationLevel
-        | undefined);
-
-    const result = await this.registerUser.execute({
-      name: body.name,
-      email: body.email,
-      password: body.password,
-      confirmPassword: body.confirmPassword,
-      age: body.age,
-      educationLevel: levelEn ?? EducationLevel.UNDERGRADUATE,
-    });
-
-    return {
-      id: result.id,
-      nome: result.name,
-      email: result.email,
-      perfil: result.role ? roleMapEnToPt[result.role] : 'Não definido',
-      nivelEducacional: result.educationLevel
-        ? educationLevelMapEnToPt[result.educationLevel]
-        : 'Não definido',
-    };
+    throw new BadRequestException(
+      'Registro direto não é mais permitido. Você precisa realizar um pagamento primeiro. Após o pagamento, você receberá um email com um link para completar seu cadastro.',
+    );
   }
 
   @Post('login')
