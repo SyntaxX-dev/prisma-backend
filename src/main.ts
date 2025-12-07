@@ -51,15 +51,17 @@ async function bootstrap() {
     console.log(`🌐 Tentando iniciar na porta: ${port}`);
 
     await app.listen(port, '0.0.0.0');
-    console.log(`✅ Aplicação rodando em http://0.0.0.0:${port}`);
+    console.log(`✅ Servidor HTTP iniciado em http://0.0.0.0:${port}`);
     console.log(`📚 Swagger disponível em http://0.0.0.0:${port}/docs`);
     console.log(`❤️  Healthcheck disponível em http://0.0.0.0:${port}/`);
+    console.log(`✅ Aplicação pronta para receber requisições`);
 
     setTimeout(() => {
       console.log('✅ Aplicação ainda está rodando após 10 segundos');
     }, 10000);
   } catch (error) {
     console.error('❌ Erro fatal ao iniciar aplicação:', error);
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
     process.exit(1);
   }
 }
