@@ -24,6 +24,7 @@ import {
   ConfigureFiscalInfoUseCase,
   ConfigureAutoInvoiceUseCase,
 } from '../../../application/subscriptions/use-cases';
+import { GetInvoiceHistoryUseCase } from '../../../application/invoices/use-cases';
 import { AsaasInvoiceService } from '../../../infrastructure/asaas/services/asaas-invoice.service';
 
 // DTOs
@@ -94,8 +95,9 @@ export class InvoicesController {
   constructor(
     private readonly configureFiscalInfoUseCase: ConfigureFiscalInfoUseCase,
     private readonly configureAutoInvoiceUseCase: ConfigureAutoInvoiceUseCase,
+    private readonly getInvoiceHistoryUseCase: GetInvoiceHistoryUseCase,
     private readonly asaasInvoiceService: AsaasInvoiceService,
-  ) {}
+  ) { }
 
   // ==========================================
   // CONFIGURAÇÕES MUNICIPAIS (Admin)
@@ -110,7 +112,7 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Busca requisitos da prefeitura para NFS-e' })
   @ApiResponse({ status: 200, description: 'Configurações municipais' })
   async getMunicipalSettings() {
-    const settings = await this.configureFiscalInfoUseCase.getMunicipalSettings();
+    const settings = await this.asaasInvoiceService.getMunicipalSettings();
 
     return {
       success: true,
@@ -127,7 +129,7 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Lista serviços municipais para NFS-e' })
   @ApiResponse({ status: 200, description: 'Lista de serviços' })
   async listMunicipalServices(@Query('description') description?: string) {
-    const services = await this.configureFiscalInfoUseCase.listMunicipalServices(
+    const services = await this.asaasInvoiceService.listMunicipalServices(
       description,
     );
 
@@ -150,7 +152,7 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Busca informações fiscais configuradas' })
   @ApiResponse({ status: 200, description: 'Informações fiscais' })
   async getFiscalInfo() {
-    const fiscalInfo = await this.configureFiscalInfoUseCase.getCurrentFiscalInfo();
+    const fiscalInfo = await this.asaasInvoiceService.getFiscalInfo();
 
     return {
       success: true,
@@ -206,7 +208,18 @@ export class InvoicesController {
       );
     }
 
-    const result = await this.configureFiscalInfoUseCase.execute(body, testMode);
+    const result = await this.configureFiscalInfoUseCase.execute({
+      email,
+      municipalInscription,
+      simplesNacional: true,
+      rpsSerie,
+      rpsNumber,
+      specialTaxRegime: body.specialTaxRegime,
+      serviceListItem: body.serviceListItem,
+      cnae: body.cnae,
+      certificateFile: body.certificateFile,
+      certificatePassword: body.certificatePassword,
+    });
 
     return {
       success: true,
@@ -276,10 +289,13 @@ export class InvoicesController {
       );
     }
 
-    const result = await this.configureAutoInvoiceUseCase.execute(
-      body,
-      testMode,
-    );
+    const result = await this.configureAutoInvoiceUseCase.execute({
+      subscriptionId,
+      municipalServiceCode: body.municipalServiceCode,
+      municipalServiceName: body.municipalServiceName,
+      effectiveDatePeriod: effectiveDatePeriod as any,
+      observations: body.observations,
+    });
 
     return {
       success: true,
@@ -298,7 +314,7 @@ export class InvoicesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Busca configuração de NF de uma assinatura' })
   async getAutoInvoiceSettings(@Param('subscriptionId') subscriptionId: string) {
-    const settings = await this.configureAutoInvoiceUseCase.getSettings(
+    const settings = await this.asaasInvoiceService.getSubscriptionInvoiceSettings(
       subscriptionId,
     );
 
@@ -319,9 +335,9 @@ export class InvoicesController {
     @Param('subscriptionId') subscriptionId: string,
     @Body() body: Partial<ConfigureAutoInvoiceDto>,
   ) {
-    const settings = await this.configureAutoInvoiceUseCase.updateSettings(
+    const settings = await this.asaasInvoiceService.updateSubscriptionInvoiceSettings(
       subscriptionId,
-      body,
+      body as any,
     );
 
     return {
@@ -340,7 +356,7 @@ export class InvoicesController {
   async removeAutoInvoiceSettings(
     @Param('subscriptionId') subscriptionId: string,
   ) {
-    const result = await this.configureAutoInvoiceUseCase.removeSettings(
+    const result = await this.asaasInvoiceService.deleteSubscriptionInvoiceSettings(
       subscriptionId,
     );
 
@@ -360,7 +376,7 @@ export class InvoicesController {
   async listSubscriptionInvoices(
     @Param('subscriptionId') subscriptionId: string,
   ) {
-    const invoices = await this.configureAutoInvoiceUseCase.listInvoices(
+    const invoices = await this.asaasInvoiceService.listSubscriptionInvoices(
       subscriptionId,
     );
 
@@ -375,27 +391,29 @@ export class InvoicesController {
   // ==========================================
 
   /**
-   * Lista todas as notas fiscais
+   * Lista histórico de notas fiscais do banco de dados local
    */
   @Get()
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Lista todas as notas fiscais' })
+  @ApiOperation({ summary: 'Lista histórico de notas fiscais' })
+  @ApiResponse({ status: 200, description: 'Lista de notas fiscais do banco local' })
   async listInvoices(
-    @Query('status') status?: string,
-    @Query('customer') customer?: string,
+    @Query('subscriptionId') subscriptionId?: string,
     @Query('offset') offset?: number,
     @Query('limit') limit?: number,
   ) {
-    const invoices = await this.asaasInvoiceService.list(
-      { status, customer },
-      offset || 0,
-      limit || 10,
-    );
+    const result = await this.getInvoiceHistoryUseCase.execute({
+      subscriptionId,
+      offset: offset || 0,
+      limit: limit || 10,
+    });
 
     return {
       success: true,
-      data: invoices,
+      data: result.invoices,
+      total: result.total,
+      hasMore: result.hasMore,
     };
   }
 
