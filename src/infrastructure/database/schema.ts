@@ -1149,3 +1149,138 @@ export const paymentHistory = pgTable(
     createdAtIdx: index('payment_history_created_at_idx').on(table.createdAt),
   }),
 );
+
+// ============================================
+// NOTAS FISCAIS (NFS-e)
+// ============================================
+
+export const invoiceStatusEnum = pgEnum('invoice_status', [
+  'SCHEDULED', // Agendada
+  'AUTHORIZED', // Autorizada/Emitida
+  'PROCESSING_CANCELLATION', // Processando cancelamento
+  'CANCELLED', // Cancelada
+  'CANCELLATION_DENIED', // Cancelamento negado
+  'ERROR', // Erro
+]);
+
+export const effectiveDatePeriodEnum = pgEnum('effective_date_period', [
+  'ON_PAYMENT_CONFIRMATION', // Emitir na confirmação do pagamento
+  'ON_PAYMENT_DUE_DATE', // Emitir na data de vencimento
+  'BEFORE_PAYMENT_DUE_DATE', // Emitir antes do vencimento
+  'ON_NEXT_MONTH', // Emitir no próximo mês
+]);
+
+/**
+ * Tabela fiscal_info - Configurações fiscais da empresa
+ *
+ * Armazena as informações fiscais necessárias para emissão de NFS-e,
+ * como inscrição municipal, regime tributário, série RPS, etc.
+ */
+export const fiscalInfo = pgTable('fiscal_info', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull(), // Email para envio de NF
+  municipalInscription: text('municipal_inscription').notNull(), // Inscrição municipal
+  simplesNacional: text('simples_nacional').notNull().default('true'), // 'true' ou 'false'
+  rpsSerie: text('rps_serie').notNull(), // Série do RPS
+  rpsNumber: integer('rps_number').notNull(), // Número inicial do RPS
+  specialTaxRegime: text('special_tax_regime'), // Regime especial de tributação
+  serviceListItem: text('service_list_item'), // Item da lista de serviços
+  cnae: text('cnae'), // Código CNAE
+  createdAt: timestamp('created_at', { withTimezone: false })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: false })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Tabela invoice_history - Histórico de notas fiscais emitidas
+ *
+ * Armazena o histórico de todas as notas fiscais emitidas via Asaas,
+ * incluindo status, URLs de PDF/XML, e informações de validação.
+ */
+export const invoiceHistory = pgTable(
+  'invoice_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    asaasInvoiceId: text('asaas_invoice_id').notNull(), // ID da NF no Asaas
+    subscriptionId: uuid('subscription_id').references(() => subscriptions.id, {
+      onDelete: 'cascade',
+    }),
+    paymentId: text('payment_id'), // ID do pagamento no Asaas (não FK pois vem do webhook)
+    status: invoiceStatusEnum('status').notNull().default('SCHEDULED'),
+    customerName: text('customer_name').notNull(),
+    value: integer('value').notNull(), // Em centavos
+    serviceDescription: text('service_description').notNull(),
+    effectiveDate: timestamp('effective_date', { withTimezone: false }).notNull(), // Data de emissão
+    pdfUrl: text('pdf_url'),
+    xmlUrl: text('xml_url'),
+    number: text('number'), // Número da NF
+    validationCode: text('validation_code'), // Código de validação
+    errorMessage: text('error_message'), // Mensagem de erro (se status = ERROR)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    asaasInvoiceIdIdx: uniqueIndex('invoice_history_asaas_invoice_id_unique').on(
+      table.asaasInvoiceId,
+    ),
+    subscriptionIdIdx: index('invoice_history_subscription_id_idx').on(
+      table.subscriptionId,
+    ),
+    paymentIdIdx: index('invoice_history_payment_id_idx').on(table.paymentId),
+    statusIdx: index('invoice_history_status_idx').on(table.status),
+    effectiveDateIdx: index('invoice_history_effective_date_idx').on(
+      table.effectiveDate,
+    ),
+    createdAtIdx: index('invoice_history_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
+ * Tabela auto_invoice_config - Configuração de emissão automática de NF
+ *
+ * Armazena as configurações de emissão automática de notas fiscais
+ * para assinaturas. Quando configurado, as NFs são emitidas automaticamente
+ * quando os pagamentos são confirmados.
+ */
+export const autoInvoiceConfig = pgTable(
+  'auto_invoice_config',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subscriptionId: uuid('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: 'cascade' }),
+    asaasConfigId: text('asaas_config_id').notNull(), // ID da config no Asaas
+    municipalServiceCode: text('municipal_service_code'),
+    municipalServiceName: text('municipal_service_name'),
+    effectiveDatePeriod: effectiveDatePeriodEnum('effective_date_period')
+      .notNull()
+      .default('ON_PAYMENT_CONFIRMATION'),
+    observations: text('observations'),
+    isActive: text('is_active').notNull().default('true'), // 'true' ou 'false'
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    subscriptionIdIdx: uniqueIndex(
+      'auto_invoice_config_subscription_id_unique',
+    ).on(table.subscriptionId),
+    asaasConfigIdIdx: index('auto_invoice_config_asaas_config_id_idx').on(
+      table.asaasConfigId,
+    ),
+    isActiveIdx: index('auto_invoice_config_is_active_idx').on(table.isActive),
+    createdAtIdx: index('auto_invoice_config_created_at_idx').on(
+      table.createdAt,
+    ),
+  }),
+);

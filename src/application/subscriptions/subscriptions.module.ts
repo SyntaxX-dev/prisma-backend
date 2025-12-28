@@ -15,12 +15,19 @@ import {
   ConfigureFiscalInfoUseCase,
   ConfigureAutoInvoiceUseCase,
 } from './use-cases';
+import { GetInvoiceHistoryUseCase } from '../invoices/use-cases';
 import {
   SUBSCRIPTION_REPOSITORY,
   REGISTRATION_TOKEN_REPOSITORY,
+  FISCAL_INFO_REPOSITORY,
+  INVOICE_REPOSITORY,
+  AUTO_INVOICE_CONFIG_REPOSITORY,
 } from '../../domain/tokens';
 import { SubscriptionRepositoryImpl } from '../../infrastructure/repositories/subscription.repository.impl';
 import { RegistrationTokenRepositoryImpl } from '../../infrastructure/repositories/registration-token.repository.impl';
+import { FiscalInfoRepositoryImpl } from '../../infrastructure/repositories/fiscal-info.repository.impl';
+import { InvoiceRepositoryImpl } from '../../infrastructure/repositories/invoice.repository.impl';
+import { AutoInvoiceConfigRepositoryImpl } from '../../infrastructure/repositories/auto-invoice-config.repository.impl';
 
 /**
  * Módulo de assinaturas
@@ -47,6 +54,7 @@ import { RegistrationTokenRepositoryImpl } from '../../infrastructure/repositori
     RegisterWithTokenUseCase,
     ConfigureFiscalInfoUseCase,
     ConfigureAutoInvoiceUseCase,
+    GetInvoiceHistoryUseCase,
     // Repositories
     {
       provide: SUBSCRIPTION_REPOSITORY,
@@ -55,6 +63,18 @@ import { RegistrationTokenRepositoryImpl } from '../../infrastructure/repositori
     {
       provide: REGISTRATION_TOKEN_REPOSITORY,
       useClass: RegistrationTokenRepositoryImpl,
+    },
+    {
+      provide: FISCAL_INFO_REPOSITORY,
+      useClass: FiscalInfoRepositoryImpl,
+    },
+    {
+      provide: INVOICE_REPOSITORY,
+      useClass: InvoiceRepositoryImpl,
+    },
+    {
+      provide: AUTO_INVOICE_CONFIG_REPOSITORY,
+      useClass: AutoInvoiceConfigRepositoryImpl,
     },
   ],
   exports: [
@@ -69,9 +89,13 @@ import { RegistrationTokenRepositoryImpl } from '../../infrastructure/repositori
     RegisterWithTokenUseCase,
     ConfigureFiscalInfoUseCase,
     ConfigureAutoInvoiceUseCase,
+    GetInvoiceHistoryUseCase,
     SUBSCRIPTION_REPOSITORY,
     REGISTRATION_TOKEN_REPOSITORY,
+    FISCAL_INFO_REPOSITORY,
+    INVOICE_REPOSITORY,
+    AUTO_INVOICE_CONFIG_REPOSITORY,
   ],
 })
-export class SubscriptionsModule {}
+export class SubscriptionsModule { }
 

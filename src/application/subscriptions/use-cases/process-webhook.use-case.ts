@@ -4,10 +4,12 @@ import {
   SUBSCRIPTION_REPOSITORY,
   REGISTRATION_TOKEN_REPOSITORY,
   MAILER_SERVICE,
+  INVOICE_REPOSITORY,
 } from '../../../domain/tokens';
 import type { SubscriptionRepository } from '../../../domain/repositories/subscription.repository';
 import type { RegistrationTokenRepository } from '../../../domain/repositories/registration-token.repository';
 import type { MailerServicePort } from '../../../domain/services/mailer';
+import type { InvoiceRepository } from '../../../domain/repositories/invoice.repository';
 import { RegistrationToken } from '../../../domain/entities/registration-token';
 import { WebhookPayload, WebhookEvent } from '../../../infrastructure/asaas/types';
 import {
@@ -34,7 +36,9 @@ export class ProcessWebhookUseCase {
     private readonly registrationTokenRepository: RegistrationTokenRepository,
     @Inject(MAILER_SERVICE)
     private readonly mailerService: MailerServicePort,
-  ) {}
+    @Inject(INVOICE_REPOSITORY)
+    private readonly invoiceRepository: InvoiceRepository,
+  ) { }
 
   async execute(payload: WebhookPayload): Promise<void> {
     const { event } = payload;
@@ -288,71 +292,113 @@ export class ProcessWebhookUseCase {
   /**
    * Trata nota fiscal autorizada/emitida
    * 
-   * Quando uma nota fiscal é emitida com sucesso, podemos
-   * registrar isso no histórico ou enviar notificação ao usuário.
+   * Quando uma nota fiscal é emitida com sucesso, atualizamos
+   * o status no banco e salvamos os links de PDF/XML.
    */
   private async handleInvoiceAuthorized(
     payload: WebhookPayload,
   ): Promise<void> {
-    const invoice = payload.invoice;
-    if (!invoice) {
+    const invoiceData = payload.invoice;
+    if (!invoiceData) {
       return;
     }
 
     this.logger.log(
-      `Nota fiscal autorizada: ${invoice.id} - Número: ${invoice.number || 'N/A'}`,
+      `Nota fiscal autorizada: ${invoiceData.id} - Número: ${invoiceData.number || 'N/A'}`,
     );
 
-    // Aqui você pode:
-    // - Registrar no histórico de notas fiscais
-    // - Enviar email para o usuário com a nota
-    // - Atualizar status no banco de dados
-    // Por enquanto, apenas logamos
+    // Busca a nota no banco
+    const invoice = await this.invoiceRepository.findByAsaasInvoiceId(
+      invoiceData.id,
+    );
+
+    if (invoice) {
+      // Atualiza com os dados da autorização
+      invoice.markAsAuthorized({
+        pdfUrl: invoiceData.pdfUrl || '',
+        xmlUrl: invoiceData.xmlUrl || '',
+        number: invoiceData.number || '',
+        validationCode: invoiceData.validationCode || '',
+      });
+
+      await this.invoiceRepository.update(invoice);
+      this.logger.log(`Nota fiscal atualizada no banco: ${invoice.id}`);
+    } else {
+      this.logger.warn(
+        `Nota fiscal não encontrada no banco: ${invoiceData.id}`,
+      );
+    }
   }
 
   /**
    * Trata erro na emissão de nota fiscal
    * 
-   * Quando há erro na emissão, devemos notificar o admin
-   * para que possa corrigir o problema.
+   * Quando há erro na emissão, registramos o erro no banco
+   * para que o admin possa corrigir.
    */
   private async handleInvoiceError(payload: WebhookPayload): Promise<void> {
-    const invoice = payload.invoice;
-    if (!invoice) {
+    const invoiceData = payload.invoice;
+    if (!invoiceData) {
       return;
     }
 
     this.logger.error(
-      `Erro na emissão de nota fiscal: ${invoice.id} - Status: ${invoice.status}`,
+      `Erro na emissão de nota fiscal: ${invoiceData.id} - Status: ${invoiceData.status}`,
     );
 
-    // Aqui você pode:
-    // - Enviar alerta para o admin
-    // - Registrar o erro no banco
-    // - Tentar reenviar automaticamente
+    // Busca a nota no banco
+    const invoice = await this.invoiceRepository.findByAsaasInvoiceId(
+      invoiceData.id,
+    );
+
+    if (invoice) {
+      // Marca como erro
+      const errorMessage = `Erro ao emitir nota fiscal. Status: ${invoiceData.status}`;
+      invoice.markAsError(errorMessage);
+
+      await this.invoiceRepository.update(invoice);
+      this.logger.log(`Nota fiscal marcada com erro no banco: ${invoice.id}`);
+    } else {
+      this.logger.warn(
+        `Nota fiscal não encontrada no banco: ${invoiceData.id}`,
+      );
+    }
   }
 
   /**
    * Trata cancelamento de nota fiscal
    * 
-   * Quando uma nota fiscal é cancelada, devemos atualizar
+   * Quando uma nota fiscal é cancelada, atualizamos
    * o status no banco de dados.
    */
   private async handleInvoiceCanceled(
     payload: WebhookPayload,
   ): Promise<void> {
-    const invoice = payload.invoice;
-    if (!invoice) {
+    const invoiceData = payload.invoice;
+    if (!invoiceData) {
       return;
     }
 
     this.logger.log(
-      `Nota fiscal cancelada: ${invoice.id} - Número: ${invoice.number || 'N/A'}`,
+      `Nota fiscal cancelada: ${invoiceData.id} - Número: ${invoiceData.number || 'N/A'}`,
     );
 
-    // Aqui você pode:
-    // - Atualizar status da nota no banco
-    // - Registrar motivo do cancelamento
+    // Busca a nota no banco
+    const invoice = await this.invoiceRepository.findByAsaasInvoiceId(
+      invoiceData.id,
+    );
+
+    if (invoice) {
+      // Marca como cancelada
+      invoice.markAsCancelled();
+
+      await this.invoiceRepository.update(invoice);
+      this.logger.log(`Nota fiscal cancelada no banco: ${invoice.id}`);
+    } else {
+      this.logger.warn(
+        `Nota fiscal não encontrada no banco: ${invoiceData.id}`,
+      );
+    }
   }
 }
 
