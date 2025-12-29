@@ -27,7 +27,7 @@ import {
 import { GetInvoiceHistoryUseCase } from '../../../application/invoices/use-cases';
 import { AsaasInvoiceService } from '../../../infrastructure/asaas/services/asaas-invoice.service';
 
-// DTOs
+
 class ConfigureFiscalInfoDto {
   email: string;
   municipalInscription: string;
