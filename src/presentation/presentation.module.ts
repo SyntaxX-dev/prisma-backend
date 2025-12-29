@@ -4,6 +4,7 @@ import { InfrastructureModule } from '../infrastructure/config/infrastructure.mo
 import { EmailModule } from '../infrastructure/email/email.module';
 import { AuthModule } from '../infrastructure/auth/auth.module';
 import { YouTubeModule } from '../infrastructure/youtube/youtube.module';
+import { AsaasModule } from '../infrastructure/asaas/asaas.module';
 import { CoursesModule } from '../application/courses/courses.module';
 import { ProgressModule } from '../application/progress/progress.module';
 import { CommunitiesModule } from '../application/communities/communities.module';
@@ -39,6 +40,7 @@ import { AuthRegistrationController } from './http/controllers/auth-registration
     EmailModule,
     AuthModule,
     YouTubeModule,
+    AsaasModule,
     CoursesModule,
     ProgressModule,
     CommunitiesModule,
@@ -70,4 +72,4 @@ import { AuthRegistrationController } from './http/controllers/auth-registration
     AuthRegistrationController,
   ],
 })
-export class PresentationModule {}
+export class PresentationModule { }
