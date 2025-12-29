@@ -11,7 +11,7 @@ import type { FiscalInfoDto } from '../../../infrastructure/asaas/types/invoice.
 export interface ConfigureFiscalInfoInput {
     email: string;
     municipalInscription: string;
-    simplesNacional: boolean;
+    simplesNacional?: boolean; // Opcional, padrão true
     rpsSerie: string;
     rpsNumber: number;
     specialTaxRegime?: string;
@@ -51,7 +51,7 @@ export class ConfigureFiscalInfoUseCase {
         const asaasData: FiscalInfoDto = {
             email: input.email,
             municipalInscription: input.municipalInscription,
-            simplesNacional: input.simplesNacional,
+            simplesNacional: input.simplesNacional ?? true, // Padrão true
             rpsSerie: input.rpsSerie,
             rpsNumber: input.rpsNumber,
             specialTaxRegime: input.specialTaxRegime,
@@ -72,7 +72,7 @@ export class ConfigureFiscalInfoUseCase {
             fiscalInfoId,
             input.email,
             input.municipalInscription,
-            input.simplesNacional,
+            input.simplesNacional ?? true, // Padrão true
             input.rpsSerie,
             input.rpsNumber,
             input.specialTaxRegime || null,
