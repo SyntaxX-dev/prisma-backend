@@ -217,7 +217,6 @@ export class InvoicesController {
     const result = await this.configureFiscalInfoUseCase.execute({
       email,
       municipalInscription,
-      simplesNacional: true,
       rpsSerie,
       rpsNumber,
       specialTaxRegime: body.specialTaxRegime,
