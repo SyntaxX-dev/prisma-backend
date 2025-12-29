@@ -24,21 +24,27 @@ import {
   ConfigureFiscalInfoUseCase,
   ConfigureAutoInvoiceUseCase,
 } from '../../../application/subscriptions/use-cases';
-import { GetInvoiceHistoryUseCase } from '../../../application/invoices/use-cases';
+import {
+  GetInvoiceHistoryUseCase,
+  type ConfigureFiscalInfoInput,
+} from '../../../application/invoices/use-cases';
 import { AsaasInvoiceService } from '../../../infrastructure/asaas/services/asaas-invoice.service';
 
-
-class ConfigureFiscalInfoDto {
+// DTOs
+class ConfigureFiscalInfoDto implements ConfigureFiscalInfoInput {
   email: string;
   municipalInscription: string;
+  simplesNacional: boolean;
   rpsSerie: string;
   rpsNumber: number;
   specialTaxRegime?: string;
   serviceListItem?: string;
-  municipalServiceCode?: string;
   cnae?: string;
-  certificateFile?: string; // Base64 do .pfx
+  certificateFile?: string;
   certificatePassword?: string;
+  accessToken?: string;
+  username?: string;
+  password?: string;
 }
 
 class ConfigureAutoInvoiceDto {
