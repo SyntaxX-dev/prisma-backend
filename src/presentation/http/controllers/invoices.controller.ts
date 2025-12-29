@@ -16,6 +16,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiProperty,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
@@ -32,34 +33,96 @@ import { AsaasInvoiceService } from '../../../infrastructure/asaas/services/asaa
 
 // DTOs
 class ConfigureFiscalInfoDto implements ConfigureFiscalInfoInput {
+  @ApiProperty({ example: 'fiscal@prismaacademy.com.br', description: 'Email para notificações fiscais' })
   email: string;
+
+  @ApiProperty({ example: '123456', description: 'Número da inscrição municipal' })
   municipalInscription: string;
+
+  @ApiProperty({ example: true, description: 'Empresa optante pelo Simples Nacional', required: false })
   simplesNacional: boolean;
+
+  @ApiProperty({ example: '1', description: 'Série do RPS' })
   rpsSerie: string;
+
+  @ApiProperty({ example: 1, description: 'Número inicial do RPS' })
   rpsNumber: number;
+
+  @ApiProperty({ example: '5', description: 'Código do regime especial de tributação', required: false })
   specialTaxRegime?: string;
+
+  @ApiProperty({ example: '01.03', description: 'Código do item da lista de serviços', required: false })
   serviceListItem?: string;
+
+  @ApiProperty({ example: '8599-6/04', description: 'Código CNAE da atividade', required: false })
   cnae?: string;
+
+  @ApiProperty({
+    example: 'MIIKPAIBAzCCCfwGCSqGSIb3DQEHAaCCCe0EggnpMIIJ5TCCBP...',
+    description: 'Certificado digital .pfx em Base64',
+    required: false
+  })
   certificateFile?: string;
+
+  @ApiProperty({ example: 'senha123', description: 'Senha do certificado digital', required: false })
   certificatePassword?: string;
+
+  @ApiProperty({ example: 'token_acesso_asaas', description: 'Token de acesso (alternativa ao certificado)', required: false })
   accessToken?: string;
+
+  @ApiProperty({ example: 'usuario', description: 'Usuário (alternativa ao certificado)', required: false })
   username?: string;
+
+  @ApiProperty({ example: 'senha', description: 'Senha (alternativa ao certificado)', required: false })
   password?: string;
 }
 
 class ConfigureAutoInvoiceDto {
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000', description: 'UUID da assinatura' })
   subscriptionId: string;
+
+  @ApiProperty({ example: '01.03', description: 'Código do serviço municipal', required: false })
   municipalServiceCode?: string;
+
+  @ApiProperty({ example: 'Ensino regular', description: 'Nome do serviço municipal', required: false })
   municipalServiceName?: string;
+
+  @ApiProperty({ example: '12345', description: 'ID do serviço municipal', required: false })
   municipalServiceId?: string;
+
+  @ApiProperty({
+    example: 'ON_PAYMENT_CONFIRMATION',
+    description: 'Quando emitir a nota fiscal',
+    enum: ['ON_PAYMENT_CONFIRMATION', 'ON_PAYMENT_DUE_DATE', 'BEFORE_PAYMENT_DUE_DATE', 'ON_NEXT_MONTH']
+  })
   effectiveDatePeriod:
     | 'ON_PAYMENT_CONFIRMATION'
     | 'ON_PAYMENT_DUE_DATE'
     | 'BEFORE_PAYMENT_DUE_DATE'
     | 'ON_NEXT_MONTH';
+
+  @ApiProperty({ example: 5, description: 'Dias antes do vencimento (se effectiveDatePeriod = BEFORE_PAYMENT_DUE_DATE)', required: false })
   daysBeforePaymentDueDate?: number;
+
+  @ApiProperty({ example: 'Assinatura mensal - Prisma Academy', description: 'Observações que aparecerão na nota', required: false })
   observations?: string;
+
+  @ApiProperty({ example: 0, description: 'Valor de deduções em centavos', required: false })
   deductions?: number;
+
+  @ApiProperty({
+    example: {
+      retainIss: false,
+      iss: 5.00,
+      cofins: 3.00,
+      csll: 1.00,
+      inss: 0,
+      ir: 0,
+      pis: 0.65
+    },
+    description: 'Configuração de impostos',
+    required: false
+  })
   taxes?: {
     retainIss: boolean;
     iss: number;
@@ -72,14 +135,31 @@ class ConfigureAutoInvoiceDto {
 }
 
 class ScheduleInvoiceDto {
+  @ApiProperty({ example: 'pay_123456789', description: 'ID do pagamento no Asaas', required: false })
   payment?: string;
+
+  @ApiProperty({ example: 'cus_123456789', description: 'ID do cliente no Asaas', required: false })
   customer?: string;
+
+  @ApiProperty({ example: 'Assinatura mensal - Plano PRO', description: 'Descrição do serviço prestado' })
   serviceDescription: string;
+
+  @ApiProperty({ example: 'Nota fiscal de teste', description: 'Observações adicionais', required: false })
   observations?: string;
+
+  @ApiProperty({ example: 4990, description: 'Valor em centavos (4990 = R$ 49,90)' })
   value: number;
+
+  @ApiProperty({ example: 0, description: 'Valor de deduções em centavos', required: false })
   deductions?: number;
+
+  @ApiProperty({ example: '2025-01-15', description: 'Data de emissão da nota (formato: YYYY-MM-DD)' })
   effectiveDate: string;
+
+  @ApiProperty({ example: '01.03', description: 'Código do serviço municipal', required: false })
   municipalServiceCode?: string;
+
+  @ApiProperty({ example: 'Ensino regular', description: 'Nome do serviço municipal', required: false })
   municipalServiceName?: string;
 }
 
