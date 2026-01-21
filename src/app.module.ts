@@ -10,4 +10,4 @@ import { RabbitMQModule } from './infrastructure/rabbitmq/rabbitmq.module';
     RabbitMQModule, // Módulo global para RabbitMQ
   ],
 })
-export class AppModule {}
+export class AppModule { }

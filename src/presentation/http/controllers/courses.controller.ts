@@ -7,6 +7,7 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -43,12 +44,12 @@ import {
   GetMindMapByVideoDto,
 } from '../dtos/generate-mind-map.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
-import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../infrastructure/auth/jwt.strategy';
 import type { UserRepository } from '../../../domain/repositories/user.repository';
 import { Inject } from '@nestjs/common';
 import { USER_REPOSITORY } from '../../../domain/tokens';
+import { getUserPermissions } from '../../../infrastructure/casl/utils/get-user-permissions';
 
 @ApiTags('Courses')
 @ApiBearerAuth('JWT-auth')
@@ -72,10 +73,9 @@ export class CoursesController {
     private readonly updateAllVideoDurationsUseCase: UpdateAllVideoDurationsUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     private readonly listProducerCoursesUseCase: ListProducerCoursesUseCase,
-  ) {}
+  ) { }
 
   @Post()
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Criar um novo curso (Apenas Admin)' })
   @ApiBody({ type: CreateCourseDto })
   @ApiResponse({
@@ -121,7 +121,15 @@ export class CoursesController {
       },
     },
   })
-  async createCourse(@Body() createCourseDto: CreateCourseDto) {
+  async createCourse(
+    @CurrentUser() user: JwtPayload,
+    @Body() createCourseDto: CreateCourseDto,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para criar cursos');
+    }
+
     try {
       const result = await this.createCourseUseCase.execute(createCourseDto);
       return {
@@ -132,7 +140,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -184,7 +195,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -236,7 +250,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -244,7 +261,6 @@ export class CoursesController {
   }
 
   @Post(':courseId/sub-courses')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Criar um novo sub-curso (Apenas Admin)' })
   @ApiParam({
     name: 'courseId',
@@ -278,9 +294,15 @@ export class CoursesController {
     },
   })
   async createSubCourse(
+    @CurrentUser() user: JwtPayload,
     @Param('courseId') courseId: string,
     @Body() createSubCourseDto: CreateSubCourseDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para criar sub-cursos');
+    }
+
     try {
       const result = await this.createSubCourseUseCase.execute({
         courseId,
@@ -294,7 +316,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -352,7 +377,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -360,7 +388,6 @@ export class CoursesController {
   }
 
   @Post('sub-courses/:subCourseId/videos')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Adicionar vídeos a um sub-curso (Apenas Admin)' })
   @ApiParam({
     name: 'subCourseId',
@@ -411,9 +438,15 @@ export class CoursesController {
     },
   })
   async createVideos(
+    @CurrentUser() user: JwtPayload,
     @Param('subCourseId') subCourseId: string,
     @Body() createVideosDto: CreateVideosDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para adicionar vídeos');
+    }
+
     try {
       const result = await this.createVideosUseCase.execute({
         subCourseId,
@@ -432,7 +465,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -506,7 +542,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -514,7 +553,6 @@ export class CoursesController {
   }
 
   @Post(':courseId/subscription')
-  @UseGuards(AdminGuard)
   @ApiOperation({
     summary: 'Atualizar status de assinatura do curso (Apenas Admin)',
   })
@@ -545,7 +583,7 @@ export class CoursesController {
               example: 'https://exemplo.com/prf-logo.png',
             },
             isPaid: { type: 'boolean', example: true },
-              isProducerCourse: { type: 'boolean', example: false },
+            isProducerCourse: { type: 'boolean', example: false },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -568,9 +606,15 @@ export class CoursesController {
     },
   })
   async updateCourseSubscription(
+    @CurrentUser() user: JwtPayload,
     @Param('courseId') courseId: string,
     @Body() updateCourseSubscriptionDto: UpdateCourseSubscriptionDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('update', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para atualizar cursos');
+    }
+
     try {
       const result = await this.updateCourseSubscriptionUseCase.execute({
         courseId,
@@ -584,7 +628,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -592,7 +639,6 @@ export class CoursesController {
   }
 
   @Post(':courseId/producer-status')
-  @UseGuards(AdminGuard)
   @ApiOperation({
     summary: 'Marcar ou desmarcar curso como curso de produtor (Apenas Admin)',
   })
@@ -632,9 +678,15 @@ export class CoursesController {
     },
   })
   async updateCourseProducerStatus(
+    @CurrentUser() user: JwtPayload,
     @Param('courseId') courseId: string,
     @Body() updateCourseProducerDto: UpdateCourseProducerDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('update', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para atualizar cursos');
+    }
+
     try {
       const result =
         await this.updateCourseProducerStatusUseCase.execute({
@@ -649,7 +701,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -657,7 +712,6 @@ export class CoursesController {
   }
 
   @Post('process-youtube-playlist')
-  @UseGuards(AdminGuard)
   @ApiOperation({
     summary:
       'Processar playlist do YouTube e organizar em módulos (Apenas Admin)',
@@ -737,8 +791,14 @@ export class CoursesController {
     },
   })
   async processYouTubePlaylist(
+    @CurrentUser() user: JwtPayload,
     @Body() processYouTubePlaylistDto: ProcessYouTubePlaylistDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para processar playlists');
+    }
+
     try {
       const result = await this.processYouTubePlaylistUseCase.execute({
         courseId: processYouTubePlaylistDto.courseId,
@@ -752,7 +812,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -760,7 +823,6 @@ export class CoursesController {
   }
 
   @Post('bulk-process-playlists')
-  @UseGuards(AdminGuard)
   @ApiOperation({
     summary:
       'Processar múltiplas playlists do YouTube e criar cursos, subcursos, módulos e vídeos automaticamente (Apenas Admin)',
@@ -848,8 +910,14 @@ export class CoursesController {
     description: 'Erro na validação dos dados',
   })
   async bulkProcessPlaylists(
+    @CurrentUser() user: JwtPayload,
     @Body() bulkProcessPlaylistsDto: BulkProcessPlaylistsDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para processar playlists');
+    }
+
     try {
       const result = await this.bulkProcessPlaylistsUseCase.execute({
         playlistIds: bulkProcessPlaylistsDto.playlistIds,
@@ -936,7 +1004,10 @@ export class CoursesController {
           {
             success: false,
             code: errorCode,
-            message: error.message,
+            message:
+              process.env.NODE_ENV === 'production'
+                ? 'Limite de geração excedido'
+                : error.message,
           },
           HttpStatus.TOO_MANY_REQUESTS,
         );
@@ -945,9 +1016,11 @@ export class CoursesController {
         {
           success: false,
           message:
-            error instanceof Error
-              ? error.message
-              : 'Erro ao gerar conteúdo',
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error instanceof Error
+                ? error.message
+                : 'Erro ao gerar conteúdo',
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -1141,7 +1214,6 @@ export class CoursesController {
   }
 
   @Post('update-video-durations')
-  @UseGuards(AdminGuard)
   @ApiOperation({
     summary:
       'Atualizar durações de todos os vídeos que estão sem duração (Apenas Admin)',
@@ -1165,7 +1237,12 @@ export class CoursesController {
       },
     },
   })
-  async updateAllVideoDurations() {
+  async updateAllVideoDurations(@CurrentUser() user: JwtPayload) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('update', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para atualizar vídeos');
+    }
+
     try {
       const result = await this.updateAllVideoDurationsUseCase.execute();
       return {

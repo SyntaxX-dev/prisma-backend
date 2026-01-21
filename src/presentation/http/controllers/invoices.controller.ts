@@ -10,6 +10,7 @@ import {
   UseGuards,
   BadRequestException,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,8 +20,9 @@ import {
   ApiProperty,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
-import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
+import type { JwtPayload } from '../../../infrastructure/auth/jwt.strategy';
+import { getUserPermissions } from '../../../infrastructure/casl/utils/get-user-permissions';
 import {
   ConfigureFiscalInfoUseCase,
   ConfigureAutoInvoiceUseCase,
@@ -193,11 +195,16 @@ export class InvoicesController {
    * Busca as configurações municipais (requisitos da prefeitura)
    */
   @Get('municipal-settings')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Busca requisitos da prefeitura para NFS-e' })
   @ApiResponse({ status: 200, description: 'Configurações municipais' })
-  async getMunicipalSettings() {
+  async getMunicipalSettings(@CurrentUser() user: JwtPayload) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para acessar configurações fiscais');
+    }
+
     const settings = await this.asaasInvoiceService.getMunicipalSettings();
 
     return {
@@ -210,11 +217,19 @@ export class InvoicesController {
    * Lista os serviços municipais disponíveis
    */
   @Get('municipal-services')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lista serviços municipais para NFS-e' })
   @ApiResponse({ status: 200, description: 'Lista de serviços' })
-  async listMunicipalServices(@Query('description') description?: string) {
+  async listMunicipalServices(
+    @CurrentUser() user: JwtPayload,
+    @Query('description') description?: string,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para acessar serviços municipais');
+    }
+
     const services = await this.asaasInvoiceService.listMunicipalServices(
       description,
     );
@@ -233,11 +248,16 @@ export class InvoicesController {
    * Busca as informações fiscais configuradas
    */
   @Get('fiscal-info')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Busca informações fiscais configuradas' })
   @ApiResponse({ status: 200, description: 'Informações fiscais' })
-  async getFiscalInfo() {
+  async getFiscalInfo(@CurrentUser() user: JwtPayload) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para acessar informações fiscais');
+    }
+
     const fiscalInfo = await this.asaasInvoiceService.getFiscalInfo();
 
     return {
@@ -265,7 +285,7 @@ export class InvoicesController {
    * - cnae
    */
   @Post('fiscal-info')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Configura informações fiscais para emissão de NFS-e',
@@ -275,9 +295,15 @@ export class InvoicesController {
   @ApiResponse({ status: 201, description: 'Informações configuradas' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   async configureFiscalInfo(
+    @CurrentUser() user: JwtPayload,
     @Body() body: ConfigureFiscalInfoDto,
     @Query('isTest') isTest?: string,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para configurar informações fiscais');
+    }
+
     const { email, municipalInscription, rpsSerie, rpsNumber } = body;
 
     if (!email || !municipalInscription || !rpsSerie || !rpsNumber) {
@@ -329,7 +355,7 @@ export class InvoicesController {
    * GET /invoices/municipal-services?description=educacao
    */
   @Post('auto-invoice')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Configura emissão automática de NF para assinatura',
@@ -339,9 +365,15 @@ export class InvoicesController {
   @ApiResponse({ status: 201, description: 'Configuração criada' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   async configureAutoInvoice(
+    @CurrentUser() user: JwtPayload,
     @Body() body: ConfigureAutoInvoiceDto,
     @Query('isTest') isTest?: string,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para configurar emissão automática');
+    }
+
     const { subscriptionId, effectiveDatePeriod, municipalServiceCode } = body;
 
     if (!subscriptionId || !effectiveDatePeriod) {
@@ -395,10 +427,18 @@ export class InvoicesController {
    * Busca configuração de NF de uma assinatura
    */
   @Get('auto-invoice/:subscriptionId')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Busca configuração de NF de uma assinatura' })
-  async getAutoInvoiceSettings(@Param('subscriptionId') subscriptionId: string) {
+  async getAutoInvoiceSettings(
+    @CurrentUser() user: JwtPayload,
+    @Param('subscriptionId') subscriptionId: string,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para acessar configurações de NF');
+    }
+
     const settings = await this.asaasInvoiceService.getSubscriptionInvoiceSettings(
       subscriptionId,
     );
@@ -413,13 +453,19 @@ export class InvoicesController {
    * Atualiza configuração de NF de uma assinatura
    */
   @Put('auto-invoice/:subscriptionId')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Atualiza configuração de NF de uma assinatura' })
   async updateAutoInvoiceSettings(
+    @CurrentUser() user: JwtPayload,
     @Param('subscriptionId') subscriptionId: string,
     @Body() body: Partial<ConfigureAutoInvoiceDto>,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para atualizar configurações de NF');
+    }
+
     const settings = await this.asaasInvoiceService.updateSubscriptionInvoiceSettings(
       subscriptionId,
       body as any,
@@ -435,12 +481,18 @@ export class InvoicesController {
    * Remove configuração de NF de uma assinatura
    */
   @Delete('auto-invoice/:subscriptionId')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove configuração de NF de uma assinatura' })
   async removeAutoInvoiceSettings(
+    @CurrentUser() user: JwtPayload,
     @Param('subscriptionId') subscriptionId: string,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para remover configurações de NF');
+    }
+
     const result = await this.asaasInvoiceService.deleteSubscriptionInvoiceSettings(
       subscriptionId,
     );
@@ -455,12 +507,18 @@ export class InvoicesController {
    * Lista notas fiscais de uma assinatura
    */
   @Get('subscription/:subscriptionId')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lista notas fiscais de uma assinatura' })
   async listSubscriptionInvoices(
+    @CurrentUser() user: JwtPayload,
     @Param('subscriptionId') subscriptionId: string,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para listar notas fiscais');
+    }
+
     const invoices = await this.asaasInvoiceService.listSubscriptionInvoices(
       subscriptionId,
     );
@@ -479,15 +537,21 @@ export class InvoicesController {
    * Lista histórico de notas fiscais do banco de dados local
    */
   @Get()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lista histórico de notas fiscais' })
   @ApiResponse({ status: 200, description: 'Lista de notas fiscais do banco local' })
   async listInvoices(
+    @CurrentUser() user: JwtPayload,
     @Query('subscriptionId') subscriptionId?: string,
     @Query('offset') offset?: number,
     @Query('limit') limit?: number,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('get', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para listar notas fiscais');
+    }
+
     const result = await this.getInvoiceHistoryUseCase.execute({
       subscriptionId,
       offset: offset || 0,
@@ -506,10 +570,18 @@ export class InvoicesController {
    * Busca uma nota fiscal específica
    */
   @Get(':invoiceId')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Busca uma nota fiscal' })
-  async getInvoice(@Param('invoiceId') invoiceId: string) {
+  async getInvoice(
+    @CurrentUser() user: JwtPayload,
+    @Param('invoiceId') invoiceId: string,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('get', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para acessar notas fiscais');
+    }
+
     const invoice = await this.asaasInvoiceService.findById(invoiceId);
 
     return {
@@ -522,10 +594,18 @@ export class InvoicesController {
    * Agenda uma nota fiscal manualmente
    */
   @Post()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Agenda uma nota fiscal' })
-  async scheduleInvoice(@Body() body: ScheduleInvoiceDto) {
+  async scheduleInvoice(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: ScheduleInvoiceDto,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para agendar notas fiscais');
+    }
+
     const { serviceDescription, value, effectiveDate } = body;
 
     if (!serviceDescription || !value || !effectiveDate) {
@@ -546,10 +626,18 @@ export class InvoicesController {
    * Emite uma nota fiscal agendada imediatamente
    */
   @Post(':invoiceId/issue')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Emite nota fiscal imediatamente' })
-  async issueInvoice(@Param('invoiceId') invoiceId: string) {
+  async issueInvoice(
+    @CurrentUser() user: JwtPayload,
+    @Param('invoiceId') invoiceId: string,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para emitir notas fiscais');
+    }
+
     const invoice = await this.asaasInvoiceService.issueNow(invoiceId);
 
     return {
@@ -562,10 +650,18 @@ export class InvoicesController {
    * Cancela uma nota fiscal
    */
   @Post(':invoiceId/cancel')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancela uma nota fiscal' })
-  async cancelInvoice(@Param('invoiceId') invoiceId: string) {
+  async cancelInvoice(
+    @CurrentUser() user: JwtPayload,
+    @Param('invoiceId') invoiceId: string,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('manage', 'Billing')) {
+      throw new ForbiddenException('Você não tem permissão para cancelar notas fiscais');
+    }
+
     const invoice = await this.asaasInvoiceService.cancel(invoiceId);
 
     return {

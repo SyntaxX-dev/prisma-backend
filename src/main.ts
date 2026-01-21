@@ -2,13 +2,32 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import basicAuth from 'express-basic-auth';
+import { GlobalExceptionFilter } from './presentation/http/filters/global-exception.filter';
 
 async function bootstrap() {
   try {
     console.log('🚀 Iniciando aplicação...');
+    const isProduction = process.env.NODE_ENV === 'production';
     const app = await NestFactory.create(AppModule, {
-      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+      logger: isProduction
+        ? ['error', 'warn', 'log']
+        : ['error', 'warn', 'log', 'debug', 'verbose'],
     });
+
+    // Hardening básico de headers HTTP (OWASP A02: Security Misconfiguration)
+    app.use(helmet());
+    // Nest expõe o app via adapter; em Express, disable remove o header X-Powered-By
+    const httpAdapter = app.getHttpAdapter();
+    const instance = httpAdapter.getInstance();
+    if (instance && typeof instance.disable === 'function') {
+      instance.disable('x-powered-by');
+    }
+
+    // Filtro global para padronizar erros e evitar vazamento de detalhes internos
+    app.useGlobalFilters(new GlobalExceptionFilter({ isProduction }));
+
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, transform: true }),
     );
@@ -25,6 +44,20 @@ async function bootstrap() {
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     });
+
+    // Proteção do Swagger em produção via Basic Auth
+    // Configure via variáveis: SWAGGER_USER / SWAGGER_PASSWORD (ou fallback seguro para dev)
+    const swaggerUser = process.env.SWAGGER_USER || 'admin';
+    const swaggerPassword = process.env.SWAGGER_PASSWORD || 'admin';
+    app.use(
+      '/docs',
+      basicAuth({
+        challenge: true,
+        users: {
+          [swaggerUser]: swaggerPassword,
+        },
+      }),
+    );
 
     const config = new DocumentBuilder()
       .setTitle('Prisma API')
@@ -61,7 +94,9 @@ async function bootstrap() {
     }, 10000);
   } catch (error) {
     console.error('❌ Erro fatal ao iniciar aplicação:', error);
-    console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    }
     process.exit(1);
   }
 }

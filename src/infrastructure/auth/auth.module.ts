@@ -51,4 +51,4 @@ import { AdminGuard } from '../guards/admin.guard';
     JwtModule,
   ],
 })
-export class AuthModule {}
+export class AuthModule { }

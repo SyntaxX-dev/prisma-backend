@@ -730,7 +730,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -767,7 +770,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -799,7 +805,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -829,7 +838,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -860,7 +872,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -890,7 +905,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -919,7 +937,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -985,7 +1006,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );

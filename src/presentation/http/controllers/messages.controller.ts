@@ -163,7 +163,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -195,7 +198,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -220,7 +226,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -244,7 +253,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -318,7 +330,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -358,7 +373,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         status,
       );
@@ -395,7 +413,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         status,
       );
@@ -456,7 +477,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -507,7 +531,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         status,
       );
@@ -551,7 +578,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         status,
       );
@@ -613,7 +643,10 @@ export class MessagesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );

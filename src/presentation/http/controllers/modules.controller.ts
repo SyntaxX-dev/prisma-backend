@@ -9,6 +9,7 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,9 +31,9 @@ import { UpdateModuleDto } from '../dtos/update-module.dto';
 import { AddVideoToModuleDto } from '../dtos/add-video-to-module.dto';
 import { ModuleWithVideosDto } from '../dtos/module-with-videos.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
-import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../infrastructure/auth/jwt.strategy';
+import { getUserPermissions } from '../../../infrastructure/casl/utils/get-user-permissions';
 
 @ApiTags('Modules')
 @ApiBearerAuth('JWT-auth')
@@ -47,10 +48,9 @@ export class ModulesController {
     private readonly addVideosToModuleUseCase: AddVideosToModuleUseCase,
     private readonly removeVideoFromModuleUseCase: RemoveVideoFromModuleUseCase,
     private readonly listModulesWithVideosUseCase: ListModulesWithVideosUseCase,
-  ) {}
+  ) { }
 
   @Post('sub-course/:subCourseId')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Criar um novo módulo (Apenas Admin)' })
   @ApiParam({
     name: 'subCourseId',
@@ -85,9 +85,15 @@ export class ModulesController {
     },
   })
   async createModule(
+    @CurrentUser() user: JwtPayload,
     @Param('subCourseId') subCourseId: string,
     @Body() createModuleDto: CreateModuleDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para criar módulos');
+    }
+
     try {
       const result = await this.createModuleUseCase.execute({
         subCourseId,
@@ -101,7 +107,10 @@ export class ModulesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -155,7 +164,10 @@ export class ModulesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -207,7 +219,10 @@ export class ModulesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -215,7 +230,6 @@ export class ModulesController {
   }
 
   @Put(':moduleId')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Atualizar um módulo (Apenas Admin)' })
   @ApiParam({
     name: 'moduleId',
@@ -253,9 +267,15 @@ export class ModulesController {
     },
   })
   async updateModule(
+    @CurrentUser() user: JwtPayload,
     @Param('moduleId') moduleId: string,
     @Body() updateModuleDto: UpdateModuleDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('update', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para atualizar módulos');
+    }
+
     try {
       const result = await this.updateModuleUseCase.execute({
         moduleId,
@@ -269,7 +289,10 @@ export class ModulesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -277,7 +300,6 @@ export class ModulesController {
   }
 
   @Delete(':moduleId')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Deletar um módulo (Apenas Admin)' })
   @ApiParam({
     name: 'moduleId',
@@ -300,7 +322,15 @@ export class ModulesController {
       },
     },
   })
-  async deleteModule(@Param('moduleId') moduleId: string) {
+  async deleteModule(
+    @CurrentUser() user: JwtPayload,
+    @Param('moduleId') moduleId: string,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('delete', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para deletar módulos');
+    }
+
     try {
       const result = await this.deleteModuleUseCase.execute({ moduleId });
       return {
@@ -311,7 +341,10 @@ export class ModulesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -319,7 +352,6 @@ export class ModulesController {
   }
 
   @Post(':moduleId/videos')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Adicionar vídeos a um módulo (Apenas Admin)' })
   @ApiParam({
     name: 'moduleId',
@@ -368,9 +400,15 @@ export class ModulesController {
     },
   })
   async addVideosToModule(
+    @CurrentUser() user: JwtPayload,
     @Param('moduleId') moduleId: string,
     @Body() addVideoToModuleDto: AddVideoToModuleDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('update', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para adicionar vídeos a módulos');
+    }
+
     try {
       const result = await this.addVideosToModuleUseCase.execute({
         moduleId,
@@ -389,7 +427,10 @@ export class ModulesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -397,7 +438,6 @@ export class ModulesController {
   }
 
   @Delete(':moduleId/videos/:videoId')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Remover vídeo de um módulo (Apenas Admin)' })
   @ApiParam({
     name: 'moduleId',
@@ -433,9 +473,15 @@ export class ModulesController {
     },
   })
   async removeVideoFromModule(
+    @CurrentUser() user: JwtPayload,
     @Param('moduleId') moduleId: string,
     @Param('videoId') videoId: string,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('delete', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para remover vídeos de módulos');
+    }
+
     try {
       const result = await this.removeVideoFromModuleUseCase.execute({
         moduleId,
@@ -449,7 +495,10 @@ export class ModulesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
