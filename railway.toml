@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "npm run predeploy && npm run drizzle:push && node dist/src/main.js"
+startCommand = "node scripts/railway-start.js"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
