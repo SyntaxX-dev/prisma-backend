@@ -9,6 +9,7 @@ import {
   QUIZ_QUESTION_REPOSITORY,
   QUIZ_OPTION_REPOSITORY,
 } from '../../../domain/tokens';
+import { CryptoUtil } from '../../../infrastructure/utils/crypto.util';
 
 interface GeneratedQuestion {
   question: string;
@@ -158,13 +159,15 @@ export class GenerateQuizUseCase {
   }
 
   /**
-   * Embaralha um array usando o algoritmo Fisher-Yates
+   * Embaralha um array usando o algoritmo Fisher-Yates com aleatoriedade criptográfica
    * Garante que cada geração tenha as opções em ordem diferente
+   * IMPORTANTE: Usa CryptoUtil em vez de Math.random() para segurança
    */
   private shuffleArray<T>(array: T[]): void {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+    const shuffled = CryptoUtil.shuffleArray(array);
+    // Copia os valores de volta para o array original
+    for (let i = 0; i < array.length; i++) {
+      array[i] = shuffled[i];
     }
   }
 }

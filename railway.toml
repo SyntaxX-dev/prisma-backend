@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "npm run drizzle:push && node dist/src/main.js"
+startCommand = "npm run predeploy && npm run drizzle:push && node dist/src/main.js"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"

@@ -24,7 +24,15 @@
     "migrate:prod": "node scripts/migrate-prod.js",
     "seed:admin": "node scripts/seed-admin.js",
     "setup:prod": "node scripts/deploy-setup.js",
-    "postinstall": "npm run drizzle:generate"
+    "postinstall": "npm run drizzle:generate",
+    "sbom:generate": "npm ls --all --json > sbom.json",
+    "sbom:spdx": "cyclonedx-npm --output-file sbom.spdx.json",
+    "sbom:cyclonedx": "cyclonedx-npm --output-file sbom.cyclonedx.json",
+    "security:audit": "npm audit",
+    "security:audit:fix": "npm audit fix",
+    "security:audit:production": "npm audit --production",
+    "security:check": "npm audit --audit-level=moderate",
+    "predeploy": "node scripts/pre-deploy-check.js"
   },
   "dependencies": {
     "@casl/ability": "^6.7.5",
@@ -67,6 +75,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "^1.20.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
@@ -112,5 +121,12 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "engines": {
+    "node": ">=20.18.0 <21.0.0",
+    "npm": ">=10.0.0"
+  },
+  "trustedDependencies": [
+    "drizzle-kit"
+  ]
 }

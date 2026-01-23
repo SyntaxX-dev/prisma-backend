@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { CryptoUtil } from '../../../infrastructure/utils/crypto.util';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { SendMessageUseCase } from '../../../application/messages/use-cases/send-message.use-case';
 import { GetMessagesUseCase } from '../../../application/messages/use-cases/get-messages.use-case';
@@ -106,8 +107,9 @@ export class MessagesController {
       allowedFormats = ['pdf'];
     }
 
-    // Gerar publicId único
-    const publicId = `messages/${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    // Gerar publicId único usando aleatoriedade criptográfica
+    // IMPORTANTE: Usa CryptoUtil em vez de Math.random() para segurança
+    const publicId = `messages/${userId}/${CryptoUtil.generateUniqueId()}`;
 
     // Gerar signature
     const signature = this.cloudinaryService.generateUploadSignature({

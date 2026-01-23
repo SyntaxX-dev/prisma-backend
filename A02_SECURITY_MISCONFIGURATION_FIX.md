@@ -66,29 +66,85 @@ SwaggerModule.setup('docs', app, document);
 
 ## 2) Hardening de Headers HTTP (Helmet)
 
-### Problema
+### O que são Headers HTTP?
 
-Não havia configuração central de headers de segurança, o que é um ponto comum de **security hardening ausente** (mencionado explicitamente em A02).
+Headers HTTP são informações que o servidor envia junto com cada resposta. Eles podem conter dados sobre segurança, cache, tipo de conteúdo, etc.
 
-### Correção
+**Exemplo de resposta HTTP sem proteção:**
 
-Foi adicionado **Helmet** como middleware global e desativado o header `X-Powered-By`.
+```
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Content-Type: application/json
+```
+
+### Problema: O que causa a vulnerabilidade?
+
+**1. Header `X-Powered-By` expõe tecnologia:**
+
+Sem proteção, o Express automaticamente adiciona o header `X-Powered-By: Express` em todas as respostas. Isso revela:
+- Que você está usando **Express.js**
+- Facilita para atacantes escolherem exploits específicos para essa tecnologia
+- Expõe informações desnecessárias sobre sua stack
+
+**2. Falta de headers de segurança:**
+
+Sem Helmet, sua API não envia headers importantes como:
+- `X-Content-Type-Options`: previne que navegadores "adivinhem" o tipo de arquivo (pode evitar ataques MIME-sniffing)
+- `X-Frame-Options`: previne que sua página seja embutida em um `<iframe>` malicioso (proteção contra clickjacking)
+- `Strict-Transport-Security`: força conexões HTTPS
+- `Content-Security-Policy`: controla quais recursos podem ser carregados
+
+**Exemplo prático do problema:**
+
+Um atacante faz uma requisição para sua API e recebe:
+
+```
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Server: nginx/1.18.0
+```
+
+Agora ele sabe:
+- Você usa Express.js (pode procurar vulnerabilidades conhecidas)
+- Você usa nginx (pode tentar exploits específicos)
+- Não há proteção contra clickjacking
+- Não há política de conteúdo
+
+### Correção: O que o Helmet resolve na prática?
+
+**Helmet** é um middleware que adiciona automaticamente headers de segurança nas respostas HTTP.
+
+**O que acontece DEPOIS de adicionar Helmet:**
+
+```
+HTTP/1.1 200 OK
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-DNS-Prefetch-Control: off
+Strict-Transport-Security: max-age=15552000; includeSubDomains
+Content-Security-Policy: default-src 'self'
+```
+
+**Benefícios práticos:**
+
+1. **`X-Powered-By` removido**: Atacantes não sabem mais que você usa Express
+2. **Proteção contra clickjacking**: Sua API não pode ser embutida em iframes maliciosos
+3. **Proteção contra MIME-sniffing**: Navegadores não tentam "adivinhar" tipos de arquivo perigosos
+4. **HTTPS forçado**: Em produção, conexões inseguras são bloqueadas
 
 ### Onde foi aplicado
 
 - `src/main.ts`
-
-### Benefícios de segurança
-
-- Melhora a postura de segurança padrão da aplicação (headers de proteção)
-- Reduz exposição de informações sobre tecnologia utilizada
 
 ### Trecho de código (Antes vs Depois)
 
 **Antes (sem Helmet / sem hardening centralizado)**
 
 ```ts
-// Não existia hardening de headers HTTP aqui
+// Resposta HTTP sem proteção:
+// X-Powered-By: Express  ← Expõe tecnologia
+// (sem outros headers de segurança)
 ```
 
 **Depois (Helmet + desabilitar `X-Powered-By` no Express)**
@@ -101,6 +157,12 @@ const instance = httpAdapter.getInstance();
 if (instance && typeof instance.disable === 'function') {
   instance.disable('x-powered-by');
 }
+
+// Resposta HTTP agora inclui:
+// X-Content-Type-Options: nosniff
+// X-Frame-Options: DENY
+// Strict-Transport-Security: ...
+// (sem X-Powered-By)
 ```
 
 ---

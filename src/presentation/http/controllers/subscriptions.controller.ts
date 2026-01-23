@@ -10,8 +10,11 @@ import {
   Logger,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsEmail, IsEnum, IsOptional } from 'class-validator';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import {
@@ -31,11 +34,28 @@ import { PlanType } from '../../../infrastructure/asaas/constants/plans.constant
 
 // DTOs
 class CreateCheckoutDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Nome do cliente é obrigatório' })
   customerName: string;
+
+  @IsEmail({}, { message: 'Email inválido' })
+  @IsNotEmpty({ message: 'Email do cliente é obrigatório' })
   customerEmail: string;
+
+  @IsEnum(['START', 'PRO', 'ULTRA'], { message: 'Plano deve ser START, PRO ou ULTRA' })
+  @IsNotEmpty({ message: 'Plano é obrigatório' })
   planId: 'START' | 'PRO' | 'ULTRA';
+
+  @IsEnum(['PIX', 'CREDIT_CARD'], { message: 'Método de pagamento deve ser PIX ou CREDIT_CARD' })
+  @IsNotEmpty({ message: 'Método de pagamento é obrigatório' })
   billingType: 'PIX' | 'CREDIT_CARD';
+
+  @IsString()
+  @IsOptional()
   cpfCnpj?: string;
+
+  @IsString()
+  @IsOptional()
   phone?: string;
 }
 
@@ -107,13 +127,40 @@ export class SubscriptionsController {
    */
   @Post('checkout')
   @ApiOperation({ summary: 'Cria checkout de assinatura' })
+  @ApiBody({
+    schema: {
+      example: {
+        customerName: 'João Silva',
+        customerEmail: 'joao@exemplo.com',
+        planId: 'START',
+        billingType: 'CREDIT_CARD',
+        cpfCnpj: '123.456.789-00',
+        phone: '(11) 98765-4321',
+      },
+    },
+  })
   @ApiResponse({ status: 201, description: 'Checkout criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
-  async createCheckout(@Body() body: CreateCheckoutDto) {
+  async createCheckout(@Body() body: CreateCheckoutDto, @Req() req: Request) {
+    // Log para debug - body raw antes do ValidationPipe
+    this.logger.log('=== CHECKOUT REQUEST DEBUG ===');
+    this.logger.log('Body raw (req.body):', JSON.stringify(req.body, null, 2));
+    this.logger.log('Body após ValidationPipe:', JSON.stringify(body, null, 2));
+    this.logger.log('Content-Type:', req.headers['content-type']);
+    this.logger.log('================================');
+
     const { customerName, customerEmail, planId, billingType, cpfCnpj, phone } =
       body;
 
+    // Validação manual adicional (fallback caso ValidationPipe não funcione)
     if (!customerName || !customerEmail || !planId || !billingType) {
+      this.logger.warn('Dados incompletos recebidos:', {
+        customerName: !!customerName,
+        customerEmail: !!customerEmail,
+        planId: !!planId,
+        billingType: !!billingType,
+        bodyKeys: Object.keys(body || {}),
+      });
       throw new BadRequestException(
         'Nome, email, plano e método de pagamento são obrigatórios',
       );

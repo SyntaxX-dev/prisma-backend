@@ -11,6 +11,7 @@ import type { PasswordHasher } from '../../domain/services/password-hasher';
 import type { MailerServicePort } from '../../domain/services/mailer';
 import { PasswordResetEmailTemplate } from '../email/templates/password-reset.template';
 import { Inject } from '@nestjs/common';
+import { CryptoUtil } from '../utils/crypto.util';
 
 interface ResetCode {
   code: string;
@@ -35,8 +36,9 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
       throw new Error('Usuário não encontrado');
     }
 
-    // Gerar código aleatório de 6 dígitos
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Gerar código aleatório de 6 dígitos criptograficamente seguro
+    // IMPORTANTE: Usa CryptoUtil em vez de Math.random() para segurança
+    const code = CryptoUtil.randomNumericCode(6);
 
     // Definir expiração em 15 minutos
     const expiresAt = new Date();

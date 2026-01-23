@@ -17,7 +17,16 @@ async function bootstrap() {
     });
 
     // Hardening básico de headers HTTP (OWASP A02: Security Misconfiguration)
-    app.use(helmet());
+    // Configuração explícita do Helmet com HSTS para forçar HTTPS
+    app.use(
+      helmet({
+        strictTransportSecurity: {
+          maxAge: 31536000, // 1 ano
+          includeSubDomains: true,
+          preload: true,
+        },
+      }),
+    );
     // Nest expõe o app via adapter; em Express, disable remove o header X-Powered-By
     const httpAdapter = app.getHttpAdapter();
     const instance = httpAdapter.getInstance();
