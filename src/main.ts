@@ -9,6 +9,12 @@ import { GlobalExceptionFilter } from './presentation/http/filters/global-except
 async function bootstrap() {
   try {
     console.log('🚀 Iniciando aplicação...');
+    console.log('📋 Variáveis de ambiente críticas:');
+    console.log(`   PORT: ${process.env.PORT || 'não definido (usando 3006)'}`);
+    console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'não definido'}`);
+    console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '✅ definido' : '❌ não definido'}`);
+    console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? '✅ definido' : '❌ não definido'}`);
+    
     const isProduction = process.env.NODE_ENV === 'production';
     const app = await NestFactory.create(AppModule, {
       logger: isProduction
@@ -102,10 +108,18 @@ async function bootstrap() {
       console.log('✅ Aplicação ainda está rodando após 10 segundos');
     }, 10000);
   } catch (error) {
-    console.error('❌ Erro fatal ao iniciar aplicação:', error);
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    console.error('❌ Erro fatal ao iniciar aplicação');
+    console.error('Tipo do erro:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('Mensagem:', error instanceof Error ? error.message : String(error));
+    
+    // Em produção, sempre mostrar stack trace para debug
+    if (error instanceof Error && error.stack) {
+      console.error('Stack trace:');
+      console.error(error.stack);
     }
+    
+    // Aguardar um pouco antes de sair para garantir que logs sejam escritos
+    await new Promise(resolve => setTimeout(resolve, 1000));
     process.exit(1);
   }
 }
