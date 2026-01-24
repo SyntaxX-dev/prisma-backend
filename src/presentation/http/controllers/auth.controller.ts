@@ -45,6 +45,7 @@ import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../domain/services/auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ChatGateway } from '../../../infrastructure/websockets/chat.gateway';
+import { ResendPasswordResetRateLimitGuard } from '../../../infrastructure/guards/resend-password-reset-rate-limit.guard';
 
 const educationLevelMapPtToEn: Record<string, EducationLevel> = {
   FUNDAMENTAL: EducationLevel.ELEMENTARY,
@@ -355,6 +356,63 @@ export class AuthController {
       await this.passwordResetService.generateResetCode(body.email);
       return {
         message: 'Código de redefinição enviado para seu email',
+        email: body.email,
+      };
+    } catch (error) {
+      if (error.message === 'Usuário não encontrado') {
+        return {
+          message: 'Usuário não encontrado',
+        };
+      }
+      throw error;
+    }
+  }
+
+  @Post('resend-password-reset-code')
+  @UseGuards(ResendPasswordResetRateLimitGuard)
+  @ApiOperation({ summary: 'Reenvia código de redefinição de senha' })
+  @ApiBody({
+    schema: {
+      example: {
+        email: 'usuario@exemplo.com',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Código de redefinição reenviado com sucesso',
+    schema: {
+      example: {
+        message: 'Código de redefinição reenviado para seu email',
+        email: 'usuario@exemplo.com',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuário não encontrado',
+    schema: {
+      example: {
+        message: 'Usuário não encontrado',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Muitas tentativas. Aguarde antes de solicitar novamente.',
+    schema: {
+      example: {
+        statusCode: 429,
+        message: 'Muitas tentativas. Tente novamente mais tarde.',
+        retryAfter: 900,
+      },
+    },
+  })
+  async resendPasswordResetCode(@Body() body: RequestPasswordResetDto) {
+    try {
+      await this.passwordResetService.resendResetCode(body.email);
+      return {
+        message: 'Código de redefinição reenviado para seu email',
         email: body.email,
       };
     } catch (error) {
