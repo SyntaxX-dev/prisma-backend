@@ -112,7 +112,8 @@ export class ChangePlanUseCase {
       );
     }
 
-    // Para downgrade ou se não houver período definido, agenda para próximo ciclo
+    // Para downgrade: aguarda o término do período atual
+    // O novo plano só será aplicado quando o período atual terminar
     // Atualiza o valor no Asaas para o próximo ciclo
     // updatePendingPayments = false para não alterar cobranças já criadas
     if (subscription.asaasSubscriptionId) {
@@ -136,13 +137,24 @@ export class ChangePlanUseCase {
     subscription.requestPlanChange(newPlanId);
     await this.subscriptionRepository.update(subscription);
 
+    // Calcula quando o downgrade será aplicado (fim do período atual)
+    const effectiveDate = subscription.currentPeriodEnd || new Date();
+
     this.logger.log(
-      `Mudança de plano registrada: ${subscription.id} - Efetivo em: ${subscription.currentPeriodEnd}`,
+      `Downgrade agendado: ${subscription.id} - Efetivo em: ${effectiveDate.toISOString()}`,
     );
+
+    // Monta mensagem explicativa para downgrade
+    const periodEndFormatted = effectiveDate.toLocaleDateString('pt-BR');
+    let message = `Mudança para o plano ${newPlan.name} agendada com sucesso!\n\n`;
+    message += `📅 O novo plano será aplicado em: ${periodEndFormatted}\n`;
+    message += `   (Quando o período atual do plano ${currentPlan.name} terminar)\n\n`;
+    message += `💡 Você continuará com o plano ${currentPlan.name} até ${periodEndFormatted}.\n`;
+    message += `   A partir de então, será cobrado o valor do plano ${newPlan.name} (R$ ${newPlan.price.toFixed(2)}/mês).`;
 
     return {
       success: true,
-      message: `Mudança para o plano ${newPlan.name} agendada. A mudança será efetivada no próximo ciclo de cobrança.`,
+      message,
       currentPlan: {
         id: subscription.plan,
         name: currentPlan.name,
@@ -152,8 +164,8 @@ export class ChangePlanUseCase {
         name: newPlan.name,
         price: newPlan.price,
       },
-      effectiveDate: subscription.currentPeriodEnd,
-      isUpgrade,
+      effectiveDate,
+      isUpgrade: false,
     };
   }
 

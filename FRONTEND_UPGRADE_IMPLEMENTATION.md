@@ -63,14 +63,14 @@ Content-Type: application/json
 }
 ```
 
-#### Caso 2: Downgrade ou Mudança Agendada
+#### Caso 2: Downgrade (Aguarda Término do Plano Atual)
 
 ```json
 {
   "success": true,
   "data": {
     "success": true,
-    "message": "Mudança para o plano Start agendada. A mudança será efetivada no próximo ciclo de cobrança.",
+    "message": "Mudança para o plano Start agendada com sucesso!\n\n📅 O novo plano será aplicado em: 24/02/2026\n   (Quando o período atual do plano Pro terminar)\n\n💡 Você continuará com o plano Pro até 24/02/2026.\n   A partir de então, será cobrado o valor do plano Start (R$ 12,90/mês).",
     "currentPlan": {
       "id": "PRO",
       "name": "Pro"
@@ -393,11 +393,16 @@ export function SubscriptionSettings() {
       const result = await changePlan(newPlanId);
       
       if (result.isUpgrade && result.creditAmount !== undefined) {
-        // É upgrade imediato - mostrar modal
+        // É upgrade imediato - mostrar modal com detalhes
         setUpgradeData(result);
       } else {
-        // Downgrade ou mudança agendada - apenas toast
-        showSuccessToast(result.message);
+        // Downgrade - mostrar toast/modal informando que aguardará término do plano atual
+        showDowngradeConfirmation({
+          currentPlan: result.currentPlan.name,
+          newPlan: result.newPlan.name,
+          effectiveDate: result.effectiveDate,
+          message: result.message
+        });
       }
     } catch (err) {
       // Erro já tratado no hook
@@ -451,20 +456,21 @@ export function SubscriptionSettings() {
 
 ## ⚠️ Observações Importantes
 
-1. **Upgrade é imediato**: O plano muda na hora, não no próximo ciclo
-2. **Downgrade é agendado**: Só entra em vigor no próximo ciclo
-3. **Crédito só em upgrades**: Downgrades não têm cálculo proporcional
-4. **Pagamento pode ser zero**: Se o crédito cobrir totalmente o novo plano
-5. **PIX opcional**: QR Code só vem se método de pagamento for PIX
+1. **Upgrade é imediato**: O plano muda na hora com cálculo proporcional do crédito
+2. **Downgrade aguarda término**: O novo plano só será aplicado quando o período atual terminar (data em `effectiveDate`)
+3. **Crédito só em upgrades**: Downgrades não têm cálculo proporcional - você usa o plano atual até o fim
+4. **Pagamento pode ser zero**: Se o crédito cobrir totalmente o novo plano (só em upgrades)
+5. **PIX opcional**: QR Code só vem se método de pagamento for PIX e houver valor a pagar
 
 ## 📱 Exemplo de Fluxo Completo
 
+### Fluxo de Upgrade (Imediato)
 ```
 1. Usuário clica em "Fazer Upgrade para Pro"
    ↓
 2. Frontend chama POST /subscriptions/change-plan
    ↓
-3. Backend calcula crédito e cria cobrança
+3. Backend calcula crédito proporcional e cria cobrança
    ↓
 4. Frontend recebe resposta com detalhes
    ↓
@@ -473,13 +479,38 @@ export function SubscriptionSettings() {
 6. Usuário vê:
    - Crédito de R$ X,XX aplicado
    - Valor a pagar: R$ Y,YY
-   - Novo período
+   - Novo período iniciado
    ↓
 7. Usuário clica em "Ir para Pagamento"
    ↓
 8. Redireciona para Asaas ou mostra QR Code PIX
    ↓
 9. Após pagamento, webhook atualiza status
+   ↓
+10. Frontend atualiza interface com novo plano (já ativo)
+```
+
+### Fluxo de Downgrade (Aguarda Término)
+```
+1. Usuário clica em "Mudar para Plano Start"
+   ↓
+2. Frontend chama POST /subscriptions/change-plan
+   ↓
+3. Backend agenda mudança para fim do período atual
+   ↓
+4. Frontend recebe resposta informando data de aplicação
+   ↓
+5. Frontend mostra toast/modal informativo
+   ↓
+6. Usuário vê:
+   - "Você continuará com o plano Pro até 24/02/2026"
+   - "A partir de então, será cobrado o plano Start"
+   ↓
+7. Usuário continua usando plano atual até a data
+   ↓
+8. Quando período atual termina, próximo pagamento aplica novo plano
+   ↓
+9. Webhook confirma pagamento e aplica downgrade
    ↓
 10. Frontend atualiza interface com novo plano
 ```
