@@ -177,8 +177,27 @@ export class ProcessWebhookUseCase {
     // Busca o plano para o email
     const plan = getPlanById(subscription.plan);
 
-    // Envia email com link de registro
-    const registrationLink = `${process.env.FRONTEND_URL}/register?token=${token}`;
+    // Valida e constrói o link de registro
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl || frontendUrl.trim() === '' || frontendUrl === 'undefined') {
+      this.logger.error(
+        '❌ FRONTEND_URL não configurada! Configure a variável de ambiente FRONTEND_URL no Railway',
+      );
+      this.logger.error(
+        '   Exemplo: FRONTEND_URL=https://seu-frontend.vercel.app',
+      );
+      throw new Error(
+        'FRONTEND_URL não configurada. Não é possível enviar email de registro.',
+      );
+    }
+
+    // Remove barra final se existir para evitar dupla barra
+    const baseUrl = frontendUrl.replace(/\/$/, '');
+    const registrationLink = `${baseUrl}/register?token=${token}`;
+
+    this.logger.log(
+      `Gerando link de registro: ${registrationLink.substring(0, 50)}...`,
+    );
 
     await this.mailerService.sendRegistrationEmail(
       subscription.customerEmail,

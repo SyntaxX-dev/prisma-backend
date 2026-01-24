@@ -100,5 +100,23 @@ export class AsaasPaymentService {
       { paymentDate, value },
     );
   }
+
+  /**
+   * Cria uma cobrança/pagamento direto
+   * Útil para upgrades imediatos com cálculo proporcional
+   */
+  async createPayment(data: {
+    customer: string;
+    subscription?: string;
+    billingType: 'PIX' | 'CREDIT_CARD' | 'BOLETO';
+    value: number;
+    dueDate: string; // YYYY-MM-DD
+    description?: string;
+    externalReference?: string;
+  }): Promise<AsaasPayment> {
+    this.logger.log(`Criando cobrança: ${data.description || 'Sem descrição'}`);
+
+    return this.httpClient.post<AsaasPayment>('/payments', data);
+  }
 }
 

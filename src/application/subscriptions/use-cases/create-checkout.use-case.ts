@@ -81,8 +81,11 @@ export class CreateCheckoutUseCase {
     const existingSubscription =
       await this.subscriptionRepository.findByCustomerEmail(customerEmail);
     if (existingSubscription && existingSubscription.isActive()) {
+      this.logger.warn(
+        `Tentativa de criar checkout para email com assinatura ativa: ${customerEmail} - Status: ${existingSubscription.status}`,
+      );
       throw new BadRequestException(
-        'Já existe uma assinatura ativa para este email',
+        `Já existe uma assinatura ativa para este email. Status: ${existingSubscription.status}. Se você já se registrou, faça login. Se não, aguarde o email de registro após o pagamento.`,
       );
     }
 

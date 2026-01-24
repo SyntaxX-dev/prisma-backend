@@ -32,6 +32,8 @@ async function main() {
   console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'não definido'}`);
   console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '✅ definido' : '❌ não definido'}`);
   console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? '✅ definido' : '❌ não definido'}`);
+  console.log(`   FRONTEND_URL: ${process.env.FRONTEND_URL ? `✅ definido (${process.env.FRONTEND_URL})` : '❌ não definido (links de registro não funcionarão!)'}`);
+  console.log(`   ASAAS_API_KEY: ${process.env.ASAAS_API_KEY ? '✅ definido' : '❌ não definido'}`);
   console.log(`   RAILWAY_ENVIRONMENT: ${process.env.RAILWAY_ENVIRONMENT || 'não definido'}`);
 
   // Executar predeploy (não crítico em produção)

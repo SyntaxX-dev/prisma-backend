@@ -4,6 +4,7 @@ import {
 } from '../../../domain/tokens';
 import type { SubscriptionRepository } from '../../../domain/repositories/subscription.repository';
 import { AsaasSubscriptionService } from '../../../infrastructure/asaas/services/asaas-subscription.service';
+import { AsaasPaymentService } from '../../../infrastructure/asaas/services/asaas-payment.service';
 import {
   getPlanById,
   isPlanUpgrade,
@@ -29,6 +30,15 @@ export interface ChangePlanOutput {
   };
   effectiveDate: Date | null;
   isUpgrade: boolean;
+  proratedAmount?: number;
+  unusedDays?: number;
+  creditAmount?: number;
+  paymentUrl?: string;
+  pixQrCode?: {
+    encodedImage: string;
+    payload: string;
+    expirationDate: string;
+  };
 }
 
 /**
@@ -45,6 +55,7 @@ export class ChangePlanUseCase {
     @Inject(SUBSCRIPTION_REPOSITORY)
     private readonly subscriptionRepository: SubscriptionRepository,
     private readonly asaasSubscriptionService: AsaasSubscriptionService,
+    private readonly asaasPaymentService: AsaasPaymentService,
   ) {}
 
   async execute(input: ChangePlanInput): Promise<ChangePlanOutput> {
@@ -91,6 +102,17 @@ export class ChangePlanUseCase {
       `Mudança de plano solicitada: ${subscription.id} - ${subscription.plan} -> ${newPlanId} (${isUpgrade ? 'Upgrade' : 'Downgrade'})`,
     );
 
+    // Se for upgrade, aplica imediatamente com cálculo proporcional
+    if (isUpgrade && subscription.currentPeriodStart && subscription.currentPeriodEnd) {
+      return await this.handleImmediateUpgrade(
+        subscription,
+        currentPlan,
+        newPlan,
+        newPlanId,
+      );
+    }
+
+    // Para downgrade ou se não houver período definido, agenda para próximo ciclo
     // Atualiza o valor no Asaas para o próximo ciclo
     // updatePendingPayments = false para não alterar cobranças já criadas
     if (subscription.asaasSubscriptionId) {
@@ -132,6 +154,261 @@ export class ChangePlanUseCase {
       },
       effectiveDate: subscription.currentPeriodEnd,
       isUpgrade,
+    };
+  }
+
+  /**
+   * Trata upgrade imediato com cálculo proporcional
+   */
+  private async handleImmediateUpgrade(
+    subscription: any,
+    currentPlan: any,
+    newPlan: any,
+    newPlanId: PlanType,
+  ): Promise<ChangePlanOutput> {
+    const now = new Date();
+    const periodStart = subscription.currentPeriodStart
+      ? new Date(subscription.currentPeriodStart)
+      : null;
+    const periodEnd = subscription.currentPeriodEnd
+      ? new Date(subscription.currentPeriodEnd)
+      : null;
+
+    if (!periodStart || !periodEnd) {
+      // Se não há período definido, aplica mudança imediatamente sem cálculo
+      return await this.applyPlanChangeImmediately(
+        subscription,
+        currentPlan,
+        newPlan,
+        newPlanId,
+      );
+    }
+
+    // Calcula dias totais do período e dias restantes
+    const totalDays = Math.ceil(
+      (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const daysUsed = Math.ceil(
+      (now.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const daysRemaining = totalDays - daysUsed;
+
+    if (daysRemaining <= 0) {
+      // Se não há dias restantes, apenas atualiza o plano
+      return await this.applyPlanChangeImmediately(
+        subscription,
+        currentPlan,
+        newPlan,
+        newPlanId,
+      );
+    }
+
+    // Calcula valor proporcional não usado (em centavos)
+    const currentPriceInCents = subscription.currentPrice;
+    const dailyRate = currentPriceInCents / totalDays;
+    const unusedAmount = Math.round(dailyRate * daysRemaining);
+
+    // Valor do novo plano (em centavos)
+    const newPlanPriceInCents = Math.round(newPlan.price * 100);
+
+    // Valor a ser cobrado (novo plano - crédito dos dias não usados)
+    const amountToCharge = Math.max(0, newPlanPriceInCents - unusedAmount);
+
+    this.logger.log(
+      `Upgrade imediato calculado: ${subscription.id}`,
+      {
+        totalDays,
+        daysUsed,
+        daysRemaining,
+        currentPriceInCents,
+        unusedAmount,
+        newPlanPriceInCents,
+        amountToCharge,
+      },
+    );
+
+    // Atualiza o plano imediatamente
+    subscription.plan = newPlanId;
+    subscription.currentPrice = newPlanPriceInCents;
+    subscription.pendingPlanChange = null;
+
+    // Reinicia o período a partir de agora
+    const newPeriodStart = new Date();
+    const newPeriodEnd = new Date();
+    newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
+
+    subscription.currentPeriodStart = newPeriodStart;
+    subscription.currentPeriodEnd = newPeriodEnd;
+    subscription.updatedAt = new Date();
+
+    // Se há valor a cobrar, cria cobrança imediata no Asaas
+    let paymentUrl: string | undefined;
+    let pixQrCode: ChangePlanOutput['pixQrCode'] | undefined;
+
+    if (amountToCharge > 0 && subscription.asaasSubscriptionId) {
+      try {
+        // Cria uma cobrança única para o upgrade
+        const payment = await this.asaasPaymentService.createPayment({
+          customer: subscription.asaasCustomerId,
+          subscription: subscription.asaasSubscriptionId,
+          billingType: (subscription.paymentMethod || 'CREDIT_CARD') as 'PIX' | 'CREDIT_CARD' | 'BOLETO',
+          value: amountToCharge / 100, // Converte para reais
+          dueDate: new Date().toISOString().split('T')[0],
+          description: `Upgrade: ${currentPlan.name} → ${newPlan.name} - Crédito de R$ ${(unusedAmount / 100).toFixed(2)} aplicado`,
+          externalReference: `upgrade_${subscription.id}_${Date.now()}`,
+        });
+
+        paymentUrl = payment.invoiceUrl;
+
+        // Se for PIX, busca o QR Code
+        if (subscription.paymentMethod === 'PIX') {
+          try {
+            const qrCode = await this.asaasPaymentService.getPixQrCode(payment.id);
+            pixQrCode = {
+              encodedImage: qrCode.encodedImage,
+              payload: qrCode.payload,
+              expirationDate: qrCode.expirationDate,
+            };
+          } catch (error) {
+            this.logger.warn(`Erro ao buscar QR Code Pix: ${error}`);
+          }
+        }
+
+        this.logger.log(
+          `Cobrança de upgrade criada: ${payment.id} - Valor: R$ ${(amountToCharge / 100).toFixed(2)}`,
+        );
+      } catch (error) {
+        this.logger.error(`Erro ao criar cobrança de upgrade: ${error}`);
+        throw new BadRequestException(
+          'Erro ao processar upgrade. Tente novamente.',
+        );
+      }
+    }
+
+    // Atualiza o valor da assinatura no Asaas para o próximo ciclo
+    if (subscription.asaasSubscriptionId) {
+      try {
+        await this.asaasSubscriptionService.updateValue(
+          subscription.asaasSubscriptionId,
+          newPlan.price,
+          false,
+        );
+      } catch (error) {
+        this.logger.warn(`Erro ao atualizar valor da assinatura no Asaas: ${error}`);
+      }
+    }
+
+    // Salva as alterações
+    await this.subscriptionRepository.update(subscription);
+
+    // Monta mensagem explicativa detalhada
+    const creditAmount = unusedAmount / 100;
+    const chargeAmount = amountToCharge / 100;
+    
+    let message = `Upgrade para o plano ${newPlan.name} realizado com sucesso!\n\n`;
+
+    // Detalhes do cálculo proporcional
+    message += `📊 Cálculo do upgrade:\n`;
+    message += `   • Plano atual: ${currentPlan.name} (R$ ${currentPlan.price.toFixed(2)}/mês)\n`;
+    message += `   • Novo plano: ${newPlan.name} (R$ ${newPlan.price.toFixed(2)}/mês)\n`;
+    message += `   • Período atual: ${periodStart.toLocaleDateString('pt-BR')} até ${periodEnd.toLocaleDateString('pt-BR')}\n`;
+    message += `   • Dias utilizados: ${daysUsed} de ${totalDays} dias\n`;
+    message += `   • Dias restantes: ${daysRemaining} dias\n\n`;
+
+    if (unusedAmount > 0) {
+      message += `💰 Crédito aplicado: R$ ${creditAmount.toFixed(2)}\n`;
+      message += `   Foi subtraído R$ ${creditAmount.toFixed(2)} da fatura deste mês em virtude dos ${daysRemaining} dias que não foram usados da fatura anterior.\n\n`;
+    }
+
+    if (amountToCharge > 0) {
+      message += `💳 Valor a pagar: R$ ${chargeAmount.toFixed(2)}\n`;
+      message += `   (Valor do novo plano: R$ ${newPlan.price.toFixed(2)} - Crédito: R$ ${creditAmount.toFixed(2)})\n\n`;
+      if (paymentUrl) {
+        message += `🔗 Acesse o link de pagamento para concluir: ${paymentUrl}\n\n`;
+      }
+    } else {
+      message += `✅ O crédito cobre totalmente o novo plano. Nenhum pagamento adicional necessário!\n\n`;
+    }
+
+    message += `📅 Novo período iniciado: ${newPeriodStart.toLocaleDateString('pt-BR')} até ${newPeriodEnd.toLocaleDateString('pt-BR')}`;
+
+    this.logger.log(
+      `Upgrade imediato aplicado: ${subscription.id} - Plano: ${newPlanId}`,
+    );
+
+    return {
+      success: true,
+      message,
+      currentPlan: {
+        id: subscription.plan,
+        name: currentPlan.name,
+      },
+      newPlan: {
+        id: newPlanId,
+        name: newPlan.name,
+        price: newPlan.price,
+      },
+      effectiveDate: newPeriodStart,
+      isUpgrade: true,
+      proratedAmount: newPlan.price,
+      unusedDays: daysRemaining,
+      creditAmount: creditAmount,
+      paymentUrl,
+      pixQrCode,
+    };
+  }
+
+  /**
+   * Aplica mudança de plano imediatamente (quando não há dias restantes)
+   */
+  private async applyPlanChangeImmediately(
+    subscription: any,
+    currentPlan: any,
+    newPlan: any,
+    newPlanId: PlanType,
+  ): Promise<ChangePlanOutput> {
+    subscription.plan = newPlanId;
+    subscription.currentPrice = Math.round(newPlan.price * 100);
+    subscription.pendingPlanChange = null;
+
+    // Reinicia o período
+    const newPeriodStart = new Date();
+    const newPeriodEnd = new Date();
+    newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
+
+    subscription.currentPeriodStart = newPeriodStart;
+    subscription.currentPeriodEnd = newPeriodEnd;
+    subscription.updatedAt = new Date();
+
+    // Atualiza no Asaas
+    if (subscription.asaasSubscriptionId) {
+      try {
+        await this.asaasSubscriptionService.updateValue(
+          subscription.asaasSubscriptionId,
+          newPlan.price,
+          false,
+        );
+      } catch (error) {
+        this.logger.warn(`Erro ao atualizar valor da assinatura no Asaas: ${error}`);
+      }
+    }
+
+    await this.subscriptionRepository.update(subscription);
+
+    return {
+      success: true,
+      message: `Mudança para o plano ${newPlan.name} realizada com sucesso!`,
+      currentPlan: {
+        id: subscription.plan,
+        name: currentPlan.name,
+      },
+      newPlan: {
+        id: newPlanId,
+        name: newPlan.name,
+        price: newPlan.price,
+      },
+      effectiveDate: newPeriodStart,
+      isUpgrade: true,
     };
   }
 

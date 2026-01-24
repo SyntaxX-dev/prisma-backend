@@ -32,8 +32,12 @@ export class AsaasHttpClientService {
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<AsaasConfig>('asaas')!;
 
-    if (!this.config.apiKey) {
-      this.logger.warn('ASAAS_API_KEY não configurada!');
+    if (!this.config.apiKey || this.config.apiKey.trim() === '') {
+      this.logger.error('❌ ASAAS_API_KEY não configurada!');
+      this.logger.error('   Configure a variável de ambiente ASAAS_API_KEY no Railway');
+      this.logger.error('   Obtenha a chave em: https://www.asaas.com/customerApiSettings');
+    } else {
+      this.logger.log('✅ ASAAS_API_KEY configurada');
     }
   }
 
@@ -70,6 +74,18 @@ export class AsaasHttpClientService {
       if (queryString) {
         url += `?${queryString}`;
       }
+    }
+
+    // Validar se API key está configurada antes de fazer requisição
+    if (!this.config.apiKey || this.config.apiKey.trim() === '') {
+      const errorMessage = 'ASAAS_API_KEY não configurada. Configure a variável de ambiente ASAAS_API_KEY no Railway.';
+      this.logger.error(`[Asaas] ${errorMessage}`);
+      throw new AsaasApiError(500, errorMessage, [
+        {
+          code: 'api_key_not_configured',
+          description: errorMessage,
+        },
+      ]);
     }
 
     const headers: HeadersInit = {
