@@ -1046,6 +1046,10 @@ export const subscriptions = pgTable(
     currentPrice: integer('current_price').notNull(), // Em centavos
     // Plano para o qual o usuário quer mudar (upgrade/downgrade)
     pendingPlanChange: subscriptionPlanEnum('pending_plan_change'),
+    // Quando a mudança pendente foi criada (para expiração após 30 min)
+    pendingPlanChangeCreatedAt: timestamp('pending_plan_change_created_at', {
+      withTimezone: false,
+    }),
     // Datas importantes
     startDate: timestamp('start_date', { withTimezone: false }),
     currentPeriodStart: timestamp('current_period_start', {

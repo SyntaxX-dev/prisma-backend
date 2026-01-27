@@ -92,10 +92,18 @@ export class ChangePlanUseCase {
       throw new BadRequestException('Você já está neste plano');
     }
 
-    // Verifica se já tem uma mudança pendente
-    if (subscription.pendingPlanChange) {
+    // Limpa mudanças pendentes expiradas antes de verificar
+    if (subscription.clearExpiredPendingPlanChange()) {
+      this.logger.log(`Mudança de plano expirada foi limpa: ${subscription.id}`);
+      await this.subscriptionRepository.update(subscription);
+    }
+
+    // Verifica se já tem uma mudança pendente (não expirada)
+    if (subscription.hasPendingPlanChange() && subscription.pendingPlanChange) {
+      const remainingMinutes = subscription.getPendingPlanChangeRemainingMinutes() ?? 0;
       throw new BadRequestException(
-        `Já existe uma mudança pendente para o plano ${getPlanById(subscription.pendingPlanChange)?.name}. Aguarde o próximo ciclo ou cancele a mudança.`,
+        `Já existe uma mudança pendente para o plano ${getPlanById(subscription.pendingPlanChange)?.name}. ` +
+        `A mudança expira em ${remainingMinutes} minutos. Aguarde a expiração ou pague a mudança atual.`,
       );
     }
 

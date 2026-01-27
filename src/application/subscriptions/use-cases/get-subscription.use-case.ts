@@ -22,7 +22,13 @@ export interface GetSubscriptionOutput {
   paymentMethod: string | null;
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
-  pendingPlanChange: PlanType | null;
+  pendingPlanChange: {
+    planId: PlanType;
+    planName: string;
+    planPrice: number;
+    createdAt: Date;
+    expiresInMinutes: number;
+  } | null;
   createdAt: Date;
 }
 
@@ -36,7 +42,7 @@ export class GetSubscriptionUseCase {
   constructor(
     @Inject(SUBSCRIPTION_REPOSITORY)
     private readonly subscriptionRepository: SubscriptionRepository,
-  ) {}
+  ) { }
 
   /**
    * Busca assinatura pelo ID do usuário
@@ -48,10 +54,31 @@ export class GetSubscriptionUseCase {
       throw new NotFoundException('Assinatura não encontrada');
     }
 
+    // Verifica e limpa mudança pendente expirada
+    if (subscription.clearExpiredPendingPlanChange()) {
+      this.logger.log(`Mudança de plano expirada foi limpa: ${subscription.id}`);
+      await this.subscriptionRepository.update(subscription);
+    }
+
     const plan = getPlanById(subscription.plan);
 
     if (!plan) {
       throw new NotFoundException('Plano não encontrado');
+    }
+
+    // Prepara informações da mudança pendente
+    let pendingPlanChangeInfo: GetSubscriptionOutput['pendingPlanChange'] = null;
+    if (subscription.hasPendingPlanChange() && subscription.pendingPlanChange) {
+      const pendingPlan = getPlanById(subscription.pendingPlanChange);
+      if (pendingPlan) {
+        pendingPlanChangeInfo = {
+          planId: subscription.pendingPlanChange,
+          planName: pendingPlan.name,
+          planPrice: pendingPlan.price,
+          createdAt: subscription.pendingPlanChangeCreatedAt!,
+          expiresInMinutes: subscription.getPendingPlanChangeRemainingMinutes() ?? 0,
+        };
+      }
     }
 
     return {
@@ -67,7 +94,7 @@ export class GetSubscriptionUseCase {
       paymentMethod: subscription.paymentMethod,
       currentPeriodStart: subscription.currentPeriodStart,
       currentPeriodEnd: subscription.currentPeriodEnd,
-      pendingPlanChange: subscription.pendingPlanChange,
+      pendingPlanChange: pendingPlanChangeInfo,
       createdAt: subscription.createdAt,
     };
   }

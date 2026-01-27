@@ -18,7 +18,7 @@ type DrizzleDb = {
  */
 @Injectable()
 export class SubscriptionRepositoryImpl implements SubscriptionRepository {
-  constructor(@Inject(DRIZZLE_DB) private readonly db: DrizzleDb) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: DrizzleDb) { }
 
   /**
    * Mapeia os dados do banco para a entidade
@@ -34,6 +34,7 @@ export class SubscriptionRepositoryImpl implements SubscriptionRepository {
       data.paymentMethod as PaymentMethod | null,
       data.currentPrice,
       data.pendingPlanChange as PlanType | null,
+      data.pendingPlanChangeCreatedAt ? new Date(data.pendingPlanChangeCreatedAt) : null,
       data.startDate ? new Date(data.startDate) : null,
       data.currentPeriodStart ? new Date(data.currentPeriodStart) : null,
       data.currentPeriodEnd ? new Date(data.currentPeriodEnd) : null,
@@ -58,6 +59,7 @@ export class SubscriptionRepositoryImpl implements SubscriptionRepository {
         paymentMethod: subscription.paymentMethod,
         currentPrice: subscription.currentPrice,
         pendingPlanChange: subscription.pendingPlanChange,
+        pendingPlanChangeCreatedAt: subscription.pendingPlanChangeCreatedAt,
         startDate: subscription.startDate,
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
@@ -137,6 +139,7 @@ export class SubscriptionRepositoryImpl implements SubscriptionRepository {
         paymentMethod: subscription.paymentMethod,
         currentPrice: subscription.currentPrice,
         pendingPlanChange: subscription.pendingPlanChange,
+        pendingPlanChangeCreatedAt: subscription.pendingPlanChangeCreatedAt,
         startDate: subscription.startDate,
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
