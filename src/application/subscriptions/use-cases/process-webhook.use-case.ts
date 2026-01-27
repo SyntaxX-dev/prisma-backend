@@ -102,21 +102,37 @@ export class ProcessWebhookUseCase {
       return;
     }
 
-    // Busca a assinatura pelo ID do Asaas
-    const subscriptionId = payment.subscription;
-    if (!subscriptionId) {
-      this.logger.warn('Pagamento não vinculado a uma assinatura');
-      return;
+    // Verifica se é um pagamento de upgrade pelo externalReference
+    const isUpgradePayment = payment.externalReference?.startsWith('upgrade_');
+    let subscription: any = null;
+
+    // Se for upgrade, extrai o ID da assinatura do externalReference
+    // Formato: upgrade_{subscriptionId}_{newPlanId}_{timestamp}
+    if (isUpgradePayment && payment.externalReference) {
+      const parts = payment.externalReference.split('_');
+      if (parts.length >= 2) {
+        const subscriptionId = parts[1];
+        subscription = await this.subscriptionRepository.findById(subscriptionId);
+        this.logger.log(`Pagamento de upgrade detectado para assinatura: ${subscriptionId}`);
+      }
     }
 
-    const subscription =
-      await this.subscriptionRepository.findByAsaasSubscriptionId(
-        subscriptionId,
+    // Se não é upgrade ou não encontrou pelo externalReference, busca pelo subscription ID do Asaas
+    if (!subscription) {
+      const asaasSubscriptionId = payment.subscription;
+      if (!asaasSubscriptionId) {
+        this.logger.warn('Pagamento não vinculado a uma assinatura');
+        return;
+      }
+
+      subscription = await this.subscriptionRepository.findByAsaasSubscriptionId(
+        asaasSubscriptionId,
       );
+    }
 
     if (!subscription) {
       this.logger.warn(
-        `Assinatura não encontrada para pagamento: ${subscriptionId}`,
+        `Assinatura não encontrada para pagamento: ${payment.id}`,
       );
       return;
     }
@@ -128,9 +144,6 @@ export class ProcessWebhookUseCase {
 
     // Verifica se há mudança de plano pendente para aplicar
     // IMPORTANTE: Só aplica se o pagamento for especificamente para um upgrade
-    // (detectado pelo externalReference que começa com 'upgrade_')
-    const isUpgradePayment = payment.externalReference?.startsWith('upgrade_');
-
     if (subscription.hasPendingPlanChange() && isUpgradePayment) {
       const newPlan = getPlanById(subscription.pendingPlanChange!);
       if (newPlan) {
