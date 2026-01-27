@@ -61,7 +61,7 @@ export class CreateCheckoutUseCase {
     private readonly asaasCustomerService: AsaasCustomerService,
     private readonly asaasSubscriptionService: AsaasSubscriptionService,
     private readonly asaasPaymentService: AsaasPaymentService,
-  ) {}
+  ) { }
 
   async execute(input: CreateCheckoutInput): Promise<CreateCheckoutOutput> {
     const { customerName, customerEmail, planId, billingType, cpfCnpj, phone } =
@@ -129,11 +129,12 @@ export class CreateCheckoutUseCase {
       'PENDING',
       billingType,
       Math.round(plan.price * 100), // Converte para centavos
-      null,
-      null,
-      null,
-      null,
-      null,
+      null, // pendingPlanChange
+      null, // pendingPlanChangeCreatedAt
+      null, // startDate
+      null, // currentPeriodStart
+      null, // currentPeriodEnd
+      null, // cancelledAt
       customerEmail,
       customerName,
     );
