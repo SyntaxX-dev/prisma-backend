@@ -60,6 +60,8 @@ class CreateCheckoutDto {
 }
 
 class ChangePlanDto {
+  @IsEnum(['START', 'PRO', 'ULTRA'], { message: 'Plano deve ser START, PRO ou ULTRA' })
+  @IsNotEmpty({ message: 'Novo plano é obrigatório' })
   newPlanId: 'START' | 'PRO' | 'ULTRA';
 }
 
@@ -106,7 +108,7 @@ export class SubscriptionsController {
     private readonly changePlanUseCase: ChangePlanUseCase,
     private readonly registerWithTokenUseCase: RegisterWithTokenUseCase,
     private readonly asaasWebhookService: AsaasWebhookService,
-  ) {}
+  ) { }
 
   /**
    * Lista todos os planos disponíveis
