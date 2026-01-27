@@ -45,7 +45,7 @@ export const PLANS: Record<PlanType, Plan> = {
   PRO: {
     id: 'PRO',
     name: 'Pro',
-    price: 21.9,
+    price: 39.9,
     description:
       'Para estudantes que querem ir além com acesso à nossa IA de estudos.',
     features: [
@@ -63,7 +63,7 @@ export const PLANS: Record<PlanType, Plan> = {
   ULTRA: {
     id: 'ULTRA',
     name: 'Ultra',
-    price: 41.9,
+    price: 59.9,
     description:
       'Acesso completo e ilimitado a todas as funcionalidades da Prisma Academy.',
     features: [

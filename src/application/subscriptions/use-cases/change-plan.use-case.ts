@@ -30,6 +30,9 @@ export interface ChangePlanOutput {
   };
   effectiveDate: Date | null;
   isUpgrade: boolean;
+  pendingPayment: boolean;
+  newPeriodStart?: Date;
+  newPeriodEnd?: Date;
   proratedAmount?: number;
   unusedDays?: number;
   creditAmount?: number;
@@ -166,6 +169,7 @@ export class ChangePlanUseCase {
       },
       effectiveDate,
       isUpgrade: false,
+      pendingPayment: false,
     };
   }
 
@@ -365,6 +369,11 @@ export class ChangePlanUseCase {
       `Upgrade processado: ${subscription.id} - Plano pendente: ${newPlanId} - Aguardando pagamento: ${amountToCharge > 0}`,
     );
 
+    // Calcula novo período estimado
+    const estimatedPeriodStart = new Date();
+    const estimatedPeriodEnd = new Date();
+    estimatedPeriodEnd.setMonth(estimatedPeriodEnd.getMonth() + 1);
+
     return {
       success: true,
       message,
@@ -379,6 +388,9 @@ export class ChangePlanUseCase {
       },
       effectiveDate: effectiveDateValue,
       isUpgrade: true,
+      pendingPayment: amountToCharge > 0,
+      newPeriodStart: estimatedPeriodStart,
+      newPeriodEnd: estimatedPeriodEnd,
       proratedAmount: newPlan.price,
       unusedDays: daysRemaining,
       creditAmount: creditAmount,
@@ -438,6 +450,9 @@ export class ChangePlanUseCase {
       },
       effectiveDate: newPeriodStart,
       isUpgrade: true,
+      pendingPayment: false,
+      newPeriodStart: newPeriodStart,
+      newPeriodEnd: newPeriodEnd,
     };
   }
 
