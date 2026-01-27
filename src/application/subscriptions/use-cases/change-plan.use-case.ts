@@ -206,7 +206,8 @@ export class ChangePlanUseCase {
       totalDays = Math.ceil(
         (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
       );
-      daysUsed = Math.ceil(
+      // Usa floor para não contar horas parciais como um dia inteiro
+      daysUsed = Math.floor(
         (now.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
       );
       daysRemaining = Math.max(0, totalDays - daysUsed);

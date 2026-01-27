@@ -127,15 +127,22 @@ export class ProcessWebhookUseCase {
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
     // Verifica se há mudança de plano pendente para aplicar
-    // Quando o próximo ciclo começa, aplicamos a mudança
-    if (subscription.hasPendingPlanChange()) {
+    // IMPORTANTE: Só aplica se o pagamento for especificamente para um upgrade
+    // (detectado pelo externalReference que começa com 'upgrade_')
+    const isUpgradePayment = payment.externalReference?.startsWith('upgrade_');
+
+    if (subscription.hasPendingPlanChange() && isUpgradePayment) {
       const newPlan = getPlanById(subscription.pendingPlanChange!);
       if (newPlan) {
         this.logger.log(
-          `Aplicando mudança de plano pendente: ${subscription.plan} -> ${subscription.pendingPlanChange}`,
+          `Aplicando mudança de plano pendente (upgrade pago): ${subscription.plan} -> ${subscription.pendingPlanChange}`,
         );
         subscription.applyPendingPlanChange(Math.round(newPlan.price * 100));
       }
+    } else if (subscription.hasPendingPlanChange() && !isUpgradePayment) {
+      this.logger.log(
+        `Pagamento regular recebido, mantendo mudança pendente: ${subscription.pendingPlanChange}`,
+      );
     }
 
     // Ativa a assinatura
