@@ -15,6 +15,7 @@ import {
 import type { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsEmail, IsEnum, IsOptional } from 'class-validator';
+import type { JwtPayload } from '../../../domain/services/auth.service';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import {
@@ -292,8 +293,8 @@ export class SubscriptionsController {
   @ApiResponse({ status: 200, description: 'Dados da assinatura' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 404, description: 'Assinatura não encontrada' })
-  async getMySubscription(@CurrentUser() user: { id: string }) {
-    const result = await this.getSubscriptionUseCase.execute(user.id);
+  async getMySubscription(@CurrentUser() user: JwtPayload) {
+    const result = await this.getSubscriptionUseCase.execute(user.sub);
 
     return {
       success: true,
@@ -311,8 +312,8 @@ export class SubscriptionsController {
   @ApiResponse({ status: 200, description: 'Assinatura cancelada' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 400, description: 'Erro ao cancelar' })
-  async cancelSubscription(@CurrentUser() user: { id: string }) {
-    const result = await this.cancelSubscriptionUseCase.execute(user.id);
+  async cancelSubscription(@CurrentUser() user: JwtPayload) {
+    const result = await this.cancelSubscriptionUseCase.execute(user.sub);
 
     return {
       success: true,
@@ -330,7 +331,7 @@ export class SubscriptionsController {
   @ApiResponse({ status: 200, description: 'Mudança solicitada' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 400, description: 'Erro na mudança' })
-  async changePlan(@CurrentUser() user: { id: string }, @Body() body: ChangePlanDto) {
+  async changePlan(@CurrentUser() user: JwtPayload, @Body() body: ChangePlanDto) {
     if (!body.newPlanId) {
       throw new BadRequestException('Novo plano é obrigatório');
     }
@@ -340,7 +341,7 @@ export class SubscriptionsController {
     }
 
     const result = await this.changePlanUseCase.execute({
-      userId: user.id,
+      userId: user.sub,
       newPlanId: body.newPlanId as PlanType,
     });
 
@@ -359,8 +360,8 @@ export class SubscriptionsController {
   @ApiOperation({ summary: 'Cancela mudança de plano pendente' })
   @ApiResponse({ status: 200, description: 'Mudança cancelada' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async cancelPlanChange(@CurrentUser() user: { id: string }) {
-    const result = await this.changePlanUseCase.cancelPendingChange(user.id);
+  async cancelPlanChange(@CurrentUser() user: JwtPayload) {
+    const result = await this.changePlanUseCase.cancelPendingChange(user.sub);
 
     return {
       success: true,
@@ -376,10 +377,10 @@ export class SubscriptionsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Verifica acesso do usuário' })
   @ApiResponse({ status: 200, description: 'Status do acesso' })
-  async checkAccess(@CurrentUser() user: { id: string }) {
-    const hasAccess = await this.getSubscriptionUseCase.checkAccess(user.id);
-    const plan = await this.getSubscriptionUseCase.getUserPlan(user.id);
-    const aiLimits = await this.getSubscriptionUseCase.getAILimits(user.id);
+  async checkAccess(@CurrentUser() user: JwtPayload) {
+    const hasAccess = await this.getSubscriptionUseCase.checkAccess(user.sub);
+    const plan = await this.getSubscriptionUseCase.getUserPlan(user.sub);
+    const aiLimits = await this.getSubscriptionUseCase.getAILimits(user.sub);
 
     return {
       success: true,
