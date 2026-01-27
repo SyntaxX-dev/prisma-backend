@@ -52,5 +52,15 @@ export interface SubscriptionRepository {
   findByStatus(
     status: 'PENDING' | 'ACTIVE' | 'OVERDUE' | 'CANCELLED' | 'EXPIRED',
   ): Promise<Subscription[]>;
+
+  /**
+   * Busca assinaturas pendentes criadas há mais de X horas
+   */
+  findPendingSubscriptionsOlderThan(hours: number): Promise<Subscription[]>;
+
+  /**
+   * Deleta uma assinatura
+   */
+  delete(id: string): Promise<void>;
 }
 

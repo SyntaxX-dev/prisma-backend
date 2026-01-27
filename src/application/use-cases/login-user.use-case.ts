@@ -62,9 +62,22 @@ export class LoginUserUseCase {
     // Verificar se o usuário tem assinatura ativa
     // Admin pode acessar sem assinatura
     if (user.role !== 'ADMIN') {
-      const subscription = await this.subscriptionRepository.findByUserId(
+      let subscription = await this.subscriptionRepository.findByUserId(
         user.id,
       );
+
+      // Se não encontrou por userId, tenta buscar por email (caso a subscription não esteja vinculada)
+      if (!subscription) {
+        subscription = await this.subscriptionRepository.findByCustomerEmail(
+          user.email,
+        );
+
+        // Se encontrou por email e está ativa, vincula automaticamente ao usuário
+        if (subscription && subscription.isActive() && !subscription.userId) {
+          subscription.linkUser(user.id);
+          await this.subscriptionRepository.update(subscription);
+        }
+      }
 
       if (!subscription) {
         throw new ForbiddenException(

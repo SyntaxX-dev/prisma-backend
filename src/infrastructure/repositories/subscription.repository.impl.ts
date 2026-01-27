@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, and, lt, sql } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../domain/tokens';
 import type { SubscriptionRepository } from '../../domain/repositories/subscription.repository';
 import { Subscription, SubscriptionStatus, PaymentMethod } from '../../domain/entities/subscription';
@@ -167,6 +167,29 @@ export class SubscriptionRepositoryImpl implements SubscriptionRepository {
       .where(eq(subscriptions.status, status));
 
     return results.map((r: any) => this.mapToEntity(r));
+  }
+
+  async findPendingSubscriptionsOlderThan(hours: number): Promise<Subscription[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setHours(cutoffDate.getHours() - hours);
+
+    const results = await this.db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.status, 'PENDING'),
+          lt(subscriptions.createdAt, cutoffDate),
+        ),
+      );
+
+    return results.map((r: any) => this.mapToEntity(r));
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.db
+      .delete(subscriptions)
+      .where(eq(subscriptions.id, id));
   }
 }
 

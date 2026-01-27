@@ -10,4 +10,5 @@ export * from './change-plan.use-case';
 export * from './register-with-token.use-case';
 export * from './configure-fiscal-info.use-case';
 export * from './configure-auto-invoice.use-case';
+export * from './cleanup-pending-subscriptions.use-case';
 

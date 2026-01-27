@@ -14,7 +14,9 @@ import {
   RegisterWithTokenUseCase,
   ConfigureFiscalInfoUseCase,
   ConfigureAutoInvoiceUseCase,
+  CleanupPendingSubscriptionsUseCase,
 } from './use-cases';
+import { SubscriptionCleanupService } from './services/subscription-cleanup.service';
 import { GetInvoiceHistoryUseCase } from '../invoices/use-cases';
 import {
   SUBSCRIPTION_REPOSITORY,
@@ -54,7 +56,10 @@ import { AutoInvoiceConfigRepositoryImpl } from '../../infrastructure/repositori
     RegisterWithTokenUseCase,
     ConfigureFiscalInfoUseCase,
     ConfigureAutoInvoiceUseCase,
+    CleanupPendingSubscriptionsUseCase,
     GetInvoiceHistoryUseCase,
+    // Services
+    SubscriptionCleanupService,
     // Repositories
     {
       provide: SUBSCRIPTION_REPOSITORY,
