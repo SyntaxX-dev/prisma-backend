@@ -246,8 +246,8 @@ export class ChangePlanUseCase {
     );
 
     // Registra a mudança pendente (NÃO altera o plano ainda!)
-    subscription.pendingPlanChange = newPlanId;
-    subscription.updatedAt = new Date();
+    // Usa o método que também define o timestamp para expiração
+    subscription.requestPlanChange(newPlanId);
 
     // Se há valor a cobrar, cria cobrança no Asaas
     let paymentUrl: string | undefined;
