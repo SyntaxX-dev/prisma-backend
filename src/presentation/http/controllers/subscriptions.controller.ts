@@ -27,6 +27,7 @@ import {
   CancelSubscriptionUseCase,
   ChangePlanUseCase,
   RegisterWithTokenUseCase,
+  CancelPlanChangeUseCase,
 } from '../../../application/subscriptions/use-cases';
 import { EducationLevel } from '../../../domain/enums/education-level';
 import { AsaasWebhookService } from '../../../infrastructure/asaas/services/asaas-webhook.service';
@@ -108,6 +109,7 @@ export class SubscriptionsController {
     private readonly cancelSubscriptionUseCase: CancelSubscriptionUseCase,
     private readonly changePlanUseCase: ChangePlanUseCase,
     private readonly registerWithTokenUseCase: RegisterWithTokenUseCase,
+    private readonly cancelPlanChangeUseCase: CancelPlanChangeUseCase,
     private readonly asaasWebhookService: AsaasWebhookService,
   ) { }
 
@@ -359,9 +361,10 @@ export class SubscriptionsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancela mudança de plano pendente' })
   @ApiResponse({ status: 200, description: 'Mudança cancelada' })
+  @ApiResponse({ status: 400, description: 'Não há mudança pendente' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   async cancelPlanChange(@CurrentUser() user: JwtPayload) {
-    const result = await this.changePlanUseCase.cancelPendingChange(user.sub);
+    const result = await this.cancelPlanChangeUseCase.execute(user.sub);
 
     return {
       success: true,
