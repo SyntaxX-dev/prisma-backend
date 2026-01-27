@@ -284,24 +284,10 @@ export class ChangePlanUseCase {
           'Erro ao processar upgrade. Tente novamente.',
         );
       }
-    } else if (amountToCharge === 0) {
-      // Se o crédito cobre totalmente o upgrade, aplica imediatamente
-      this.logger.log(
-        `Crédito cobre upgrade completamente. Aplicando mudança imediatamente.`,
-      );
-
-      subscription.plan = newPlanId;
-      subscription.currentPrice = newPlanPriceInCents;
-      subscription.pendingPlanChange = null;
-
-      // Reinicia o período
-      const newPeriodStart = new Date();
-      const newPeriodEnd = new Date();
-      newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
-
-      subscription.currentPeriodStart = newPeriodStart;
-      subscription.currentPeriodEnd = newPeriodEnd;
     }
+    // Mesmo se amountToCharge === 0, mantém como pendingPlanChange
+    // O plano só será alterado via webhook quando o pagamento for confirmado
+    // (ou manualmente pelo admin se necessário)
 
     // Salva as alterações
     await this.subscriptionRepository.update(subscription);
@@ -323,47 +309,35 @@ export class ChangePlanUseCase {
     const creditAmount = unusedAmount / 100;
     const chargeAmount = amountToCharge / 100;
 
-    let message = '';
-    let effectiveDateValue: Date | null = null;
+    // Upgrade sempre aguarda pagamento (ou confirmação via webhook)
+    let message = `Upgrade para o plano ${newPlan.name} iniciado!\n\n`;
+    message += `📊 Cálculo do upgrade:\n`;
+    message += `   • Plano atual: ${currentPlan.name} (R$ ${currentPlan.price.toFixed(2)}/mês)\n`;
+    message += `   • Novo plano: ${newPlan.name} (R$ ${newPlan.price.toFixed(2)}/mês)\n`;
+    if (periodStart && periodEnd) {
+      message += `   • Período atual: ${periodStart.toLocaleDateString('pt-BR')} até ${periodEnd.toLocaleDateString('pt-BR')}\n`;
+    }
+    message += `   • Dias utilizados: ${daysUsed} de ${totalDays} dias\n`;
+    message += `   • Dias restantes: ${daysRemaining} dias\n\n`;
 
-    if (amountToCharge === 0) {
-      // Upgrade aplicado imediatamente (crédito cobriu tudo)
-      message = `Upgrade para o plano ${newPlan.name} realizado com sucesso!\n\n`;
-      message += `✅ O crédito de R$ ${creditAmount.toFixed(2)} cobriu totalmente o upgrade.\n`;
-      message += `   Nenhum pagamento adicional necessário!\n\n`;
+    if (unusedAmount > 0) {
+      message += `💰 Crédito aplicado: R$ ${creditAmount.toFixed(2)}\n`;
+      message += `   Foram subtraídos R$ ${creditAmount.toFixed(2)} referentes aos ${daysRemaining} dias não utilizados.\n\n`;
+    }
 
-      const newPeriodStart = new Date();
-      const newPeriodEnd = new Date();
-      newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
-      message += `📅 Novo período: ${newPeriodStart.toLocaleDateString('pt-BR')} até ${newPeriodEnd.toLocaleDateString('pt-BR')}`;
-      effectiveDateValue = newPeriodStart;
-    } else {
-      // Upgrade aguardando pagamento
-      message = `Upgrade para o plano ${newPlan.name} iniciado!\n\n`;
-      message += `📊 Cálculo do upgrade:\n`;
-      message += `   • Plano atual: ${currentPlan.name} (R$ ${currentPlan.price.toFixed(2)}/mês)\n`;
-      message += `   • Novo plano: ${newPlan.name} (R$ ${newPlan.price.toFixed(2)}/mês)\n`;
-      if (periodStart && periodEnd) {
-        message += `   • Período atual: ${periodStart.toLocaleDateString('pt-BR')} até ${periodEnd.toLocaleDateString('pt-BR')}\n`;
-      }
-      message += `   • Dias utilizados: ${daysUsed} de ${totalDays} dias\n`;
-      message += `   • Dias restantes: ${daysRemaining} dias\n\n`;
-
-      if (unusedAmount > 0) {
-        message += `💰 Crédito aplicado: R$ ${creditAmount.toFixed(2)}\n`;
-        message += `   Foram subtraídos R$ ${creditAmount.toFixed(2)} referentes aos ${daysRemaining} dias não utilizados.\n\n`;
-      }
-
+    if (amountToCharge > 0) {
       message += `💳 Valor a pagar: R$ ${chargeAmount.toFixed(2)}\n`;
       message += `   (Valor do novo plano: R$ ${newPlan.price.toFixed(2)} - Crédito: R$ ${creditAmount.toFixed(2)})\n\n`;
-
       if (paymentUrl) {
         message += `🔗 Acesse o link de pagamento para concluir o upgrade.\n\n`;
       }
-
-      message += `⏳ O upgrade será aplicado automaticamente após a confirmação do pagamento.`;
-      effectiveDateValue = null; // Será definido após pagamento
+    } else {
+      message += `✅ O crédito cobre totalmente o valor do upgrade!\n`;
+      message += `   Nenhum pagamento adicional necessário.\n\n`;
     }
+
+    message += `⏳ O upgrade será aplicado automaticamente após a confirmação do pagamento.`;
+    const effectiveDateValue: Date | null = null; // Sempre null até confirmação
 
     this.logger.log(
       `Upgrade processado: ${subscription.id} - Plano pendente: ${newPlanId} - Aguardando pagamento: ${amountToCharge > 0}`,
