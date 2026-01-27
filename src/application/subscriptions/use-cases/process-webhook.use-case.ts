@@ -5,17 +5,24 @@ import {
   REGISTRATION_TOKEN_REPOSITORY,
   MAILER_SERVICE,
   INVOICE_REPOSITORY,
+  USER_REPOSITORY,
+  PASSWORD_HASHER,
 } from '../../../domain/tokens';
 import type { SubscriptionRepository } from '../../../domain/repositories/subscription.repository';
 import type { RegistrationTokenRepository } from '../../../domain/repositories/registration-token.repository';
 import type { MailerServicePort } from '../../../domain/services/mailer';
 import type { InvoiceRepository } from '../../../domain/repositories/invoice.repository';
+import type { UserRepository } from '../../../domain/repositories/user.repository';
+import type { PasswordHasher } from '../../../domain/services/password-hasher';
 import { RegistrationToken } from '../../../domain/entities/registration-token';
+import { User } from '../../../domain/entities/user';
+import { UserRole } from '../../../domain/enums/user-role';
 import { WebhookPayload, WebhookEvent } from '../../../infrastructure/asaas/types';
 import {
   getPlanById,
   PlanType,
 } from '../../../infrastructure/asaas/constants/plans.constants';
+import { CryptoUtil } from '../../../infrastructure/utils/crypto.util';
 
 /**
  * Use case para processar webhooks do Asaas
@@ -38,6 +45,10 @@ export class ProcessWebhookUseCase {
     private readonly mailerService: MailerServicePort,
     @Inject(INVOICE_REPOSITORY)
     private readonly invoiceRepository: InvoiceRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
+    @Inject(PASSWORD_HASHER)
+    private readonly passwordHasher: PasswordHasher,
   ) { }
 
   async execute(payload: WebhookPayload): Promise<void> {
@@ -135,14 +146,111 @@ export class ProcessWebhookUseCase {
       `Assinatura ativada: ${subscription.id} - ${subscription.customerEmail} - Plano: ${subscription.plan}`,
     );
 
-    // Se o usuário ainda não se registrou, cria token e envia email
+    // Se o usuário ainda não se registrou, cria usuário automaticamente com senha gerada
     if (!subscription.userId) {
-      await this.createAndSendRegistrationToken(subscription);
+      await this.createUserAndSendPassword(subscription);
     }
   }
 
   /**
-   * Cria token de registro e envia email
+   * Cria usuário automaticamente com senha gerada e envia email
+   */
+  private async createUserAndSendPassword(subscription: any): Promise<void> {
+    // Verifica se já existe usuário com este email
+    const existingUser = await this.userRepository.findByEmail(
+      subscription.customerEmail,
+    );
+
+    if (existingUser) {
+      // Se usuário já existe, apenas vincula a subscription
+      subscription.linkUser(existingUser.id);
+      await this.subscriptionRepository.update(subscription);
+      this.logger.log(
+        `Subscription vinculada ao usuário existente: ${existingUser.id}`,
+      );
+      return;
+    }
+
+    // Gera senha segura automaticamente
+    const generatedPassword = CryptoUtil.generateSecurePassword(12);
+
+    // Hash da senha
+    const passwordHash = await this.passwordHasher.hash(generatedPassword);
+
+    // Cria usuário com dados mínimos (idade e educationLevel podem ser preenchidos depois)
+    const user = new User(
+      uuidv4(),
+      subscription.customerName,
+      subscription.customerEmail,
+      passwordHash,
+      null, // age - pode ser preenchido depois
+      UserRole.STUDENT,
+      null, // educationLevel - pode ser preenchido depois
+      null, // userFocus
+      null, // contestType
+      null, // collegeCourse
+      null, // badge
+      false, // isProfileComplete
+      null, // profileImage
+      null, // linkedin
+      null, // github
+      null, // portfolio
+      null, // aboutYou
+      null, // habilities
+      null, // momentCareer
+      null, // location
+      null, // instagram
+      null, // twitter
+      null, // socialLinksOrder
+    );
+
+    await this.userRepository.create(user);
+
+    // Vincula a subscription ao usuário
+    subscription.linkUser(user.id);
+    await this.subscriptionRepository.update(subscription);
+
+    this.logger.log(
+      `✅ Usuário criado automaticamente: ${user.id} - Email: ${user.email}`,
+    );
+
+    // Busca o plano para o email
+    const plan = getPlanById(subscription.plan);
+
+    // Valida e constrói o link de login
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl || frontendUrl.trim() === '' || frontendUrl === 'undefined') {
+      this.logger.error(
+        '❌ FRONTEND_URL não configurada! Configure a variável de ambiente FRONTEND_URL no Railway',
+      );
+      this.logger.error(
+        '   Exemplo: FRONTEND_URL=https://seu-frontend.vercel.app',
+      );
+      throw new Error(
+        'FRONTEND_URL não configurada. Não é possível enviar email com senha.',
+      );
+    }
+
+    // Remove barra final se existir para evitar dupla barra
+    const baseUrl = frontendUrl.replace(/\/$/, '');
+    const loginUrl = `${baseUrl}/login`;
+
+    // Envia email com senha gerada
+    await this.mailerService.sendPasswordEmail(
+      subscription.customerEmail,
+      subscription.customerName,
+      generatedPassword,
+      plan?.name || subscription.plan,
+      loginUrl,
+    );
+
+    this.logger.log(
+      `Email com senha enviado para: ${subscription.customerEmail}`,
+    );
+  }
+
+  /**
+   * Cria token de registro e envia email (método antigo - mantido para compatibilidade)
    */
   private async createAndSendRegistrationToken(subscription: any): Promise<void> {
     // Verifica se já existe um token válido

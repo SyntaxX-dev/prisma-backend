@@ -11,6 +11,10 @@ import {
   RegistrationEmailTemplate,
   type RegistrationEmailData,
 } from '../templates/registration-email.template';
+import {
+  PasswordEmailTemplate,
+  type PasswordEmailData,
+} from '../templates/password-email.template';
 import { EmailConfiguration } from '../config/email.config';
 
 @Injectable()
@@ -125,6 +129,41 @@ export class SmtpMailerService implements MailerServicePort {
       console.log(`[Email] Email de registro enviado para ${toEmail}`);
     } catch (error) {
       console.error('[Email] Erro ao enviar email de registro via SMTP:', error);
+      throw error;
+    }
+  }
+
+  async sendPasswordEmail(
+    toEmail: string,
+    toName: string,
+    password: string,
+    planName: string,
+    loginUrl: string,
+  ): Promise<void> {
+    if (!this.smtpProvider) {
+      console.log(
+        `[Email] Senha ${toName} <${toEmail}> - Senha: ${password} (simulado)`,
+      );
+      return;
+    }
+
+    try {
+      const emailData: PasswordEmailData = {
+        toName,
+        toEmail,
+        fromName: this.fromName,
+        fromEmail: this.fromEmail,
+        password,
+        planName,
+        loginUrl,
+      };
+
+      const mailOptions = PasswordEmailTemplate.generate(emailData);
+      await this.smtpProvider.sendMail(mailOptions);
+
+      console.log(`[Email] Email com senha enviado para ${toEmail}`);
+    } catch (error) {
+      console.error('[Email] Erro ao enviar email com senha via SMTP:', error);
       throw error;
     }
   }

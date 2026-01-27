@@ -82,4 +82,43 @@ export class CryptoUtil {
     
     return shuffled;
   }
+
+  /**
+   * Gera uma senha segura aleatória criptograficamente segura
+   * Formato: 12 caracteres com letras maiúsculas, minúsculas, números e símbolos
+   * @param length Comprimento da senha (padrão: 12)
+   * @returns String com senha segura
+   */
+  static generateSecurePassword(length: number = 12): string {
+    if (length < 8) {
+      throw new Error('Senha deve ter pelo menos 8 caracteres');
+    }
+
+    // Caracteres permitidos
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const symbols = '@$!%*?&';
+    const allChars = lowercase + uppercase + numbers + symbols;
+
+    // Garante que a senha tenha pelo menos um de cada tipo
+    const bytes = randomBytes(length);
+    let password = '';
+    
+    // Adiciona pelo menos um de cada tipo
+    password += lowercase[bytes[0] % lowercase.length];
+    password += uppercase[bytes[1] % uppercase.length];
+    password += numbers[bytes[2] % numbers.length];
+    password += symbols[bytes[3] % symbols.length];
+
+    // Preenche o resto com caracteres aleatórios
+    for (let i = 4; i < length; i++) {
+      const randomIndex = bytes[i] % allChars.length;
+      password += allChars[randomIndex];
+    }
+
+    // Embaralha a senha para não ter padrão previsível
+    const passwordArray = password.split('');
+    return CryptoUtil.shuffleArray(passwordArray).join('');
+  }
 }

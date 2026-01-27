@@ -9,6 +9,10 @@ import {
   RegistrationEmailTemplate,
   type RegistrationEmailData,
 } from '../templates/registration-email.template';
+import {
+  PasswordEmailTemplate,
+  type PasswordEmailData,
+} from '../templates/password-email.template';
 
 @Injectable()
 export class ResendMailerService implements MailerServicePort {
@@ -106,6 +110,41 @@ export class ResendMailerService implements MailerServicePort {
     };
 
     const { html, text, subject } = RegistrationEmailTemplate.generate(emailData);
+
+    await this.resend.emails.send({
+      from: `${this.fromName} <${this.fromEmail}>`,
+      to: [toEmail],
+      subject,
+      html,
+      text,
+    });
+  }
+
+  async sendPasswordEmail(
+    toEmail: string,
+    toName: string,
+    password: string,
+    planName: string,
+    loginUrl: string,
+  ): Promise<void> {
+    if (!this.resend) {
+      console.log(
+        `[Email][Resend] Senha ${toName} <${toEmail}> - Senha: ${password} (simulado)`,
+      );
+      return;
+    }
+
+    const emailData: PasswordEmailData = {
+      toName,
+      toEmail,
+      fromName: this.fromName,
+      fromEmail: this.fromEmail,
+      password,
+      planName,
+      loginUrl,
+    };
+
+    const { html, text, subject } = PasswordEmailTemplate.generate(emailData);
 
     await this.resend.emails.send({
       from: `${this.fromName} <${this.fromEmail}>`,

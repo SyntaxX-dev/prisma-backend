@@ -1,5 +1,9 @@
 import nodemailer from 'nodemailer';
 import type { MailerServicePort } from '../../domain/services/mailer';
+import {
+  PasswordEmailTemplate,
+  type PasswordEmailData,
+} from '../email/templates/password-email.template';
 
 interface MinimalTransporter {
   sendMail(options: {
@@ -191,6 +195,41 @@ IMPORTANTE: Este link é válido por 7 dias. Após esse período, você precisar
 ---
 Prisma Academy
     `.trim();
+
+    await this.transporter.sendMail({
+      from: `${this.fromName} <${this.fromEmail}>`,
+      to: `${toName} <${toEmail}>`,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  async sendPasswordEmail(
+    toEmail: string,
+    toName: string,
+    password: string,
+    planName: string,
+    loginUrl: string,
+  ): Promise<void> {
+    if (!this.transporter) {
+      console.log(
+        `[Mailer] Email com senha para ${toName} <${toEmail}> (simulado)`,
+      );
+      return;
+    }
+
+    const emailData: PasswordEmailData = {
+      toName,
+      toEmail,
+      fromName: this.fromName,
+      fromEmail: this.fromEmail,
+      password,
+      planName,
+      loginUrl,
+    };
+
+    const { html, text, subject } = PasswordEmailTemplate.generate(emailData);
 
     await this.transporter.sendMail({
       from: `${this.fromName} <${this.fromEmail}>`,

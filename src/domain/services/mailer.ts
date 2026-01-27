@@ -12,4 +12,11 @@ export interface MailerServicePort {
     registrationLink: string,
     planName: string,
   ): Promise<void>;
+  sendPasswordEmail(
+    toEmail: string,
+    toName: string,
+    password: string,
+    planName: string,
+    loginUrl: string,
+  ): Promise<void>;
 }
