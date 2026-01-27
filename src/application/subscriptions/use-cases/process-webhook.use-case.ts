@@ -381,7 +381,8 @@ export class ProcessWebhookUseCase {
   /**
    * Trata atualização de assinatura
    * 
-   * Útil para confirmar que mudanças de plano foram aplicadas no Asaas
+   * NOTA: Não aplica mudanças de plano aqui - isso só deve acontecer
+   * quando o pagamento de upgrade for confirmado via PAYMENT_CONFIRMED
    */
   private async handleSubscriptionUpdated(
     payload: WebhookPayload,
@@ -400,26 +401,15 @@ export class ProcessWebhookUseCase {
       return;
     }
 
-    // Atualiza o valor atual da assinatura com base no valor do Asaas
-    const newValue = Math.round(subscriptionData.value * 100); // Converte para centavos
+    // Apenas loga a atualização - NÃO aplica mudanças de plano aqui
+    // A mudança de plano só será aplicada quando o pagamento de upgrade for confirmado
+    const newValue = Math.round(subscriptionData.value * 100);
 
-    // Se o valor mudou e há uma mudança pendente, pode ser que a mudança foi aplicada
-    if (subscription.hasPendingPlanChange() && subscription.currentPrice !== newValue) {
-      const newPlan = getPlanById(subscription.pendingPlanChange!);
-      if (newPlan && Math.round(newPlan.price * 100) === newValue) {
-        this.logger.log(
-          `Mudança de plano confirmada via webhook: ${subscription.plan} -> ${subscription.pendingPlanChange}`,
-        );
-        subscription.applyPendingPlanChange(newValue);
-        await this.subscriptionRepository.update(subscription);
-      }
-    } else if (subscription.currentPrice !== newValue) {
-      // Atualiza o preço mesmo sem mudança pendente (caso tenha mudado manualmente no Asaas)
-      subscription.currentPrice = newValue;
-      await this.subscriptionRepository.update(subscription);
+    if (subscription.currentPrice !== newValue) {
       this.logger.log(
-        `Valor da assinatura atualizado: ${subscription.id} - Novo valor: R$ ${(newValue / 100).toFixed(2)}`,
+        `Assinatura atualizada no Asaas: ${subscription.id} - Valor: R$ ${(newValue / 100).toFixed(2)}`,
       );
+      // NÃO atualiza o preço local aqui - o preço só muda após pagamento confirmado
     }
   }
 
