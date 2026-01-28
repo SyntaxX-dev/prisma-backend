@@ -35,6 +35,7 @@ import {
 } from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
 import { GeminiService } from '../../infrastructure/services/gemini.service';
+import { PlanVerificationService } from '../../infrastructure/services/plan-verification.service';
 
 @Module({
   imports: [InfrastructureModule, YouTubeModule],
@@ -82,18 +83,24 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
         videoRepository,
         videoProgressRepository,
         youtubeService,
+        courseRepository,
+        planVerificationService,
       ) =>
         new ListVideosUseCase(
           subCourseRepository,
           videoRepository,
           videoProgressRepository,
           youtubeService,
+          courseRepository,
+          planVerificationService,
         ),
       inject: [
         SUB_COURSE_REPOSITORY,
         VIDEO_REPOSITORY,
         VIDEO_PROGRESS_REPOSITORY,
         YouTubeService,
+        COURSE_REPOSITORY,
+        PlanVerificationService,
       ],
     },
     {
@@ -277,4 +284,4 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     UpdateAllVideoDurationsUseCase,
   ],
 })
-export class CoursesModule {}
+export class CoursesModule { }

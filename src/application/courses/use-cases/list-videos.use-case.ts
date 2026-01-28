@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException, Inject } from '@nestjs/common';
 import type { SubCourseRepository } from '../../../domain/repositories/sub-course.repository';
 import type { VideoRepository } from '../../../domain/repositories/video.repository';
 import type { VideoProgressRepository } from '../../../domain/repositories/video-progress.repository';
+import type { CourseRepository } from '../../../domain/repositories/course.repository';
 import { Video } from '../../../domain/entities/video';
 import { YouTubeService } from '../../../infrastructure/services/youtube.service';
+import { PlanVerificationService } from '../../../infrastructure/services/plan-verification.service';
+import { COURSE_REPOSITORY } from '../../../domain/tokens';
 
 export interface ListVideosInput {
   subCourseId: string;
   userId?: string;
+  userRole?: string; // Para verificar se é admin
 }
 
 export interface VideoWithProgress {
@@ -49,7 +53,10 @@ export class ListVideosUseCase {
     private readonly videoRepository: VideoRepository,
     private readonly videoProgressRepository: VideoProgressRepository,
     private readonly youtubeService: YouTubeService,
-  ) {}
+    @Inject(COURSE_REPOSITORY)
+    private readonly courseRepository: CourseRepository,
+    private readonly planVerificationService: PlanVerificationService,
+  ) { }
 
   async execute(input: ListVideosInput): Promise<ListVideosOutput> {
     // Verificar se o sub-curso existe
@@ -58,6 +65,20 @@ export class ListVideosUseCase {
     );
     if (!subCourse) {
       throw new Error(`Sub-curso com ID "${input.subCourseId}" não encontrado`);
+    }
+
+    // Buscar o curso pai para verificar se é pago
+    const course = await this.courseRepository.findById(subCourse.courseId);
+    if (!course) {
+      throw new Error(`Curso com ID "${subCourse.courseId}" não encontrado`);
+    }
+
+    // Verificar acesso a cursos pagos (admin sempre tem acesso)
+    if (course.isPaid && input.userId && input.userRole !== 'ADMIN') {
+      await this.planVerificationService.requirePaidCourseAccess(
+        input.userId,
+        course.isPaid,
+      );
     }
 
     const videos = await this.videoRepository.findBySubCourseId(

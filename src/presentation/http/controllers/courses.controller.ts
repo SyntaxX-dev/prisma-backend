@@ -50,6 +50,8 @@ import type { UserRepository } from '../../../domain/repositories/user.repositor
 import { Inject } from '@nestjs/common';
 import { USER_REPOSITORY } from '../../../domain/tokens';
 import { getUserPermissions } from '../../../infrastructure/casl/utils/get-user-permissions';
+import { PlanGuard } from '../../../infrastructure/guards/plan.guard';
+import { RequirePlan } from '../../../infrastructure/decorators/require-plan.decorator';
 
 @ApiTags('Courses')
 @ApiBearerAuth('JWT-auth')
@@ -532,6 +534,7 @@ export class CoursesController {
       const result = await this.listVideosUseCase.execute({
         subCourseId,
         userId: user.sub,
+        userRole: user.role,
       });
       return {
         success: true,
@@ -939,6 +942,8 @@ export class CoursesController {
   }
 
   @Post('generate-mind-map')
+  @UseGuards(JwtAuthGuard, PlanGuard)
+  @RequirePlan('PRO', 'ULTRA') // Apenas usuários PRO ou ULTRA podem usar IA
   @ApiOperation({
     summary:
       'Gerar ou regenerar mapa mental de um vídeo usando IA Gemini focado em ENEM',
@@ -974,6 +979,10 @@ export class CoursesController {
         },
       },
     },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acesso negado - plano não permite uso da IA',
   })
   async generateMindMap(
     @Body() generateMindMapDto: GenerateMindMapDto,

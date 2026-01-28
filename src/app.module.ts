@@ -3,6 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PresentationModule } from './presentation/presentation.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { RabbitMQModule } from './infrastructure/rabbitmq/rabbitmq.module';
+import { PlanModule } from './infrastructure/plan/plan.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { RabbitMQModule } from './infrastructure/rabbitmq/rabbitmq.module';
     PresentationModule,
     RedisModule, // Módulo global para Redis
     RabbitMQModule, // Módulo global para RabbitMQ
+    PlanModule, // Módulo global para verificação de planos
   ],
 })
 export class AppModule { }

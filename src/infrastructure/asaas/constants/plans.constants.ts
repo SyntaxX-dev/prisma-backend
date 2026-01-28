@@ -20,6 +20,8 @@ export interface Plan {
   aiSummaryDailyLimit: number;
   aiMindMapDailyLimit: number;
   aiPdfDailyLimit: number;
+  // Se true, o plano não aparece na listagem pública
+  isHidden?: boolean;
 }
 
 export const PLANS: Record<PlanType, Plan> = {
@@ -59,11 +61,12 @@ export const PLANS: Record<PlanType, Plan> = {
     aiSummaryDailyLimit: 10,
     aiMindMapDailyLimit: 10,
     aiPdfDailyLimit: 10,
+    isHidden: true, // Plano oculto - não aparece na listagem pública
   },
   ULTRA: {
     id: 'ULTRA',
     name: 'Ultra',
-    price: 59.9,
+    price: 39.9, // Preço atualizado (anteriormente 59.9)
     description:
       'Acesso completo e ilimitado a todas as funcionalidades da Prisma Academy.',
     features: [
@@ -71,8 +74,11 @@ export const PLANS: Record<PlanType, Plan> = {
       { name: 'Acesso às comunidades', included: true },
       { name: 'Direito a ofensivas', included: true },
       { name: 'Suporte 24/7', included: true },
+      { name: 'Prioridade no suporte 24/7', included: true },
+      { name: 'Acesso a todos os cursos premiums', included: true },
+      { name: 'Acesso as trilhas de aprendizado e PDFs', included: true },
       {
-        name: 'Acesso ilimitado à nossa IA',
+        name: 'Acesso ilimitado à IA de estudos',
         included: true,
         limit: 'unlimited',
       },
@@ -91,9 +97,16 @@ export function getPlanById(planId: PlanType): Plan | undefined {
 }
 
 /**
- * Lista todos os planos disponíveis
+ * Lista todos os planos disponíveis (exclui planos ocultos)
  */
 export function getAllPlans(): Plan[] {
+  return Object.values(PLANS).filter(plan => !plan.isHidden);
+}
+
+/**
+ * Lista todos os planos incluindo os ocultos (uso interno)
+ */
+export function getAllPlansIncludingHidden(): Plan[] {
   return Object.values(PLANS);
 }
 
@@ -104,4 +117,5 @@ export function isPlanUpgrade(fromPlan: PlanType, toPlan: PlanType): boolean {
   const planOrder: PlanType[] = ['START', 'PRO', 'ULTRA'];
   return planOrder.indexOf(toPlan) > planOrder.indexOf(fromPlan);
 }
+
 
