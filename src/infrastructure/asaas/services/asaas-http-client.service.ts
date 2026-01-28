@@ -106,7 +106,19 @@ export class AsaasHttpClientService {
 
     try {
       const response = await fetch(url, fetchOptions);
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch (error) {
+        this.logger.error(
+          `[Asaas] Erro ao fazer parse da resposta (Status ${response.status}). Corpo: ${text}`,
+        );
+        throw new Error(
+          `Resposta inválida do Asaas (Status ${response.status}). Verifique os logs para detalhes.`,
+        );
+      }
 
       if (!response.ok) {
         const errorData = data as AsaasErrorResponse;
