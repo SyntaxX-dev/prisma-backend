@@ -33,6 +33,7 @@ import {
   QUIZ_QUESTION_REPOSITORY,
   QUIZ_OPTION_REPOSITORY,
   QUIZ_ANSWER_REPOSITORY,
+  SUBSCRIPTION_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -70,6 +71,7 @@ import { QuizQuestionDrizzleRepository } from '../repositories/quiz-question.dri
 import { QuizOptionDrizzleRepository } from '../repositories/quiz-option.drizzle.repository';
 import { QuizAnswerDrizzleRepository } from '../repositories/quiz-answer.drizzle.repository';
 import { GeminiService } from '../services/gemini.service';
+import { SubscriptionRepositoryImpl } from '../repositories/subscription.repository.impl';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -245,6 +247,10 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       useFactory: (db: NodePgDatabase) => new QuizAnswerDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
+    {
+      provide: SUBSCRIPTION_REPOSITORY,
+      useClass: SubscriptionRepositoryImpl,
+    },
     CloudinaryService,
     GeminiService,
   ],
@@ -282,8 +288,9 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     QUIZ_QUESTION_REPOSITORY,
     QUIZ_OPTION_REPOSITORY,
     QUIZ_ANSWER_REPOSITORY,
+    SUBSCRIPTION_REPOSITORY,
     CloudinaryService,
     GeminiService,
   ],
 })
-export class InfrastructureModule {}
+export class InfrastructureModule { }

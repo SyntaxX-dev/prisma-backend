@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { PlanGuard } from '../guards/plan.guard';
 import { PlanVerificationService } from '../services/plan-verification.service';
+import { InfrastructureModule } from '../config/infrastructure.module';
 
 /**
  * Módulo global de verificação de planos
@@ -15,6 +16,7 @@ import { PlanVerificationService } from '../services/plan-verification.service';
  */
 @Global()
 @Module({
+    imports: [InfrastructureModule], // Importar para acessar SUBSCRIPTION_REPOSITORY
     providers: [PlanGuard, PlanVerificationService],
     exports: [PlanGuard, PlanVerificationService],
 })
