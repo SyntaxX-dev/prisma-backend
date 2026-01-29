@@ -9,7 +9,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-export const userRoleEnum = pgEnum('user_role', ['STUDENT', 'ADMIN']);
+export const userRoleEnum = pgEnum('user_role', ['STUDENT', 'ADMIN', 'PRODUCER']);
 export const educationLevelEnum = pgEnum('education_level', [
   'ELEMENTARY',
   'HIGH_SCHOOL',

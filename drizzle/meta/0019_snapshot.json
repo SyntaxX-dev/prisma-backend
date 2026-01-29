@@ -3044,6 +3044,8 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< HEAD
+=======
         "mind_map_generations_today": {
           "name": "mind_map_generations_today",
           "type": "integer",
@@ -3064,6 +3066,7 @@
           "notNull": true,
           "default": 5
         },
+>>>>>>> main
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
