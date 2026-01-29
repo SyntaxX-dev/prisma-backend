@@ -44,9 +44,9 @@ class CreateCheckoutDto {
   @IsNotEmpty({ message: 'Email do cliente é obrigatório' })
   customerEmail: string;
 
-  @IsEnum(['START', 'PRO', 'ULTRA'], { message: 'Plano deve ser START, PRO ou ULTRA' })
+  @IsEnum(['START', 'PRO', 'ULTRA', 'PRODUCER'], { message: 'Plano deve ser START, PRO, ULTRA ou PRODUCER' })
   @IsNotEmpty({ message: 'Plano é obrigatório' })
-  planId: 'START' | 'PRO' | 'ULTRA';
+  planId: 'START' | 'PRO' | 'ULTRA' | 'PRODUCER';
 
   @IsEnum(['PIX', 'CREDIT_CARD'], { message: 'Método de pagamento deve ser PIX ou CREDIT_CARD' })
   @IsNotEmpty({ message: 'Método de pagamento é obrigatório' })
@@ -171,7 +171,7 @@ export class SubscriptionsController {
       );
     }
 
-    if (!['START', 'PRO', 'ULTRA'].includes(planId)) {
+    if (!['START', 'PRO', 'ULTRA', 'PRODUCER'].includes(planId)) {
       throw new BadRequestException('Plano inválido');
     }
 
