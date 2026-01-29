@@ -1010,6 +1010,7 @@ export const subscriptionPlanEnum = pgEnum('subscription_plan', [
   'START',
   'PRO',
   'ULTRA',
+  'PRODUCER',
 ]);
 
 export const subscriptionStatusEnum = pgEnum('subscription_status', [
