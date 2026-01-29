@@ -62,9 +62,9 @@ class CreateCheckoutDto {
 }
 
 class ChangePlanDto {
-  @IsEnum(['START', 'PRO', 'ULTRA'], { message: 'Plano deve ser START, PRO ou ULTRA' })
+  @IsEnum(['START', 'PRO', 'ULTRA', 'PRODUCER'], { message: 'Plano deve ser START, PRO, ULTRA ou PRODUCER' })
   @IsNotEmpty({ message: 'Novo plano é obrigatório' })
-  newPlanId: 'START' | 'PRO' | 'ULTRA';
+  newPlanId: 'START' | 'PRO' | 'ULTRA' | 'PRODUCER';
 }
 
 class ValidateTokenDto {
@@ -338,7 +338,7 @@ export class SubscriptionsController {
       throw new BadRequestException('Novo plano é obrigatório');
     }
 
-    if (!['START', 'PRO', 'ULTRA'].includes(body.newPlanId)) {
+    if (!['START', 'PRO', 'ULTRA', 'PRODUCER'].includes(body.newPlanId)) {
       throw new BadRequestException('Plano inválido');
     }
 

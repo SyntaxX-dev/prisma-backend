@@ -2,7 +2,7 @@
  * Definições dos planos da Prisma Academy
  */
 
-export type PlanType = 'START' | 'PRO' | 'ULTRA';
+export type PlanType = 'START' | 'PRO' | 'ULTRA' | 'PRODUCER';
 
 export interface PlanFeature {
   name: string;
@@ -87,6 +87,31 @@ export const PLANS: Record<PlanType, Plan> = {
     aiMindMapDailyLimit: -1,
     aiPdfDailyLimit: -1,
   },
+  PRODUCER: {
+    id: 'PRODUCER',
+    name: 'Produtor',
+    price: 39.9, // Mesmo preço do Ultra
+    description:
+      'Plano exclusivo para produtores de conteúdo com destaque especial na plataforma.',
+    features: [
+      { name: 'Conteúdo segmentado', included: true },
+      { name: 'Acesso às comunidades', included: true },
+      { name: 'Direito a ofensivas', included: true },
+      { name: 'Suporte 24/7', included: true },
+      { name: 'Prioridade no suporte 24/7', included: true },
+      { name: 'Acesso a todos os cursos premiums', included: true },
+      { name: 'Acesso as trilhas de aprendizado e PDFs', included: true },
+      {
+        name: 'Acesso ilimitado à IA de estudos',
+        included: true,
+        limit: 'unlimited',
+      },
+      { name: 'Destaque de cursos patrocinados', included: true },
+    ],
+    aiSummaryDailyLimit: -1, // -1 = ilimitado
+    aiMindMapDailyLimit: -1,
+    aiPdfDailyLimit: -1,
+  },
 };
 
 /**
@@ -114,7 +139,7 @@ export function getAllPlansIncludingHidden(): Plan[] {
  * Verifica se um plano é superior a outro
  */
 export function isPlanUpgrade(fromPlan: PlanType, toPlan: PlanType): boolean {
-  const planOrder: PlanType[] = ['START', 'PRO', 'ULTRA'];
+  const planOrder: PlanType[] = ['START', 'PRO', 'ULTRA', 'PRODUCER'];
   return planOrder.indexOf(toPlan) > planOrder.indexOf(fromPlan);
 }
 
