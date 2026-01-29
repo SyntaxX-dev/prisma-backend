@@ -176,6 +176,13 @@
       "when": 1769526340758,
       "tag": "0024_add_pending_plan_change_created_at",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1769657373687,
+      "tag": "0025_chilly_jamie_braddock",
+      "breakpoints": true
     }
   ]
 }
