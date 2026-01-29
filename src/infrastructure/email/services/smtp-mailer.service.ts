@@ -7,6 +7,14 @@ import {
   WelcomeEmailTemplate,
   type WelcomeEmailData,
 } from '../templates/welcome-email.template';
+import {
+  RegistrationEmailTemplate,
+  type RegistrationEmailData,
+} from '../templates/registration-email.template';
+import {
+  PasswordEmailTemplate,
+  type PasswordEmailData,
+} from '../templates/password-email.template';
 import { EmailConfiguration } from '../config/email.config';
 
 @Injectable()
@@ -88,6 +96,74 @@ export class SmtpMailerService implements MailerServicePort {
       console.log(`[Email] Email "${subject}" enviado para ${to}`);
     } catch (error) {
       console.error('[Email] Erro ao enviar email via SMTP:', error);
+      throw error;
+    }
+  }
+
+  async sendRegistrationEmail(
+    toEmail: string,
+    toName: string,
+    registrationLink: string,
+    planName: string,
+  ): Promise<void> {
+    if (!this.smtpProvider) {
+      console.log(
+        `[Email] Registro ${toName} <${toEmail}> - Link: ${registrationLink} (simulado)`,
+      );
+      return;
+    }
+
+    try {
+      const emailData: RegistrationEmailData = {
+        toName,
+        toEmail,
+        fromName: this.fromName,
+        fromEmail: this.fromEmail,
+        registrationLink,
+        planName,
+      };
+
+      const mailOptions = RegistrationEmailTemplate.generate(emailData);
+      await this.smtpProvider.sendMail(mailOptions);
+
+      console.log(`[Email] Email de registro enviado para ${toEmail}`);
+    } catch (error) {
+      console.error('[Email] Erro ao enviar email de registro via SMTP:', error);
+      throw error;
+    }
+  }
+
+  async sendPasswordEmail(
+    toEmail: string,
+    toName: string,
+    password: string,
+    planName: string,
+    loginUrl: string,
+  ): Promise<void> {
+    if (!this.smtpProvider) {
+      console.log(
+        `[Email] Senha ${toName} <${toEmail}> - Senha: ${password} (simulado)`,
+      );
+      return;
+    }
+
+    try {
+      const emailData: PasswordEmailData = {
+        toName,
+        toEmail,
+        fromName: this.fromName,
+        fromEmail: this.fromEmail,
+        password,
+        planName,
+        loginUrl,
+      };
+
+      const mailOptions = PasswordEmailTemplate.generate(emailData);
+      await this.smtpProvider.sendMail(mailOptions);
+
+      console.log(`[Email] Email com senha enviado para ${toEmail}`);
+    } catch (error) {
+      console.error('[Email] Erro ao enviar email com senha via SMTP:', error);
       throw error;
     }
   }

@@ -7,6 +7,7 @@ export interface CourseRepository {
   findById(id: string): Promise<Course | null>;
   findByName(name: string): Promise<Course | null>;
   findAll(): Promise<Course[]>;
+  findProducerCourses(): Promise<Course[]>;
   update(
     id: string,
     course: Partial<Omit<Course, 'id' | 'createdAt' | 'updatedAt'>>,

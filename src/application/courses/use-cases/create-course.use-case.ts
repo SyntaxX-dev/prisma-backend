@@ -7,6 +7,7 @@ export interface CreateCourseInput {
   description?: string;
   imageUrl?: string;
   isPaid?: boolean;
+  isProducerCourse?: boolean;
 }
 
 export interface CreateCourseOutput {
@@ -29,6 +30,7 @@ export class CreateCourseUseCase {
       input.description,
       input.imageUrl,
       input.isPaid,
+      input.isProducerCourse,
     );
     const course = await this.courseRepository.create(courseData);
 

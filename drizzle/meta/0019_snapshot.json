@@ -1,5 +1,5 @@
 {
-  "id": "f6559e88-15cd-48d5-989c-33d658ee4d44",
+  "id": "85bd1331-c49d-4a2d-bc70-929f2256b9d3",
   "prevId": "8ab6b5f0-9005-4609-930f-00bfc0b2f6d5",
   "version": "7",
   "dialect": "postgresql",
@@ -3044,6 +3044,29 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< HEAD
+=======
+        "mind_map_generations_today": {
+          "name": "mind_map_generations_today",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "mind_map_last_reset_date": {
+          "name": "mind_map_last_reset_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mind_map_daily_limit": {
+          "name": "mind_map_daily_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 5
+        },
+>>>>>>> main
         "created_at": {
           "name": "created_at",
           "type": "timestamp",

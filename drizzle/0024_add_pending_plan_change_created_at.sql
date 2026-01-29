@@ -1,0 +1,1 @@
+ALTER TABLE "subscriptions" ADD COLUMN "pending_plan_change_created_at" timestamp;

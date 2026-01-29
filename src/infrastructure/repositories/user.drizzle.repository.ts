@@ -1,6 +1,11 @@
 import { eq } from 'drizzle-orm';
 import { users } from '../database/schema';
-import type { UserRepository } from '../../domain/repositories/user.repository';
+import type {
+  UserRepository,
+  GenerationLimitInfo,
+  AllLimitsInfo,
+  GenerationType,
+} from '../../domain/repositories/user.repository';
 import type { User } from '../../domain/entities/user';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { UserRole } from '../../domain/enums/user-role';
@@ -239,5 +244,204 @@ export class UserDrizzleRepository implements UserRepository {
       createdAt: row.createdAt,
     };
     return user;
+  }
+
+  async getGenerationLimitInfo(
+    userId: string,
+    type: GenerationType,
+  ): Promise<GenerationLimitInfo> {
+    const rows = await this.db
+      .select({
+        mindMapGenerationsToday: users.mindMapGenerationsToday,
+        mindMapDailyLimit: users.mindMapDailyLimit,
+        mindMapLastResetDate: users.mindMapLastResetDate,
+        textGenerationsToday: users.textGenerationsToday,
+        textDailyLimit: users.textDailyLimit,
+        textLastResetDate: users.textLastResetDate,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    // Calcular data atual e reset no horário de Brasília (UTC-3)
+    const now = new Date();
+    const brazilOffset = -3 * 60; // UTC-3 em minutos
+    const nowInBrazil = new Date(now.getTime() + (now.getTimezoneOffset() + brazilOffset) * 60000);
+
+    // Meia-noite de hoje no horário de Brasília
+    const today = new Date(nowInBrazil);
+    today.setHours(0, 0, 0, 0);
+
+    // Meia-noite do próximo dia no horário de Brasília
+    const tomorrowBrazil = new Date(today);
+    tomorrowBrazil.setDate(tomorrowBrazil.getDate() + 1);
+
+    // Converter para UTC para armazenar
+    const tomorrowUTC = new Date(tomorrowBrazil.getTime() - (now.getTimezoneOffset() + brazilOffset) * 60000);
+    const resetTime = tomorrowUTC.toISOString();
+
+    // Para comparação, usar meia-noite de hoje em UTC
+    const todayUTC = new Date(today.getTime() - (now.getTimezoneOffset() + brazilOffset) * 60000);
+    todayUTC.setHours(0, 0, 0, 0);
+
+    if (type === 'mindmap') {
+      let generationsToday = row.mindMapGenerationsToday;
+      const lastReset = row.mindMapLastResetDate
+        ? new Date(row.mindMapLastResetDate)
+        : null;
+
+      if (!lastReset || lastReset < todayUTC) {
+        generationsToday = 0;
+        await this.db
+          .update(users)
+          .set({
+            mindMapGenerationsToday: 0,
+            mindMapLastResetDate: todayUTC,
+          })
+          .where(eq(users.id, userId));
+      }
+
+      const remainingGenerations = Math.max(
+        0,
+        row.mindMapDailyLimit - generationsToday,
+      );
+
+      return {
+        generationsToday,
+        dailyLimit: row.mindMapDailyLimit,
+        remainingGenerations,
+        canGenerate: remainingGenerations > 0,
+        resetTime,
+      };
+    } else {
+      let generationsToday = row.textGenerationsToday;
+      const lastReset = row.textLastResetDate
+        ? new Date(row.textLastResetDate)
+        : null;
+
+      if (!lastReset || lastReset < todayUTC) {
+        generationsToday = 0;
+        await this.db
+          .update(users)
+          .set({
+            textGenerationsToday: 0,
+            textLastResetDate: todayUTC,
+          })
+          .where(eq(users.id, userId));
+      }
+
+      const remainingGenerations = Math.max(
+        0,
+        row.textDailyLimit - generationsToday,
+      );
+
+      return {
+        generationsToday,
+        dailyLimit: row.textDailyLimit,
+        remainingGenerations,
+        canGenerate: remainingGenerations > 0,
+        resetTime,
+      };
+    }
+  }
+
+  async getAllLimitsInfo(userId: string): Promise<AllLimitsInfo> {
+    const [mindmap, text] = await Promise.all([
+      this.getGenerationLimitInfo(userId, 'mindmap'),
+      this.getGenerationLimitInfo(userId, 'text'),
+    ]);
+
+    return { mindmap, text };
+  }
+
+  async incrementGeneration(
+    userId: string,
+    type: GenerationType,
+  ): Promise<void> {
+    // Calcular data atual e reset no horário de Brasília (UTC-3)
+    const now = new Date();
+    const brazilOffset = -3 * 60; // UTC-3 em minutos
+    const nowInBrazil = new Date(now.getTime() + (now.getTimezoneOffset() + brazilOffset) * 60000);
+
+    // Meia-noite de hoje no horário de Brasília
+    const today = new Date(nowInBrazil);
+    today.setHours(0, 0, 0, 0);
+
+    // Converter para UTC para armazenar
+    const todayUTC = new Date(today.getTime() - (now.getTimezoneOffset() + brazilOffset) * 60000);
+    todayUTC.setHours(0, 0, 0, 0);
+
+    if (type === 'mindmap') {
+      const rows = await this.db
+        .select({
+          generationsToday: users.mindMapGenerationsToday,
+          lastResetDate: users.mindMapLastResetDate,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const row = rows[0];
+      if (!row) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
+
+      if (!lastReset || lastReset < todayUTC) {
+        await this.db
+          .update(users)
+          .set({
+            mindMapGenerationsToday: 1,
+            mindMapLastResetDate: todayUTC,
+          })
+          .where(eq(users.id, userId));
+      } else {
+        await this.db
+          .update(users)
+          .set({
+            mindMapGenerationsToday: row.generationsToday + 1,
+          })
+          .where(eq(users.id, userId));
+      }
+    } else {
+      const rows = await this.db
+        .select({
+          generationsToday: users.textGenerationsToday,
+          lastResetDate: users.textLastResetDate,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const row = rows[0];
+      if (!row) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      const lastReset = row.lastResetDate ? new Date(row.lastResetDate) : null;
+
+      if (!lastReset || lastReset < todayUTC) {
+        await this.db
+          .update(users)
+          .set({
+            textGenerationsToday: 1,
+            textLastResetDate: todayUTC,
+          })
+          .where(eq(users.id, userId));
+      } else {
+        await this.db
+          .update(users)
+          .set({
+            textGenerationsToday: row.generationsToday + 1,
+          })
+          .where(eq(users.id, userId));
+      }
+    }
   }
 }

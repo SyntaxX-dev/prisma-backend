@@ -50,6 +50,7 @@ import { CloudinaryService } from '../../../infrastructure/services/cloudinary.s
 import { COMMUNITY_REPOSITORY } from '../../../domain/tokens';
 import { Inject } from '@nestjs/common';
 import type { CommunityRepository } from '../../../domain/repositories/community.repository';
+import { CryptoUtil } from '../../../infrastructure/utils/crypto.util';
 
 @ApiTags('Communities')
 @Controller('communities')
@@ -672,8 +673,9 @@ export class CommunitiesController {
       allowedFormats = ['pdf'];
     }
 
-    // Gerar publicId único
-    const publicId = `communities/${communityId}/${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    // Gerar publicId único usando aleatoriedade criptográfica
+    // IMPORTANTE: Usa CryptoUtil em vez de Math.random() para segurança
+    const publicId = `communities/${communityId}/${userId}/${CryptoUtil.generateUniqueId()}`;
 
     // Gerar signature
     const signature = this.cloudinaryService.generateUploadSignature({
@@ -730,7 +732,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -767,7 +772,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -799,7 +807,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -829,7 +840,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -860,7 +874,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -890,7 +907,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -919,7 +939,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         error.status || HttpStatus.BAD_REQUEST,
       );
@@ -985,7 +1008,10 @@ export class CommunitiesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );

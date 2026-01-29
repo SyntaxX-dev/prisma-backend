@@ -29,6 +29,11 @@ import {
   COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
   MIND_MAP_REPOSITORY,
   CALL_ROOM_REPOSITORY,
+  QUIZ_SESSION_REPOSITORY,
+  QUIZ_QUESTION_REPOSITORY,
+  QUIZ_OPTION_REPOSITORY,
+  QUIZ_ANSWER_REPOSITORY,
+  SUBSCRIPTION_REPOSITORY,
 } from '../../domain/tokens';
 import { DrizzleService } from './providers/drizzle.service';
 import { UserDrizzleRepository } from '../repositories/user.drizzle.repository';
@@ -61,6 +66,12 @@ import { MessageAttachmentDrizzleRepository } from '../repositories/message-atta
 import { CommunityMessageAttachmentDrizzleRepository } from '../repositories/community-message-attachment.drizzle.repository';
 import { MindMapDrizzleRepository } from '../repositories/mind-map.drizzle.repository';
 import { CallRoomDrizzleRepository } from '../repositories/call-room.drizzle.repository';
+import { QuizSessionDrizzleRepository } from '../repositories/quiz-session.drizzle.repository';
+import { QuizQuestionDrizzleRepository } from '../repositories/quiz-question.drizzle.repository';
+import { QuizOptionDrizzleRepository } from '../repositories/quiz-option.drizzle.repository';
+import { QuizAnswerDrizzleRepository } from '../repositories/quiz-answer.drizzle.repository';
+import { GeminiService } from '../services/gemini.service';
+import { SubscriptionRepositoryImpl } from '../repositories/subscription.repository.impl';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Module({
@@ -216,7 +227,32 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
       useFactory: (db: NodePgDatabase) => new CallRoomDrizzleRepository(db),
       inject: [DRIZZLE_DB],
     },
+    {
+      provide: QUIZ_SESSION_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new QuizSessionDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: QUIZ_QUESTION_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new QuizQuestionDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: QUIZ_OPTION_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new QuizOptionDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: QUIZ_ANSWER_REPOSITORY,
+      useFactory: (db: NodePgDatabase) => new QuizAnswerDrizzleRepository(db),
+      inject: [DRIZZLE_DB],
+    },
+    {
+      provide: SUBSCRIPTION_REPOSITORY,
+      useClass: SubscriptionRepositoryImpl,
+    },
     CloudinaryService,
+    GeminiService,
   ],
   exports: [
     DRIZZLE_DB,
@@ -248,7 +284,13 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
     COMMUNITY_MESSAGE_ATTACHMENT_REPOSITORY,
     MIND_MAP_REPOSITORY,
     CALL_ROOM_REPOSITORY,
+    QUIZ_SESSION_REPOSITORY,
+    QUIZ_QUESTION_REPOSITORY,
+    QUIZ_OPTION_REPOSITORY,
+    QUIZ_ANSWER_REPOSITORY,
+    SUBSCRIPTION_REPOSITORY,
     CloudinaryService,
+    GeminiService,
   ],
 })
-export class InfrastructureModule {}
+export class InfrastructureModule { }

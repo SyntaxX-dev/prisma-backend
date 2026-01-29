@@ -41,7 +41,7 @@ export class ProgressController {
     private readonly updateVideoTimestampUseCase: UpdateVideoTimestampUseCase,
     private readonly getInProgressVideosUseCase: GetInProgressVideosUseCase,
     private readonly testVideoCompletionUseCase: TestVideoCompletionUseCase,
-  ) {}
+  ) { }
 
   @Post('video')
   @ApiOperation({ summary: 'Marcar/desmarcar vídeo como concluído' })
@@ -112,7 +112,10 @@ export class ProgressController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -160,7 +163,10 @@ export class ProgressController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -222,7 +228,10 @@ export class ProgressController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -268,7 +277,10 @@ export class ProgressController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -347,7 +359,8 @@ export class ProgressController {
     @Body() testDto: TestVideoCompletionDto,
   ) {
     try {
-      const userId = testDto.userId || user.sub;
+      // SEGURANÇA: userId SEMPRE vem da sessão JWT, nunca do body da requisição
+      const userId = user.sub;
       const completedAt = new Date(testDto.completedAt);
 
       console.log(`[TEST ENDPOINT] Simulando conclusão de vídeo:`);
@@ -371,7 +384,10 @@ export class ProgressController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );

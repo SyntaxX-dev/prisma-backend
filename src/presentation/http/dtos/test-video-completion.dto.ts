@@ -13,10 +13,6 @@ export class TestVideoCompletionDto {
   @IsDateString()
   @IsNotEmpty()
   completedAt: string;
-
-  @IsOptional()
-  @IsString()
-  userId?: string;
 }
 
 export interface TestVideoCompletionResponse {

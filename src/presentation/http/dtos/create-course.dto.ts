@@ -45,4 +45,15 @@ export class CreateCourseDto {
   @IsBoolean()
   @IsOptional()
   isPaid?: boolean;
+
+  @ApiProperty({
+    description:
+      'Define se o curso pertence a um produtor e deve aparecer em destaque',
+    example: false,
+    required: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isProducerCourse?: boolean;
 }

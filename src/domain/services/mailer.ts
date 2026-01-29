@@ -6,4 +6,17 @@ export interface MailerServicePort {
     html: string,
     text?: string,
   ): Promise<void>;
+  sendRegistrationEmail(
+    toEmail: string,
+    toName: string,
+    registrationLink: string,
+    planName: string,
+  ): Promise<void>;
+  sendPasswordEmail(
+    toEmail: string,
+    toName: string,
+    password: string,
+    planName: string,
+    loginUrl: string,
+  ): Promise<void>;
 }

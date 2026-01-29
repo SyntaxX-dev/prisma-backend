@@ -20,6 +20,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
         content: mindMap.content,
         videoTitle: mindMap.videoTitle,
         videoUrl: mindMap.videoUrl,
+        generationType: mindMap.generationType,
       })
       .returning();
 
@@ -30,6 +31,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
       created.content,
       created.videoTitle,
       created.videoUrl,
+      created.generationType,
       new Date(created.createdAt),
       new Date(created.updatedAt),
     );
@@ -50,6 +52,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
       mindMap.content,
       mindMap.videoTitle,
       mindMap.videoUrl,
+      mindMap.generationType,
       new Date(mindMap.createdAt),
       new Date(mindMap.updatedAt),
     );
@@ -73,6 +76,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
       mindMap.content,
       mindMap.videoTitle,
       mindMap.videoUrl,
+      mindMap.generationType,
       new Date(mindMap.createdAt),
       new Date(mindMap.updatedAt),
     );
@@ -94,6 +98,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
           mindMap.content,
           mindMap.videoTitle,
           mindMap.videoUrl,
+          mindMap.generationType,
           new Date(mindMap.createdAt),
           new Date(mindMap.updatedAt),
         ),
@@ -120,6 +125,7 @@ export class MindMapDrizzleRepository implements MindMapRepository {
       updated.content,
       updated.videoTitle,
       updated.videoUrl,
+      updated.generationType,
       new Date(updated.createdAt),
       new Date(updated.updatedAt),
     );

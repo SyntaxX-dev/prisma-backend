@@ -182,23 +182,15 @@ export class OffensiveService {
       );
       const lastCompletionWasToday =
         lastCompletionDate.getTime() === today.getTime();
-      const lastCompletionWasYesterday =
-        lastCompletionDate.getTime() === yesterday.getTime();
 
-      // Sequência está ativa se:
-      // 1. Completou vídeo hoje, OU
-      // 2. Último vídeo foi completado ontem (usuário ainda tem até 00:00 do próximo dia para completar hoje)
-      // Sequência está quebrada APENAS se o último vídeo foi completado há 2 dias ou mais
-      if (
-        hasCompletedToday ||
-        lastCompletionWasToday ||
-        lastCompletionWasYesterday
-      ) {
-        // Sequência ativa - usuário completou vídeo hoje ou ontem (ainda pode completar hoje)
+      // Sequência está ativa APENAS se completou vídeo HOJE
+      // Se o último vídeo foi ontem ou antes, a sequência já está quebrada
+      if (hasCompletedToday || lastCompletionWasToday) {
+        // Sequência ativa - usuário completou vídeo hoje
         activeStreak = currentOffensive.consecutiveDays;
         currentType = currentOffensive.type;
       } else {
-        // Sequência quebrada (último vídeo foi há 2 dias ou mais) - resetar no banco de dados
+        // Sequência quebrada (não completou vídeo hoje) - resetar no banco de dados
         const daysSinceLastCompletion = Math.floor(
           (today.getTime() - lastCompletionDate.getTime()) /
             (1000 * 60 * 60 * 24),

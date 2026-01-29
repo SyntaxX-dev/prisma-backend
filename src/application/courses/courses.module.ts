@@ -5,9 +5,11 @@ import { CreateCourseUseCase } from './use-cases/create-course.use-case';
 import { CreateSubCourseUseCase } from './use-cases/create-sub-course.use-case';
 import { CreateVideosUseCase } from './use-cases/create-videos.use-case';
 import { ListCoursesUseCase } from './use-cases/list-courses.use-case';
+import { ListProducerCoursesUseCase } from './use-cases/list-producer-courses.use-case';
 import { ListSubCoursesUseCase } from './use-cases/list-sub-courses.use-case';
 import { ListVideosUseCase } from './use-cases/list-videos.use-case';
 import { UpdateCourseSubscriptionUseCase } from './use-cases/update-course-subscription.use-case';
+import { UpdateCourseProducerStatusUseCase } from './use-cases/update-course-producer-status.use-case';
 import { CreateModuleUseCase } from './use-cases/create-module.use-case';
 import { ListModulesUseCase } from './use-cases/list-modules.use-case';
 import { UpdateModuleUseCase } from './use-cases/update-module.use-case';
@@ -20,6 +22,8 @@ import { BulkProcessPlaylistsUseCase } from './use-cases/bulk-process-playlists.
 import { GenerateMindMapUseCase } from './use-cases/generate-mind-map.use-case';
 import { GetMindMapByVideoUseCase } from './use-cases/get-mind-map-by-video.use-case';
 import { ListUserMindMapsUseCase } from './use-cases/list-user-mind-maps.use-case';
+import { UpdateVideoDurationUseCase } from './use-cases/update-video-duration.use-case';
+import { UpdateAllVideoDurationsUseCase } from './use-cases/update-all-video-durations.use-case';
 import {
   COURSE_REPOSITORY,
   SUB_COURSE_REPOSITORY,
@@ -27,9 +31,11 @@ import {
   VIDEO_REPOSITORY,
   VIDEO_PROGRESS_REPOSITORY,
   MIND_MAP_REPOSITORY,
+  USER_REPOSITORY,
 } from '../../domain/tokens';
 import { YouTubeService } from '../../infrastructure/services/youtube.service';
 import { GeminiService } from '../../infrastructure/services/gemini.service';
+import { PlanVerificationService } from '../../infrastructure/services/plan-verification.service';
 
 @Module({
   imports: [InfrastructureModule, YouTubeModule],
@@ -59,6 +65,12 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
       inject: [COURSE_REPOSITORY],
     },
     {
+      provide: ListProducerCoursesUseCase,
+      useFactory: (courseRepository) =>
+        new ListProducerCoursesUseCase(courseRepository),
+      inject: [COURSE_REPOSITORY],
+    },
+    {
       provide: ListSubCoursesUseCase,
       useFactory: (courseRepository, subCourseRepository) =>
         new ListSubCoursesUseCase(courseRepository, subCourseRepository),
@@ -71,24 +83,36 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
         videoRepository,
         videoProgressRepository,
         youtubeService,
+        courseRepository,
+        planVerificationService,
       ) =>
         new ListVideosUseCase(
           subCourseRepository,
           videoRepository,
           videoProgressRepository,
           youtubeService,
+          courseRepository,
+          planVerificationService,
         ),
       inject: [
         SUB_COURSE_REPOSITORY,
         VIDEO_REPOSITORY,
         VIDEO_PROGRESS_REPOSITORY,
         YouTubeService,
+        COURSE_REPOSITORY,
+        PlanVerificationService,
       ],
     },
     {
       provide: UpdateCourseSubscriptionUseCase,
       useFactory: (courseRepository) =>
         new UpdateCourseSubscriptionUseCase(courseRepository),
+      inject: [COURSE_REPOSITORY],
+    },
+    {
+      provide: UpdateCourseProducerStatusUseCase,
+      useFactory: (courseRepository) =>
+        new UpdateCourseProducerStatusUseCase(courseRepository),
       inject: [COURSE_REPOSITORY],
     },
     {
@@ -204,9 +228,9 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     },
     {
       provide: GenerateMindMapUseCase,
-      useFactory: (geminiService, mindMapRepository) =>
-        new GenerateMindMapUseCase(geminiService, mindMapRepository),
-      inject: [GeminiService, MIND_MAP_REPOSITORY],
+      useFactory: (geminiService, mindMapRepository, userRepository) =>
+        new GenerateMindMapUseCase(geminiService, mindMapRepository, userRepository),
+      inject: [GeminiService, MIND_MAP_REPOSITORY, USER_REPOSITORY],
     },
     {
       provide: GetMindMapByVideoUseCase,
@@ -220,6 +244,18 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
         new ListUserMindMapsUseCase(mindMapRepository),
       inject: [MIND_MAP_REPOSITORY],
     },
+    {
+      provide: UpdateVideoDurationUseCase,
+      useFactory: (videoRepository, youtubeService) =>
+        new UpdateVideoDurationUseCase(videoRepository, youtubeService),
+      inject: [VIDEO_REPOSITORY, YouTubeService],
+    },
+    {
+      provide: UpdateAllVideoDurationsUseCase,
+      useFactory: (videoRepository, youtubeService) =>
+        new UpdateAllVideoDurationsUseCase(videoRepository, youtubeService),
+      inject: [VIDEO_REPOSITORY, YouTubeService],
+    },
     GeminiService,
   ],
   exports: [
@@ -227,9 +263,11 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     CreateSubCourseUseCase,
     CreateVideosUseCase,
     ListCoursesUseCase,
+    ListProducerCoursesUseCase,
     ListSubCoursesUseCase,
     ListVideosUseCase,
     UpdateCourseSubscriptionUseCase,
+    UpdateCourseProducerStatusUseCase,
     CreateModuleUseCase,
     ListModulesUseCase,
     UpdateModuleUseCase,
@@ -242,6 +280,8 @@ import { GeminiService } from '../../infrastructure/services/gemini.service';
     GenerateMindMapUseCase,
     GetMindMapByVideoUseCase,
     ListUserMindMapsUseCase,
+    UpdateVideoDurationUseCase,
+    UpdateAllVideoDurationsUseCase,
   ],
 })
-export class CoursesModule {}
+export class CoursesModule { }

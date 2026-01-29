@@ -436,12 +436,14 @@ Responda APENAS com um JSON no seguinte formato:
   }
 
   /**
-   * Gera um mapa mental detalhado sobre um vídeo usando Gemini AI
+   * Gera um mapa mental ou resumo em texto sobre um vídeo usando Gemini AI
+   * @param generationType 'mindmap' para mapa mental visual, 'text' para resumo em texto
    */
   async generateMindMap(
     videoTitle: string,
     videoDescription: string,
     videoUrl: string,
+    generationType: 'mindmap' | 'text' = 'mindmap',
   ): Promise<string> {
     if (!this.apiKey) {
       throw new Error('GEMINI_API_KEY não configurada');
@@ -450,18 +452,18 @@ Responda APENAS com um JSON no seguinte formato:
     const maxRetries = 3;
     let lastError: any;
 
+    const typeLabel = generationType === 'mindmap' ? 'mapa mental' : 'resumo em texto';
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(
-          `[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando mapa mental`,
+          `[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando ${typeLabel}`,
         );
-        const prompt = this.buildMindMapPrompt(
-          videoTitle,
-          videoDescription,
-          videoUrl,
-        );
+        const prompt = generationType === 'mindmap'
+          ? this.buildMindMapPrompt(videoTitle, videoDescription, videoUrl)
+          : this.buildTextSummaryPrompt(videoTitle, videoDescription, videoUrl);
         const response = await this.callGeminiAPI(prompt);
-        console.log('[MindMap] ✅ Mapa mental gerado com sucesso');
+        console.log(`[MindMap] ✅ ${typeLabel} gerado com sucesso`);
         return response;
       } catch (error) {
         lastError = error;
@@ -490,20 +492,20 @@ Responda APENAS com um JSON no seguinte formato:
     videoUrl: string,
   ): string {
     return `
-Crie um mapa mental ESTRUTURADO para ESTUDO DO ENEM sobre o seguinte vídeo educacional:
+Crie um mapa mental ESTRUTURADO sobre o seguinte vídeo educacional:
 
 Título do Vídeo: ${videoTitle}
 Descrição: ${videoDescription}
 URL: ${videoUrl}
 
 CONTEXTO:
-Este mapa mental será usado por estudantes preparando-se para o Exame Nacional do Ensino Médio (ENEM).
-O estudante precisa de informações CLARAS e RÁPIDAS sobre conteúdos que provavelmente cairão na prova.
+Este mapa mental será usado por estudantes preparando-se para provas e concursos.
+O estudante precisa de informações CLARAS e RÁPIDAS sobre conteúdos que provavelmente serão cobrados.
 
 Foque em:
-- Conceitos principais que caem no ENEM
+- Conceitos principais frequentemente cobrados em provas e concursos
 - Aplicações práticas
-- Dicas objetivas de como é cobrado
+- Dicas objetivas de como o tema costuma ser cobrado
 - Conexões interdisciplinares
 
 INSTRUÇÕES:
@@ -520,7 +522,7 @@ INSTRUÇÕES:
    - ### subtópicos
    - - pontos-chave (informações diretas, SEM repetir o título do nó anterior)
    - NÃO use negrito ou formatação especial
-   - 💡 para dicas ENEM
+   - 💡 para dicas de como os concursos costumam cobrar
    - 🔗 para conexões interdisciplinares
 
 3. REGRA IMPORTANTE:
@@ -543,13 +545,13 @@ INSTRUÇÕES:
 
 EXEMPLO:
 
-# Biomas Brasileiros - ENEM
+# Biomas Brasileiros
 
 ## Floresta Amazônica
 ### Características
 - Maior floresta tropical do mundo
 - 60% no território brasileiro
-- 💡 ENEM cobra: biodiversidade e desmatamento
+- 💡 Os concursos costumam cobrar: biodiversidade e desmatamento
 
 ### Importância Ambiental
 - Regulação climática global
@@ -559,9 +561,222 @@ EXEMPLO:
 ### Características
 - Savana brasileira
 - Vegetação adaptada ao fogo
-- 💡 ENEM cobra: queimadas e agricultura
+- 💡 Os concursos costumam cobrar: queimadas e agricultura
 
 Gere o mapa mental:
 `;
+  }
+
+  private buildTextSummaryPrompt(
+    videoTitle: string,
+    videoDescription: string,
+    videoUrl: string,
+  ): string {
+    return `
+Crie um RESUMO DETALHADO em texto corrido sobre o seguinte vídeo educacional:
+
+Título do Vídeo: ${videoTitle}
+Descrição: ${videoDescription}
+URL: ${videoUrl}
+
+CONTEXTO:
+Este resumo será usado por estudantes preparando-se para provas e concursos.
+O estudante precisa de informações CLARAS e COMPLETAS sobre o conteúdo do vídeo.
+
+INSTRUÇÕES:
+1. Estruture o resumo em seções claras com títulos
+2. Use linguagem acessível e didática
+3. Destaque conceitos importantes
+4. Inclua exemplos práticos quando relevante
+5. Mencione como os concursos costumam cobrar os temas abordados
+6. Faça conexões interdisciplinares quando possível
+
+FORMATO:
+- Use markdown para formatação
+- # para título principal
+- ## para seções
+- ### para subseções
+- Use parágrafos completos e bem desenvolvidos
+- Inclua listas quando apropriado para facilitar a memorização
+- Use 💡 para dicas de como os concursos costumam cobrar
+- Use 🔗 para conexões interdisciplinares
+- Use 📌 para pontos importantes a memorizar
+
+EXEMPLO DE ESTRUTURA:
+
+# [Título do Tema]
+
+## Introdução
+[Parágrafo introdutório contextualizando o tema e sua importância]
+
+## Conceitos Fundamentais
+[Explicação detalhada dos conceitos principais]
+
+### [Subtema 1]
+[Explicação completa com exemplos]
+
+💡 **Como cai nas provas:** [Explicação de como o tema é cobrado]
+
+### [Subtema 2]
+[Explicação completa com exemplos]
+
+## Aplicações Práticas
+[Como o conhecimento se aplica na prática]
+
+## Pontos-Chave para Memorização
+📌 [Lista dos pontos mais importantes]
+
+## Conexões com Outros Temas
+🔗 [Relações interdisciplinares]
+
+Gere o resumo:
+`;
+  }
+
+  /**
+   * Gera questões de múltipla escolha sobre um tema usando Gemini AI
+   */
+  async generateQuizQuestions(topic: string): Promise<{
+    questions: Array<{
+      question: string;
+      options: string[];
+      correctOption: number;
+      explanation: string;
+    }>;
+  }> {
+    if (!this.apiKey) {
+      throw new Error('GEMINI_API_KEY não configurada');
+    }
+
+    const maxRetries = 3;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `[Quiz] Tentativa ${attempt}/${maxRetries} - Gerando questões sobre: ${topic}`,
+        );
+        const prompt = this.buildQuizPrompt(topic);
+        const response = await this.callGeminiAPI(prompt);
+        const parsed = this.parseQuizResponse(response);
+        console.log(
+          `[Quiz] ✅ ${parsed.questions.length} questões geradas com sucesso`,
+        );
+        return parsed;
+      } catch (error) {
+        lastError = error;
+        console.error(`[Quiz] ❌ Erro na tentativa ${attempt}:`, error);
+
+        if (attempt < maxRetries) {
+          const waitTime = attempt * 2000;
+          console.log(
+            `[Quiz] ⏳ Aguardando ${waitTime}ms antes de tentar novamente...`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+      }
+    }
+
+    console.error('[Quiz] ❌ Todas as tentativas falharam');
+    throw new Error(
+      `Erro ao gerar questões após ${maxRetries} tentativas: ${lastError?.message || 'Erro desconhecido'}`,
+    );
+  }
+
+  private buildQuizPrompt(topic: string): string {
+    return `
+Você é um professor especialista. Gere exatamente 10 questões de múltipla escolha sobre o tema: "${topic}"
+
+REGRAS OBRIGATÓRIAS:
+- Exatamente 10 questões
+- Cada questão deve ter exatamente 4 alternativas
+- correctOption deve ser um número de 1 a 4 (não índice 0-3)
+- Explicação clara e educativa de 2-3 linhas
+- Nível: Ensino Médio/ENEM
+- Questões devem ser desafiadoras mas justas
+- Alternativas incorretas devem ser plausíveis
+
+FORMATO DE RESPOSTA - RETORNE APENAS O JSON, SEM MARKDOWN:
+{
+  "questions": [
+    {
+      "question": "Texto da pergunta aqui?",
+      "options": ["Alternativa 1", "Alternativa 2", "Alternativa 3", "Alternativa 4"],
+      "correctOption": 2,
+      "explanation": "Explicação detalhada da resposta correta"
+    }
+  ]
+}
+
+IMPORTANTE:
+- Retorne APENAS o JSON puro, sem \`\`\`json ou markdown
+- O array "questions" deve ter EXATAMENTE 10 itens
+- correctOption: número de 1 a 4
+`.trim();
+  }
+
+  private parseQuizResponse(response: string): {
+    questions: Array<{
+      question: string;
+      options: string[];
+      correctOption: number;
+      explanation: string;
+    }>;
+  } {
+    let cleanedResponse = response.trim();
+    if (cleanedResponse.startsWith('```json')) {
+      cleanedResponse = cleanedResponse
+        .replace(/^```json\n?/, '')
+        .replace(/\n?```$/, '');
+    } else if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse
+        .replace(/^```\n?/, '')
+        .replace(/\n?```$/, '');
+    }
+
+    try {
+      const parsed = JSON.parse(cleanedResponse);
+
+      if (!parsed.questions || !Array.isArray(parsed.questions)) {
+        throw new Error(
+          'Estrutura de resposta inválida - campo "questions" não encontrado',
+        );
+      }
+
+      if (parsed.questions.length !== 10) {
+        throw new Error(
+          `IA gerou ${parsed.questions.length} questões ao invés de 10`,
+        );
+      }
+
+      parsed.questions.forEach((q: any, index: number) => {
+        if (!q.question || typeof q.question !== 'string') {
+          throw new Error(`Questão ${index + 1} inválida: texto ausente`);
+        }
+        if (!Array.isArray(q.options) || q.options.length !== 4) {
+          throw new Error(
+            `Questão ${index + 1} inválida: deve ter 4 alternativas`,
+          );
+        }
+        if (
+          typeof q.correctOption !== 'number' ||
+          q.correctOption < 1 ||
+          q.correctOption > 4
+        ) {
+          throw new Error(
+            `Questão ${index + 1} inválida: correctOption deve ser 1-4`,
+          );
+        }
+        if (!q.explanation || typeof q.explanation !== 'string') {
+          throw new Error(`Questão ${index + 1} inválida: explicação ausente`);
+        }
+      });
+
+      return parsed;
+    } catch (error) {
+      console.error('Erro ao parsear resposta do Gemini:', error);
+      console.error('Resposta recebida:', response);
+      throw error;
+    }
   }
 }

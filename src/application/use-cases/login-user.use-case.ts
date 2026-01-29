@@ -1,14 +1,16 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import {
   USER_REPOSITORY,
   PASSWORD_HASHER,
   AUTH_SERVICE,
   NOTIFICATION_SERVICE,
+  SUBSCRIPTION_REPOSITORY,
 } from '../../domain/tokens';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { PasswordHasher } from '../../domain/services/password-hasher';
 import type { AuthService } from '../../domain/services/auth.service';
 import type { NotificationService } from '../../domain/services/notification.service';
+import type { SubscriptionRepository } from '../../domain/repositories/subscription.repository';
 
 export interface LoginInput {
   email: string;
@@ -39,6 +41,8 @@ export class LoginUserUseCase {
     @Inject(AUTH_SERVICE) private readonly authService: AuthService,
     @Inject(NOTIFICATION_SERVICE)
     private readonly notificationService: NotificationService,
+    @Inject(SUBSCRIPTION_REPOSITORY)
+    private readonly subscriptionRepository: SubscriptionRepository,
   ) {}
 
   async execute(input: LoginInput): Promise<LoginOutput> {
@@ -53,6 +57,44 @@ export class LoginUserUseCase {
     );
     if (!valid) {
       throw new UnauthorizedException('Credenciais inválidas');
+    }
+
+    // Verificar se o usuário tem assinatura ativa
+    // Admin pode acessar sem assinatura
+    if (user.role !== 'ADMIN') {
+      let subscription = await this.subscriptionRepository.findByUserId(
+        user.id,
+      );
+
+      // Se não encontrou por userId, tenta buscar por email (caso a subscription não esteja vinculada)
+      if (!subscription) {
+        subscription = await this.subscriptionRepository.findByCustomerEmail(
+          user.email,
+        );
+
+        // Se encontrou por email e está ativa, vincula automaticamente ao usuário
+        if (subscription && subscription.isActive() && !subscription.userId) {
+          subscription.linkUser(user.id);
+          await this.subscriptionRepository.update(subscription);
+        }
+      }
+
+      if (!subscription) {
+        throw new ForbiddenException(
+          'Você precisa ter uma assinatura ativa para acessar a plataforma. Por favor, realize o pagamento primeiro.',
+        );
+      }
+
+      if (!subscription.hasAccess()) {
+        const statusMessage =
+          subscription.status === 'CANCELLED'
+            ? 'Sua assinatura foi cancelada. Você terá acesso até o final do período pago.'
+            : subscription.status === 'OVERDUE'
+              ? 'Sua assinatura está em atraso. Por favor, realize o pagamento para continuar acessando.'
+              : 'Sua assinatura não está ativa. Por favor, realize o pagamento para acessar a plataforma.';
+
+        throw new ForbiddenException(statusMessage);
+      }
     }
 
     const payload = {

@@ -19,6 +19,7 @@ export class CourseDrizzleRepository implements CourseRepository {
         description: course.description,
         imageUrl: course.imageUrl,
         isPaid: course.isPaid ? 'true' : 'false',
+        isProducerCourse: course.isProducerCourse ? 'true' : 'false',
       })
       .returning();
 
@@ -28,6 +29,7 @@ export class CourseDrizzleRepository implements CourseRepository {
       created.description,
       created.imageUrl,
       created.isPaid === 'true',
+      created.isProducerCourse === 'true',
       created.createdAt,
       created.updatedAt,
     );
@@ -47,6 +49,7 @@ export class CourseDrizzleRepository implements CourseRepository {
       course.description,
       course.imageUrl,
       course.isPaid === 'true',
+      course.isProducerCourse === 'true',
       course.createdAt,
       course.updatedAt,
     );
@@ -66,6 +69,7 @@ export class CourseDrizzleRepository implements CourseRepository {
       course.description,
       course.imageUrl,
       course.isPaid === 'true',
+      course.isProducerCourse === 'true',
       course.createdAt,
       course.updatedAt,
     );
@@ -85,6 +89,29 @@ export class CourseDrizzleRepository implements CourseRepository {
           course.description,
           course.imageUrl,
           course.isPaid === 'true',
+          course.isProducerCourse === 'true',
+          course.createdAt,
+          course.updatedAt,
+        ),
+    );
+  }
+
+  async findProducerCourses(): Promise<Course[]> {
+    const producerCourses = await this.drizzleService.db
+      .select()
+      .from(courses)
+      .where(eq(courses.isProducerCourse, 'true'))
+      .orderBy(courses.createdAt);
+
+    return producerCourses.map(
+      (course) =>
+        new Course(
+          course.id,
+          course.name,
+          course.description,
+          course.imageUrl,
+          course.isPaid === 'true',
+          course.isProducerCourse === 'true',
           course.createdAt,
           course.updatedAt,
         ),
@@ -95,15 +122,29 @@ export class CourseDrizzleRepository implements CourseRepository {
     id: string,
     course: Partial<Omit<Course, 'id' | 'createdAt' | 'updatedAt'>>,
   ): Promise<Course> {
+    const updateData: Partial<typeof courses.$inferInsert> = {};
+
+    if (typeof course.name !== 'undefined') {
+      updateData.name = course.name;
+    }
+    if (typeof course.description !== 'undefined') {
+      updateData.description = course.description;
+    }
+    if (typeof course.imageUrl !== 'undefined') {
+      updateData.imageUrl = course.imageUrl;
+    }
+    if (typeof course.isPaid !== 'undefined') {
+      updateData.isPaid = course.isPaid ? 'true' : 'false';
+    }
+    if (typeof course.isProducerCourse !== 'undefined') {
+      updateData.isProducerCourse = course.isProducerCourse ? 'true' : 'false';
+    }
+
+    updateData.updatedAt = new Date();
+
     const [updated] = await this.drizzleService.db
       .update(courses)
-      .set({
-        name: course.name,
-        description: course.description,
-        imageUrl: course.imageUrl,
-        isPaid: course.isPaid ? 'true' : 'false',
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(courses.id, id))
       .returning();
 
@@ -113,6 +154,7 @@ export class CourseDrizzleRepository implements CourseRepository {
       updated.description,
       updated.imageUrl,
       updated.isPaid === 'true',
+      updated.isProducerCourse === 'true',
       updated.createdAt,
       updated.updatedAt,
     );

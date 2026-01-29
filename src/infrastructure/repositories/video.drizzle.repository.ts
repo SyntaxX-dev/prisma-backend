@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import { VideoRepository } from '../../domain/repositories/video.repository';
 import { Video } from '../../domain/entities/video';
 import { DrizzleService } from '../config/providers/drizzle.service';
@@ -300,6 +300,38 @@ export class VideoDrizzleRepository implements VideoRepository {
       .returning();
 
     return created.map(
+      (video) =>
+        new Video(
+          video.id,
+          video.moduleId,
+          video.subCourseId,
+          video.videoId,
+          video.title,
+          video.description,
+          video.url,
+          video.thumbnailUrl,
+          video.duration,
+          video.channelTitle,
+          video.channelId,
+          video.channelThumbnailUrl,
+          video.publishedAt,
+          video.viewCount,
+          video.tags,
+          video.category,
+          video.order,
+          video.createdAt,
+          video.updatedAt,
+        ),
+    );
+  }
+
+  async findVideosWithoutDuration(): Promise<Video[]> {
+    const videosList = await this.drizzleService.db
+      .select()
+      .from(videos)
+      .where(isNull(videos.duration));
+
+    return videosList.map(
       (video) =>
         new Video(
           video.id,

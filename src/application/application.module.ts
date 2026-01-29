@@ -12,6 +12,7 @@ import { ListNotificationsUseCase } from './use-cases/list-notifications.use-cas
 import { InfrastructureModule } from '../infrastructure/config/infrastructure.module';
 import { EmailModule } from '../infrastructure/email/email.module';
 import { AuthModule } from '../infrastructure/auth/auth.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import {
   OFFENSIVE_SERVICE,
   VIDEO_REPOSITORY,
@@ -19,7 +20,7 @@ import {
 } from '../domain/tokens';
 
 @Module({
-  imports: [InfrastructureModule, EmailModule, AuthModule],
+  imports: [InfrastructureModule, EmailModule, AuthModule, SubscriptionsModule],
   providers: [
     RegisterUserUseCase,
     LoginUserUseCase,

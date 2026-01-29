@@ -7,6 +7,7 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,15 +24,19 @@ import { ListCoursesUseCase } from '../../../application/courses/use-cases/list-
 import { ListSubCoursesUseCase } from '../../../application/courses/use-cases/list-sub-courses.use-case';
 import { ListVideosUseCase } from '../../../application/courses/use-cases/list-videos.use-case';
 import { UpdateCourseSubscriptionUseCase } from '../../../application/courses/use-cases/update-course-subscription.use-case';
+import { UpdateCourseProducerStatusUseCase } from '../../../application/courses/use-cases/update-course-producer-status.use-case';
 import { ProcessYouTubePlaylistUseCase } from '../../../application/courses/use-cases/process-youtube-playlist.use-case';
 import { BulkProcessPlaylistsUseCase } from '../../../application/courses/use-cases/bulk-process-playlists.use-case';
 import { GenerateMindMapUseCase } from '../../../application/courses/use-cases/generate-mind-map.use-case';
 import { GetMindMapByVideoUseCase } from '../../../application/courses/use-cases/get-mind-map-by-video.use-case';
 import { ListUserMindMapsUseCase } from '../../../application/courses/use-cases/list-user-mind-maps.use-case';
+import { UpdateAllVideoDurationsUseCase } from '../../../application/courses/use-cases/update-all-video-durations.use-case';
+import { ListProducerCoursesUseCase } from '../../../application/courses/use-cases/list-producer-courses.use-case';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
 import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
+import { UpdateCourseProducerDto } from '../dtos/update-course-producer.dto';
 import { ProcessYouTubePlaylistDto } from '../dtos/process-youtube-playlist.dto';
 import { BulkProcessPlaylistsDto } from '../dtos/bulk-process-playlists.dto';
 import {
@@ -39,9 +44,14 @@ import {
   GetMindMapByVideoDto,
 } from '../dtos/generate-mind-map.dto';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
-import { AdminGuard } from '../../../infrastructure/guards/admin.guard';
 import { CurrentUser } from '../../../infrastructure/auth/user.decorator';
 import type { JwtPayload } from '../../../infrastructure/auth/jwt.strategy';
+import type { UserRepository } from '../../../domain/repositories/user.repository';
+import { Inject } from '@nestjs/common';
+import { USER_REPOSITORY } from '../../../domain/tokens';
+import { getUserPermissions } from '../../../infrastructure/casl/utils/get-user-permissions';
+import { PlanGuard } from '../../../infrastructure/guards/plan.guard';
+import { RequirePlan } from '../../../infrastructure/decorators/require-plan.decorator';
 
 @ApiTags('Courses')
 @ApiBearerAuth('JWT-auth')
@@ -56,15 +66,18 @@ export class CoursesController {
     private readonly listSubCoursesUseCase: ListSubCoursesUseCase,
     private readonly listVideosUseCase: ListVideosUseCase,
     private readonly updateCourseSubscriptionUseCase: UpdateCourseSubscriptionUseCase,
+    private readonly updateCourseProducerStatusUseCase: UpdateCourseProducerStatusUseCase,
     private readonly processYouTubePlaylistUseCase: ProcessYouTubePlaylistUseCase,
     private readonly bulkProcessPlaylistsUseCase: BulkProcessPlaylistsUseCase,
     private readonly generateMindMapUseCase: GenerateMindMapUseCase,
     private readonly getMindMapByVideoUseCase: GetMindMapByVideoUseCase,
     private readonly listUserMindMapsUseCase: ListUserMindMapsUseCase,
-  ) {}
+    private readonly updateAllVideoDurationsUseCase: UpdateAllVideoDurationsUseCase,
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    private readonly listProducerCoursesUseCase: ListProducerCoursesUseCase,
+  ) { }
 
   @Post()
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Criar um novo curso (Apenas Admin)' })
   @ApiBody({ type: CreateCourseDto })
   @ApiResponse({
@@ -88,6 +101,7 @@ export class CoursesController {
               example: 'https://exemplo.com/prf-logo.png',
             },
             isPaid: { type: 'boolean', example: false },
+            isProducerCourse: { type: 'boolean', example: false },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -109,7 +123,15 @@ export class CoursesController {
       },
     },
   })
-  async createCourse(@Body() createCourseDto: CreateCourseDto) {
+  async createCourse(
+    @CurrentUser() user: JwtPayload,
+    @Body() createCourseDto: CreateCourseDto,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para criar cursos');
+    }
+
     try {
       const result = await this.createCourseUseCase.execute(createCourseDto);
       return {
@@ -120,7 +142,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -152,6 +177,7 @@ export class CoursesController {
                 example: 'https://exemplo.com/prf-logo.png',
               },
               isPaid: { type: 'boolean', example: false },
+              isProducerCourse: { type: 'boolean', example: false },
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
             },
@@ -171,7 +197,65 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('producers')
+  @ApiOperation({ summary: 'Listar cursos de produtores' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de cursos de produtores retornada com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'uuid-do-curso' },
+              name: { type: 'string', example: 'Curso do Produtor X' },
+              description: {
+                type: 'string',
+                example: 'Treinamento exclusivo do produtor X',
+              },
+              imageUrl: {
+                type: 'string',
+                example: 'https://exemplo.com/produtor.png',
+              },
+              isPaid: { type: 'boolean', example: true },
+              isProducerCourse: { type: 'boolean', example: true },
+              createdAt: { type: 'string', format: 'date-time' },
+              updatedAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async listProducerCourses() {
+    try {
+      const result = await this.listProducerCoursesUseCase.execute();
+      return {
+        success: true,
+        data: result.courses,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -179,7 +263,6 @@ export class CoursesController {
   }
 
   @Post(':courseId/sub-courses')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Criar um novo sub-curso (Apenas Admin)' })
   @ApiParam({
     name: 'courseId',
@@ -213,9 +296,15 @@ export class CoursesController {
     },
   })
   async createSubCourse(
+    @CurrentUser() user: JwtPayload,
     @Param('courseId') courseId: string,
     @Body() createSubCourseDto: CreateSubCourseDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para criar sub-cursos');
+    }
+
     try {
       const result = await this.createSubCourseUseCase.execute({
         courseId,
@@ -229,7 +318,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -287,7 +379,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -295,7 +390,6 @@ export class CoursesController {
   }
 
   @Post('sub-courses/:subCourseId/videos')
-  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Adicionar vídeos a um sub-curso (Apenas Admin)' })
   @ApiParam({
     name: 'subCourseId',
@@ -346,9 +440,15 @@ export class CoursesController {
     },
   })
   async createVideos(
+    @CurrentUser() user: JwtPayload,
     @Param('subCourseId') subCourseId: string,
     @Body() createVideosDto: CreateVideosDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para adicionar vídeos');
+    }
+
     try {
       const result = await this.createVideosUseCase.execute({
         subCourseId,
@@ -367,7 +467,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -431,6 +534,7 @@ export class CoursesController {
       const result = await this.listVideosUseCase.execute({
         subCourseId,
         userId: user.sub,
+        userRole: user.role,
       });
       return {
         success: true,
@@ -441,7 +545,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -449,7 +556,6 @@ export class CoursesController {
   }
 
   @Post(':courseId/subscription')
-  @UseGuards(AdminGuard)
   @ApiOperation({
     summary: 'Atualizar status de assinatura do curso (Apenas Admin)',
   })
@@ -480,6 +586,7 @@ export class CoursesController {
               example: 'https://exemplo.com/prf-logo.png',
             },
             isPaid: { type: 'boolean', example: true },
+            isProducerCourse: { type: 'boolean', example: false },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -502,9 +609,15 @@ export class CoursesController {
     },
   })
   async updateCourseSubscription(
+    @CurrentUser() user: JwtPayload,
     @Param('courseId') courseId: string,
     @Body() updateCourseSubscriptionDto: UpdateCourseSubscriptionDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('update', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para atualizar cursos');
+    }
+
     try {
       const result = await this.updateCourseSubscriptionUseCase.execute({
         courseId,
@@ -518,7 +631,83 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post(':courseId/producer-status')
+  @ApiOperation({
+    summary: 'Marcar ou desmarcar curso como curso de produtor (Apenas Admin)',
+  })
+  @ApiParam({
+    name: 'courseId',
+    description: 'ID do curso',
+    example: 'uuid-do-curso',
+  })
+  @ApiBody({ type: UpdateCourseProducerDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Status de produtor atualizado com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-do-curso' },
+            name: { type: 'string', example: 'Curso do Produtor' },
+            description: {
+              type: 'string',
+              example: 'Conteúdo avançado exclusivo',
+            },
+            imageUrl: {
+              type: 'string',
+              example: 'https://exemplo.com/produtor.png',
+            },
+            isPaid: { type: 'boolean', example: true },
+            isProducerCourse: { type: 'boolean', example: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  })
+  async updateCourseProducerStatus(
+    @CurrentUser() user: JwtPayload,
+    @Param('courseId') courseId: string,
+    @Body() updateCourseProducerDto: UpdateCourseProducerDto,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('update', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para atualizar cursos');
+    }
+
+    try {
+      const result =
+        await this.updateCourseProducerStatusUseCase.execute({
+          courseId,
+          isProducerCourse: updateCourseProducerDto.isProducerCourse,
+        });
+      return {
+        success: true,
+        data: result.course,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -526,7 +715,6 @@ export class CoursesController {
   }
 
   @Post('process-youtube-playlist')
-  @UseGuards(AdminGuard)
   @ApiOperation({
     summary:
       'Processar playlist do YouTube e organizar em módulos (Apenas Admin)',
@@ -606,8 +794,14 @@ export class CoursesController {
     },
   })
   async processYouTubePlaylist(
+    @CurrentUser() user: JwtPayload,
     @Body() processYouTubePlaylistDto: ProcessYouTubePlaylistDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para processar playlists');
+    }
+
     try {
       const result = await this.processYouTubePlaylistUseCase.execute({
         courseId: processYouTubePlaylistDto.courseId,
@@ -621,7 +815,10 @@ export class CoursesController {
       throw new HttpException(
         {
           success: false,
-          message: error.message,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -629,7 +826,6 @@ export class CoursesController {
   }
 
   @Post('bulk-process-playlists')
-  @UseGuards(AdminGuard)
   @ApiOperation({
     summary:
       'Processar múltiplas playlists do YouTube e criar cursos, subcursos, módulos e vídeos automaticamente (Apenas Admin)',
@@ -717,8 +913,14 @@ export class CoursesController {
     description: 'Erro na validação dos dados',
   })
   async bulkProcessPlaylists(
+    @CurrentUser() user: JwtPayload,
     @Body() bulkProcessPlaylistsDto: BulkProcessPlaylistsDto,
   ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para processar playlists');
+    }
+
     try {
       const result = await this.bulkProcessPlaylistsUseCase.execute({
         playlistIds: bulkProcessPlaylistsDto.playlistIds,
@@ -740,6 +942,8 @@ export class CoursesController {
   }
 
   @Post('generate-mind-map')
+  @UseGuards(JwtAuthGuard, PlanGuard)
+  @RequirePlan('PRO', 'ULTRA') // Apenas usuários PRO ou ULTRA podem usar IA
   @ApiOperation({
     summary:
       'Gerar ou regenerar mapa mental de um vídeo usando IA Gemini focado em ENEM',
@@ -776,21 +980,105 @@ export class CoursesController {
       },
     },
   })
+  @ApiResponse({
+    status: 403,
+    description: 'Acesso negado - plano não permite uso da IA',
+  })
   async generateMindMap(
     @Body() generateMindMapDto: GenerateMindMapDto,
     @CurrentUser() user: JwtPayload,
   ) {
     try {
+      const generationType = generateMindMapDto.generationType || 'mindmap';
       const result = await this.generateMindMapUseCase.execute({
         userId: user.sub,
         videoId: generateMindMapDto.videoId,
         videoTitle: generateMindMapDto.videoTitle,
         videoDescription: generateMindMapDto.videoDescription,
         videoUrl: generateMindMapDto.videoUrl,
+        generationType,
       });
       return {
         success: true,
         data: result,
+      };
+    } catch (error) {
+      // Verificar se é erro de limite excedido
+      if (error instanceof Error && error.name === 'GenerationLimitExceededError') {
+        const generationType = generateMindMapDto.generationType || 'mindmap';
+        const errorCode = generationType === 'mindmap'
+          ? 'MIND_MAP_LIMIT_EXCEEDED'
+          : 'TEXT_LIMIT_EXCEEDED';
+        throw new HttpException(
+          {
+            success: false,
+            code: errorCode,
+            message:
+              process.env.NODE_ENV === 'production'
+                ? 'Limite de geração excedido'
+                : error.message,
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao processar a requisição'
+              : error instanceof Error
+                ? error.message
+                : 'Erro ao gerar conteúdo',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('generation-limits')
+  @ApiOperation({
+    summary: 'Verificar limites de gerações do usuário (mapa mental e texto)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Informações dos limites de gerações',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            mindmap: {
+              type: 'object',
+              properties: {
+                generationsToday: { type: 'number', example: 2 },
+                dailyLimit: { type: 'number', example: 5 },
+                remainingGenerations: { type: 'number', example: 3 },
+                canGenerate: { type: 'boolean', example: true },
+              },
+            },
+            text: {
+              type: 'object',
+              properties: {
+                generationsToday: { type: 'number', example: 1 },
+                dailyLimit: { type: 'number', example: 5 },
+                remainingGenerations: { type: 'number', example: 4 },
+                canGenerate: { type: 'boolean', example: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getGenerationLimits(@CurrentUser() user: JwtPayload) {
+    try {
+      const limitsInfo = await this.userRepository.getAllLimitsInfo(user.sub);
+      return {
+        success: true,
+        data: limitsInfo,
       };
     } catch (error) {
       throw new HttpException(
@@ -799,7 +1087,7 @@ export class CoursesController {
           message:
             error instanceof Error
               ? error.message
-              : 'Erro ao gerar mapa mental',
+              : 'Erro ao verificar limites',
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -928,6 +1216,56 @@ export class CoursesController {
             error instanceof Error
               ? error.message
               : 'Erro ao listar mapas mentais',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('update-video-durations')
+  @ApiOperation({
+    summary:
+      'Atualizar durações de todos os vídeos que estão sem duração (Apenas Admin)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Durações atualizadas com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            totalVideos: { type: 'number', example: 50 },
+            updatedVideos: { type: 'number', example: 45 },
+            failedVideos: { type: 'number', example: 3 },
+            skippedVideos: { type: 'number', example: 2 },
+          },
+        },
+      },
+    },
+  })
+  async updateAllVideoDurations(@CurrentUser() user: JwtPayload) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('update', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para atualizar vídeos');
+    }
+
+    try {
+      const result = await this.updateAllVideoDurationsUseCase.execute();
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao atualizar durações dos vídeos',
         },
         HttpStatus.BAD_REQUEST,
       );

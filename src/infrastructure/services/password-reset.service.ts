@@ -11,6 +11,7 @@ import type { PasswordHasher } from '../../domain/services/password-hasher';
 import type { MailerServicePort } from '../../domain/services/mailer';
 import { PasswordResetEmailTemplate } from '../email/templates/password-reset.template';
 import { Inject } from '@nestjs/common';
+import { CryptoUtil } from '../utils/crypto.util';
 
 interface ResetCode {
   code: string;
@@ -35,14 +36,16 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
       throw new Error('Usuário não encontrado');
     }
 
-    // Gerar código aleatório de 6 dígitos
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Gerar código aleatório de 6 dígitos criptograficamente seguro
+    // IMPORTANTE: Usa CryptoUtil em vez de Math.random() para segurança
+    const code = CryptoUtil.randomNumericCode(6);
 
     // Definir expiração em 15 minutos
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
     // Armazenar o código (em produção, usar Redis ou banco de dados)
+    // Se já existe um código, substitui pelo novo (invalida o anterior)
     this.resetCodes.set(email, {
       code,
       expiresAt,
@@ -51,6 +54,41 @@ export class PasswordResetServiceImpl implements PasswordResetServicePort {
 
     // Enviar email com o código
     await this.sendResetEmail(user.name, email, code);
+
+    return code;
+  }
+
+  /**
+   * Reenvia o código de reset de senha
+   * Invalida o código anterior (se existir) e gera um novo
+   */
+  async resendResetCode(email: string): Promise<string> {
+    // Verificar se o usuário existe
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    // Gerar novo código (invalida o anterior se existir)
+    const code = CryptoUtil.randomNumericCode(6);
+
+    // Definir expiração em 15 minutos
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+    // Substituir código anterior pelo novo
+    this.resetCodes.set(email, {
+      code,
+      expiresAt,
+      email,
+    });
+
+    // Enviar email com o novo código
+    await this.sendResetEmail(user.name, email, code);
+
+    console.log(
+      `✅ Código de reset reenviado para: ${email} - Novo código gerado`,
+    );
 
     return code;
   }

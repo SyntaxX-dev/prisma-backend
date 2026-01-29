@@ -90,6 +90,16 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'FRIEND_ACCEPTED',
 ]);
 
+export const generationTypeEnum = pgEnum('generation_type', [
+  'mindmap',
+  'text',
+]);
+
+export const quizStatusEnum = pgEnum('quiz_status', [
+  'IN_PROGRESS',
+  'COMPLETED',
+]);
+
 export const users = pgTable(
   'users',
   {
@@ -117,6 +127,14 @@ export const users = pgTable(
     instagram: text('instagram'),
     twitter: text('twitter'),
     socialLinksOrder: text('social_links_order'),
+    // Limite de gerações de mapa mental (visual)
+    mindMapGenerationsToday: integer('mind_map_generations_today').notNull().default(0),
+    mindMapLastResetDate: timestamp('mind_map_last_reset_date', { withTimezone: false }),
+    mindMapDailyLimit: integer('mind_map_daily_limit').notNull().default(5),
+    // Limite de gerações de texto/resumo
+    textGenerationsToday: integer('text_generations_today').notNull().default(0),
+    textLastResetDate: timestamp('text_last_reset_date', { withTimezone: false }),
+    textDailyLimit: integer('text_daily_limit').notNull().default(5),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),
@@ -135,6 +153,7 @@ export const courses = pgTable(
     description: text('description'),
     imageUrl: text('image_url'),
     isPaid: text('is_paid').notNull().default('false'),
+    isProducerCourse: text('is_producer_course').notNull().default('false'),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),
@@ -815,6 +834,7 @@ export const mindMaps = pgTable(
     content: text('content').notNull(), // Conteúdo do mapa mental em Markdown
     videoTitle: text('video_title').notNull(), // Título do vídeo (para referência)
     videoUrl: text('video_url').notNull(), // URL do vídeo
+    generationType: generationTypeEnum('generation_type').notNull().default('mindmap'), // Tipo de geração: mindmap ou text
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
       .defaultNow(),
@@ -868,5 +888,403 @@ export const callRooms = pgTable(
     receiverIdIdx: index('call_rooms_receiver_id_idx').on(table.receiverId),
     // Índice para buscar chamadas recentes
     startedAtIdx: index('call_rooms_started_at_idx').on(table.startedAt),
+  }),
+);
+
+/**
+ * Tabela quiz_sessions - Armazena sessões de quiz geradas pela IA
+ *
+ * Cada sessão representa um conjunto de 10 questões sobre um tópico específico
+ * gerado pela IA Gemini baseado no prompt do usuário.
+ */
+export const quizSessions = pgTable(
+  'quiz_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    topic: text('topic').notNull(), // Tópico escolhido pelo usuário (ex: "física", "biologia")
+    status: quizStatusEnum('status').notNull().default('IN_PROGRESS'),
+    score: integer('score').default(0), // Pontuação do usuário (calculada ao finalizar)
+    totalQuestions: integer('total_questions').notNull().default(10),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: false }), // Quando foi finalizado
+  },
+  (table) => ({
+    userIdIdx: index('quiz_sessions_user_id_idx').on(table.userId),
+    statusIdx: index('quiz_sessions_status_idx').on(table.status),
+    createdAtIdx: index('quiz_sessions_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
+ * Tabela quiz_questions - Armazena questões de cada sessão de quiz
+ *
+ * Cada questão é gerada pela IA e possui 4 alternativas.
+ * A resposta correta e explicação são armazenadas para mostrar o gabarito.
+ */
+export const quizQuestions = pgTable(
+  'quiz_questions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => quizSessions.id, { onDelete: 'cascade' }),
+    questionText: text('question_text').notNull(), // Texto da pergunta
+    correctOption: integer('correct_option').notNull(), // Número da alternativa correta (1-4)
+    explanation: text('explanation').notNull(), // Explicação da resposta correta
+    order: integer('order').notNull().default(0), // Ordem da questão no quiz
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    sessionIdIdx: index('quiz_questions_session_id_idx').on(table.sessionId),
+    orderIdx: index('quiz_questions_order_idx').on(table.order),
+  }),
+);
+
+/**
+ * Tabela quiz_options - Armazena as alternativas de cada questão
+ *
+ * Cada questão possui 4 opções de resposta geradas pela IA.
+ */
+export const quizOptions = pgTable(
+  'quiz_options',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => quizQuestions.id, { onDelete: 'cascade' }),
+    optionText: text('option_text').notNull(), // Texto da alternativa
+    optionNumber: integer('option_number').notNull(), // Número da alternativa (1-4)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    questionIdIdx: index('quiz_options_question_id_idx').on(table.questionId),
+  }),
+);
+
+/**
+ * Tabela quiz_answers - Armazena as respostas do usuário
+ *
+ * Registra qual alternativa o usuário selecionou para cada questão.
+ */
+export const quizAnswers = pgTable(
+  'quiz_answers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => quizSessions.id, { onDelete: 'cascade' }),
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => quizQuestions.id, { onDelete: 'cascade' }),
+    selectedOption: integer('selected_option').notNull(), // Alternativa selecionada pelo usuário (1-4)
+    isCorrect: text('is_correct').notNull(), // 'true' ou 'false'
+    answeredAt: timestamp('answered_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    sessionIdIdx: index('quiz_answers_session_id_idx').on(table.sessionId),
+    questionIdIdx: index('quiz_answers_question_id_idx').on(table.questionId),
+    // Garante que cada questão só pode ser respondida uma vez por sessão
+    sessionQuestionIdx: uniqueIndex('quiz_answers_session_question_unique').on(
+      table.sessionId,
+      table.questionId,
+    ),
+  }),
+);
+
+// ============================================
+// ASSINATURAS E PAGAMENTOS
+// ============================================
+
+export const subscriptionPlanEnum = pgEnum('subscription_plan', [
+  'START',
+  'PRO',
+  'ULTRA',
+]);
+
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'PENDING', // Aguardando primeiro pagamento
+  'ACTIVE', // Ativa e em dia
+  'OVERDUE', // Em atraso
+  'CANCELLED', // Cancelada pelo usuário
+  'EXPIRED', // Expirada
+]);
+
+export const paymentMethodEnum = pgEnum('payment_method', [
+  'PIX',
+  'CREDIT_CARD',
+  'BOLETO',
+]);
+
+/**
+ * Tabela subscriptions - Armazena assinaturas dos usuários
+ *
+ * Esta tabela armazena informações sobre as assinaturas dos usuários,
+ * incluindo o plano, status, datas e referências ao Asaas.
+ */
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    asaasCustomerId: text('asaas_customer_id').notNull(), // ID do cliente no Asaas
+    asaasSubscriptionId: text('asaas_subscription_id'), // ID da assinatura no Asaas
+    plan: subscriptionPlanEnum('plan').notNull(),
+    status: subscriptionStatusEnum('status').notNull().default('PENDING'),
+    paymentMethod: paymentMethodEnum('payment_method'),
+    // Preço atual da assinatura
+    currentPrice: integer('current_price').notNull(), // Em centavos
+    // Plano para o qual o usuário quer mudar (upgrade/downgrade)
+    pendingPlanChange: subscriptionPlanEnum('pending_plan_change'),
+    // Quando a mudança pendente foi criada (para expiração após 30 min)
+    pendingPlanChangeCreatedAt: timestamp('pending_plan_change_created_at', {
+      withTimezone: false,
+    }),
+    // Datas importantes
+    startDate: timestamp('start_date', { withTimezone: false }),
+    currentPeriodStart: timestamp('current_period_start', {
+      withTimezone: false,
+    }),
+    currentPeriodEnd: timestamp('current_period_end', { withTimezone: false }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: false }),
+    // Email do comprador (antes de criar conta)
+    customerEmail: text('customer_email').notNull(),
+    customerName: text('customer_name').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index('subscriptions_user_id_idx').on(table.userId),
+    asaasCustomerIdIdx: index('subscriptions_asaas_customer_id_idx').on(
+      table.asaasCustomerId,
+    ),
+    asaasSubscriptionIdIdx: index('subscriptions_asaas_subscription_id_idx').on(
+      table.asaasSubscriptionId,
+    ),
+    statusIdx: index('subscriptions_status_idx').on(table.status),
+    customerEmailIdx: index('subscriptions_customer_email_idx').on(
+      table.customerEmail,
+    ),
+    createdAtIdx: index('subscriptions_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
+ * Tabela registration_tokens - Tokens para registro após pagamento
+ *
+ * Quando o usuário paga, recebe um email com link contendo um token.
+ * Este token é usado para permitir o cadastro na plataforma.
+ */
+export const registrationTokens = pgTable(
+  'registration_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subscriptionId: uuid('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: 'cascade' }),
+    token: text('token').notNull(), // Token único para o link de registro
+    email: text('email').notNull(), // Email do usuário
+    isUsed: text('is_used').notNull().default('false'),
+    usedAt: timestamp('used_at', { withTimezone: false }),
+    expiresAt: timestamp('expires_at', { withTimezone: false }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tokenIdx: uniqueIndex('registration_tokens_token_unique').on(table.token),
+    subscriptionIdIdx: index('registration_tokens_subscription_id_idx').on(
+      table.subscriptionId,
+    ),
+    emailIdx: index('registration_tokens_email_idx').on(table.email),
+    expiresAtIdx: index('registration_tokens_expires_at_idx').on(
+      table.expiresAt,
+    ),
+  }),
+);
+
+/**
+ * Tabela payment_history - Histórico de pagamentos
+ *
+ * Armazena o histórico de todos os pagamentos recebidos via webhook do Asaas.
+ */
+export const paymentHistory = pgTable(
+  'payment_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subscriptionId: uuid('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: 'cascade' }),
+    asaasPaymentId: text('asaas_payment_id').notNull(), // ID do pagamento no Asaas
+    amount: integer('amount').notNull(), // Em centavos
+    netAmount: integer('net_amount'), // Valor líquido em centavos
+    paymentMethod: paymentMethodEnum('payment_method'),
+    status: text('status').notNull(), // Status do pagamento no Asaas
+    paidAt: timestamp('paid_at', { withTimezone: false }),
+    dueDate: timestamp('due_date', { withTimezone: false }),
+    invoiceUrl: text('invoice_url'),
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    subscriptionIdIdx: index('payment_history_subscription_id_idx').on(
+      table.subscriptionId,
+    ),
+    asaasPaymentIdIdx: uniqueIndex('payment_history_asaas_payment_id_unique').on(
+      table.asaasPaymentId,
+    ),
+    statusIdx: index('payment_history_status_idx').on(table.status),
+    paidAtIdx: index('payment_history_paid_at_idx').on(table.paidAt),
+    createdAtIdx: index('payment_history_created_at_idx').on(table.createdAt),
+  }),
+);
+
+// ============================================
+// NOTAS FISCAIS (NFS-e)
+// ============================================
+
+export const invoiceStatusEnum = pgEnum('invoice_status', [
+  'SCHEDULED', // Agendada
+  'AUTHORIZED', // Autorizada/Emitida
+  'PROCESSING_CANCELLATION', // Processando cancelamento
+  'CANCELLED', // Cancelada
+  'CANCELLATION_DENIED', // Cancelamento negado
+  'ERROR', // Erro
+]);
+
+export const effectiveDatePeriodEnum = pgEnum('effective_date_period', [
+  'ON_PAYMENT_CONFIRMATION', // Emitir na confirmação do pagamento
+  'ON_PAYMENT_DUE_DATE', // Emitir na data de vencimento
+  'BEFORE_PAYMENT_DUE_DATE', // Emitir antes do vencimento
+  'ON_NEXT_MONTH', // Emitir no próximo mês
+]);
+
+/**
+ * Tabela fiscal_info - Configurações fiscais da empresa
+ *
+ * Armazena as informações fiscais necessárias para emissão de NFS-e,
+ * como inscrição municipal, regime tributário, série RPS, etc.
+ */
+export const fiscalInfo = pgTable('fiscal_info', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull(), // Email para envio de NF
+  municipalInscription: text('municipal_inscription').notNull(), // Inscrição municipal
+  simplesNacional: text('simples_nacional').notNull().default('true'), // 'true' ou 'false'
+  rpsSerie: text('rps_serie').notNull(), // Série do RPS
+  rpsNumber: integer('rps_number').notNull(), // Número inicial do RPS
+  specialTaxRegime: text('special_tax_regime'), // Regime especial de tributação
+  serviceListItem: text('service_list_item'), // Item da lista de serviços
+  cnae: text('cnae'), // Código CNAE
+  createdAt: timestamp('created_at', { withTimezone: false })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: false })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Tabela invoice_history - Histórico de notas fiscais emitidas
+ *
+ * Armazena o histórico de todas as notas fiscais emitidas via Asaas,
+ * incluindo status, URLs de PDF/XML, e informações de validação.
+ */
+export const invoiceHistory = pgTable(
+  'invoice_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    asaasInvoiceId: text('asaas_invoice_id').notNull(), // ID da NF no Asaas
+    subscriptionId: uuid('subscription_id').references(() => subscriptions.id, {
+      onDelete: 'cascade',
+    }),
+    paymentId: text('payment_id'), // ID do pagamento no Asaas (não FK pois vem do webhook)
+    status: invoiceStatusEnum('status').notNull().default('SCHEDULED'),
+    customerName: text('customer_name').notNull(),
+    value: integer('value').notNull(), // Em centavos
+    serviceDescription: text('service_description').notNull(),
+    effectiveDate: timestamp('effective_date', { withTimezone: false }).notNull(), // Data de emissão
+    pdfUrl: text('pdf_url'),
+    xmlUrl: text('xml_url'),
+    number: text('number'), // Número da NF
+    validationCode: text('validation_code'), // Código de validação
+    errorMessage: text('error_message'), // Mensagem de erro (se status = ERROR)
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    asaasInvoiceIdIdx: uniqueIndex('invoice_history_asaas_invoice_id_unique').on(
+      table.asaasInvoiceId,
+    ),
+    subscriptionIdIdx: index('invoice_history_subscription_id_idx').on(
+      table.subscriptionId,
+    ),
+    paymentIdIdx: index('invoice_history_payment_id_idx').on(table.paymentId),
+    statusIdx: index('invoice_history_status_idx').on(table.status),
+    effectiveDateIdx: index('invoice_history_effective_date_idx').on(
+      table.effectiveDate,
+    ),
+    createdAtIdx: index('invoice_history_created_at_idx').on(table.createdAt),
+  }),
+);
+
+/**
+ * Tabela auto_invoice_config - Configuração de emissão automática de NF
+ *
+ * Armazena as configurações de emissão automática de notas fiscais
+ * para assinaturas. Quando configurado, as NFs são emitidas automaticamente
+ * quando os pagamentos são confirmados.
+ */
+export const autoInvoiceConfig = pgTable(
+  'auto_invoice_config',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subscriptionId: uuid('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: 'cascade' }),
+    asaasConfigId: text('asaas_config_id').notNull(), // ID da config no Asaas
+    municipalServiceCode: text('municipal_service_code'),
+    municipalServiceName: text('municipal_service_name'),
+    effectiveDatePeriod: effectiveDatePeriodEnum('effective_date_period')
+      .notNull()
+      .default('ON_PAYMENT_CONFIRMATION'),
+    observations: text('observations'),
+    isActive: text('is_active').notNull().default('true'), // 'true' ou 'false'
+    createdAt: timestamp('created_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    subscriptionIdIdx: uniqueIndex(
+      'auto_invoice_config_subscription_id_unique',
+    ).on(table.subscriptionId),
+    asaasConfigIdIdx: index('auto_invoice_config_asaas_config_id_idx').on(
+      table.asaasConfigId,
+    ),
+    isActiveIdx: index('auto_invoice_config_is_active_idx').on(table.isActive),
+    createdAtIdx: index('auto_invoice_config_created_at_idx').on(
+      table.createdAt,
+    ),
   }),
 );
