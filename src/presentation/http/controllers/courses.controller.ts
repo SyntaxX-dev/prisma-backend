@@ -943,7 +943,7 @@ export class CoursesController {
 
   @Post('generate-mind-map')
   @UseGuards(JwtAuthGuard, PlanGuard)
-  @RequirePlan('PRO', 'ULTRA') // Apenas usuários PRO ou ULTRA podem usar IA
+  @RequirePlan('ULTRA', 'PRODUCER') // Apenas usuários ULTRA ou PRODUCER podem usar IA
   @ApiOperation({
     summary:
       'Gerar ou regenerar mapa mental de um vídeo usando IA Gemini focado em ENEM',
