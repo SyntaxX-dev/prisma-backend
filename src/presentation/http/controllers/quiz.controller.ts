@@ -11,6 +11,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../infrastructure/auth/jwt-auth.guard';
+import { PlanGuard } from '../../../infrastructure/guards/plan.guard';
+import { RequirePlan } from '../../../infrastructure/decorators/require-plan.decorator';
 import { GenerateQuizUseCase } from '../../../application/quiz/use-cases/generate-quiz.use-case';
 import { SubmitQuizAnswerUseCase } from '../../../application/quiz/use-cases/submit-quiz-answer.use-case';
 import { GetQuizResultUseCase } from '../../../application/quiz/use-cases/get-quiz-result.use-case';
@@ -25,6 +27,8 @@ export class QuizController {
   ) {}
 
   @Post('generate')
+  @UseGuards(JwtAuthGuard, PlanGuard)
+  @RequirePlan('ULTRA', 'PRODUCER')
   async generateQuiz(
     @Request() req,
     @Body() body: { topic: string },
