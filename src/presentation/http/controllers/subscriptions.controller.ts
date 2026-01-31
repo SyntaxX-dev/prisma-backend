@@ -154,17 +154,8 @@ export class SubscriptionsController {
     this.logger.log('Content-Type:', req.headers['content-type']);
     this.logger.log('================================');
 
-    let { customerName, customerEmail, planId, billingType, cpfCnpj, phone } =
+    const { customerName, customerEmail, planId, billingType, cpfCnpj, phone } =
       body;
-
-    // Normalizar planId e billingType: converter para uppercase para aceitar qualquer case
-    // Isso resolve problemas onde o frontend pode enviar "Start" ao invés de "START"
-    if (planId) {
-      planId = planId.toUpperCase() as any;
-    }
-    if (billingType) {
-      billingType = billingType.toUpperCase() as any;
-    }
 
     // Validação manual adicional (fallback caso ValidationPipe não funcione)
     if (!customerName || !customerEmail || !planId || !billingType) {
@@ -181,8 +172,7 @@ export class SubscriptionsController {
     }
 
     if (!['START', 'PRO', 'ULTRA', 'PRODUCER'].includes(planId)) {
-      this.logger.error(`Plano inválido recebido: "${planId}" (após normalização)`);
-      throw new BadRequestException(`Plano inválido: ${planId}. Use START, PRO, ULTRA ou PRODUCER`);
+      throw new BadRequestException('Plano inválido');
     }
 
     if (!['PIX', 'CREDIT_CARD'].includes(billingType)) {
@@ -348,16 +338,13 @@ export class SubscriptionsController {
       throw new BadRequestException('Novo plano é obrigatório');
     }
 
-    // Normalizar para uppercase
-    const newPlanId = body.newPlanId.toUpperCase() as PlanType;
-
-    if (!['START', 'PRO', 'ULTRA', 'PRODUCER'].includes(newPlanId)) {
-      throw new BadRequestException(`Plano inválido: ${newPlanId}. Use START, PRO, ULTRA ou PRODUCER`);
+    if (!['START', 'PRO', 'ULTRA', 'PRODUCER'].includes(body.newPlanId)) {
+      throw new BadRequestException('Plano inválido');
     }
 
     const result = await this.changePlanUseCase.execute({
       userId: user.sub,
-      newPlanId: newPlanId,
+      newPlanId: body.newPlanId as PlanType,
     });
 
     return {
@@ -408,4 +395,3 @@ export class SubscriptionsController {
     };
   }
 }
-
