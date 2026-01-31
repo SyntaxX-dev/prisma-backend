@@ -90,7 +90,7 @@ export const PLANS: Record<PlanType, Plan> = {
   PRODUCER: {
     id: 'PRODUCER',
     name: 'Produtor',
-    price: 39.9, // Mesmo preço do Ultra
+    price: 59.90, // Preço atualizado para produtores
     description:
       'Plano exclusivo para produtores de conteúdo com destaque especial na plataforma.',
     features: [

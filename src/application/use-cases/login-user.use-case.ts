@@ -1,4 +1,4 @@
-import { Inject, Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
 import {
   USER_REPOSITORY,
   PASSWORD_HASHER,
@@ -43,7 +43,9 @@ export class LoginUserUseCase {
     private readonly notificationService: NotificationService,
     @Inject(SUBSCRIPTION_REPOSITORY)
     private readonly subscriptionRepository: SubscriptionRepository,
-  ) {}
+  ) { }
+
+  private readonly logger = new Logger(LoginUserUseCase.name);
 
   async execute(input: LoginInput): Promise<LoginOutput> {
     const user = await this.userRepository.findByEmail(input.email);
@@ -108,6 +110,11 @@ export class LoginUserUseCase {
     // Verificar notificações do usuário
     const notificationInfo =
       this.notificationService.checkUserNotifications(user);
+
+    this.logger.log(
+      `Login com sucesso: Usuário ${user.id} (${user.email}) - Role: ${user.role || 'STUDENT'
+      }`,
+    );
 
     return {
       accessToken,

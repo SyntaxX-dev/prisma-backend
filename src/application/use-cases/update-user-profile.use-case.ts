@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { USER_REPOSITORY, NOTIFICATION_SERVICE } from '../../domain/tokens';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { NotificationService } from '../../domain/services/notification.service';
@@ -41,7 +41,9 @@ export class UpdateUserProfileUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(NOTIFICATION_SERVICE)
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
+
+  private readonly logger = new Logger(UpdateUserProfileUseCase.name);
 
   async execute(input: UpdateProfileInput): Promise<UpdateProfileOutput> {
     const user = await this.userRepository.findById(input.userId);
@@ -88,6 +90,10 @@ export class UpdateUserProfileUseCase {
     updatedUser.isProfileComplete = !notificationInfo.hasNotification;
 
     await this.userRepository.updateProfile(input.userId, updatedUser);
+
+    this.logger.log(
+      `Perfil atualizado para usuário ${input.userId}. Campos alterados: ${Object.keys(input).filter(k => k !== 'userId').join(', ')}`
+    );
 
     return {
       success: true,

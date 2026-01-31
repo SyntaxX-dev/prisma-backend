@@ -1,4 +1,4 @@
-import { Inject, Injectable, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
   USER_REPOSITORY,
@@ -35,7 +35,9 @@ export class RegisterUserUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher,
     @Inject(MAILER_SERVICE) private readonly mailer: MailerServicePort,
-  ) {}
+  ) { }
+
+  private readonly logger = new Logger(RegisterUserUseCase.name);
 
   async execute(input: RegisterUserInput): Promise<RegisterUserOutput> {
     const { name, email, password, confirmPassword, age, educationLevel } =
@@ -81,6 +83,10 @@ export class RegisterUserUseCase {
 
     await this.userRepository.create(user);
     await this.mailer.sendWelcomeEmail(user.email, user.name);
+
+    this.logger.log(
+      `Novo usuário registrado: ${user.id} (${user.email}) - Role: ${user.role} - Education: ${user.educationLevel}`,
+    );
 
     return {
       id: user.id,
