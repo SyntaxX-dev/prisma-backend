@@ -98,13 +98,29 @@ export class ChangePlanUseCase {
       await this.subscriptionRepository.update(subscription);
     }
 
-    // Verifica se já tem uma mudança pendente (não expirada)
+    // Se já tem uma mudança pendente (não expirada), cancela automaticamente antes de prosseguir
     if (subscription.hasPendingPlanChange() && subscription.pendingPlanChange) {
-      const remainingMinutes = subscription.getPendingPlanChangeRemainingMinutes() ?? 0;
-      throw new BadRequestException(
-        `Já existe uma mudança pendente para o plano ${getPlanById(subscription.pendingPlanChange)?.name}. ` +
-        `A mudança expira em ${remainingMinutes} minutos. Aguarde a expiração ou pague a mudança atual.`,
+      this.logger.log(
+        `Cancelando mudança pendente anterior (${subscription.pendingPlanChange}) para prosseguir com nova mudança para ${newPlanId}`,
       );
+
+      // Restaura o valor original no Asaas
+      if (subscription.asaasSubscriptionId && currentPlan) {
+        try {
+          await this.asaasSubscriptionService.updateValue(
+            subscription.asaasSubscriptionId,
+            currentPlan.price,
+            false,
+          );
+        } catch (error) {
+          this.logger.warn(`Erro ao restaurar valor no Asaas ao cancelar mudança pendente: ${error}`);
+        }
+      }
+
+      subscription.pendingPlanChange = null;
+      subscription.pendingPlanChangeCreatedAt = null;
+      subscription.updatedAt = new Date();
+      await this.subscriptionRepository.update(subscription);
     }
 
     const isUpgrade = isPlanUpgrade(subscription.plan, newPlanId);
