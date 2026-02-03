@@ -11,6 +11,7 @@ import {
   Res,
   BadRequestException,
 } from '@nestjs/common';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { RegisterUserUseCase } from '../../../application/use-cases/register-user.use-case';
 import {
   LoginUserUseCase,
@@ -85,7 +86,7 @@ export class AuthController {
     private readonly googleConfig: GoogleConfigService,
     @Optional()
     private readonly chatGateway?: ChatGateway,
-  ) {}
+  ) { }
 
   /**
    * @deprecated Este endpoint foi desabilitado.
@@ -104,11 +105,12 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiBody({
     schema: {
       example: {
-        email: 'joao@exemplo.com',
-        password: 'MinhaSenha123!',
+        email: 'breno@exemplo.com',
+        password: 'Password123!',
       },
     },
   })
@@ -120,8 +122,8 @@ export class AuthController {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         user: {
           id: 'uuid-do-usuario',
-          name: 'João Silva',
-          email: 'joao@exemplo.com',
+          name: 'Breno Lima',
+          email: 'breno@exemplo.com',
           role: 'ALUNO',
         },
       },

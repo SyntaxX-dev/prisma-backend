@@ -17,7 +17,7 @@ async function bootstrap() {
     console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'não definido'}`);
     console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '✅ definido' : '❌ não definido'}`);
     console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? '✅ definido' : '❌ não definido'}`);
-    
+
     const isProduction = process.env.NODE_ENV === 'production';
     const app = await NestFactory.create(AppModule, {
       logger: isProduction
@@ -25,30 +25,32 @@ async function bootstrap() {
         : ['error', 'warn', 'log', 'debug', 'verbose'],
     });
 
-    // Hardening básico de headers HTTP (OWASP A02: Security Misconfiguration)
-    // Configuração explícita do Helmet com HSTS para forçar HTTPS
+    // Habilita confiança no proxy (Necessário para rate limiting em Railway/Vercel)
+    const httpAdapter = app.getHttpAdapter();
+    const instance = httpAdapter.getInstance();
+    if (instance && typeof instance.set === 'function') {
+      instance.set('trust proxy', 1);
+    }
+
     app.use(
       helmet({
         strictTransportSecurity: {
-          maxAge: 31536000, // 1 ano
+          maxAge: 31536000,
           includeSubDomains: true,
           preload: true,
         },
       }),
     );
-    // Nest expõe o app via adapter; em Express, disable remove o header X-Powered-By
-    const httpAdapter = app.getHttpAdapter();
-    const instance = httpAdapter.getInstance();
-    if (instance && typeof instance.disable === 'function') {
-      instance.disable('x-powered-by');
-    }
 
-    // Filtro global para padronizar erros e evitar vazamento de detalhes internos
     app.useGlobalFilters(new GlobalExceptionFilter({ isProduction }));
 
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, transform: true }),
     );
+
+    if (instance && typeof instance.disable === 'function') {
+      instance.disable('x-powered-by');
+    }
 
     app.enableCors({
       origin: [
@@ -63,8 +65,6 @@ async function bootstrap() {
       allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     });
 
-    // Proteção do Swagger em produção via Basic Auth
-    // Configure via variáveis: SWAGGER_USER / SWAGGER_PASSWORD (ou fallback seguro para dev)
     const swaggerUser = process.env.SWAGGER_USER || 'admin';
     const swaggerPassword = process.env.SWAGGER_PASSWORD || 'admin';
     app.use(
@@ -114,13 +114,13 @@ async function bootstrap() {
     console.error('❌ Erro fatal ao iniciar aplicação');
     console.error('Tipo do erro:', error instanceof Error ? error.constructor.name : typeof error);
     console.error('Mensagem:', error instanceof Error ? error.message : String(error));
-    
+
     // Em produção, sempre mostrar stack trace para debug
     if (error instanceof Error && error.stack) {
       console.error('Stack trace:');
       console.error(error.stack);
     }
-    
+
     // Aguardar um pouco antes de sair para garantir que logs sejam escritos
     await new Promise(resolve => setTimeout(resolve, 1000));
     process.exit(1);
