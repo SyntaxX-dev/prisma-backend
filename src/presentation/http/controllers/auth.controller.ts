@@ -299,6 +299,7 @@ export class AuthController {
       habilities: fullUser?.habilities || null,
       momentCareer: fullUser?.momentCareer || null,
       location: fullUser?.location || null,
+      locationVisibility: fullUser?.locationVisibility || 'PUBLIC',
       instagram: fullUser?.instagram || null,
       twitter: fullUser?.twitter || null,
       socialLinksOrder: fullUser?.socialLinksOrder

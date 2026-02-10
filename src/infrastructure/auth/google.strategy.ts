@@ -82,6 +82,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         null, // instagram
         null, // twitter
         null, // socialLinksOrder
+        'PUBLIC', // locationVisibility
         new Date(),
       );
       await this.userRepository.create(user);

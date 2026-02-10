@@ -89,6 +89,11 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'FRIEND_REQUEST',
   'FRIEND_ACCEPTED',
 ]);
+export const locationVisibilityEnum = pgEnum('location_visibility', [
+  'PUBLIC',
+  'STATE_ONLY',
+  'PRIVATE',
+]);
 
 export const generationTypeEnum = pgEnum('generation_type', [
   'mindmap',
@@ -124,6 +129,9 @@ export const users = pgTable(
     habilities: text('habilities'),
     momentCareer: text('moment_career'),
     location: text('location'),
+    locationVisibility: locationVisibilityEnum('location_visibility')
+      .notNull()
+      .default('PUBLIC'),
     instagram: text('instagram'),
     twitter: text('twitter'),
     socialLinksOrder: text('social_links_order'),

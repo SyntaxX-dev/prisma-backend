@@ -605,9 +605,10 @@ export class UserProfileController {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    // Atualizar apenas a localização
+    // Atualizar localização e visibilidade
     await this.userRepository.updateProfile(userId, {
       location: location || null,
+      locationVisibility: updateLocationDto.locationVisibility || 'PUBLIC',
     });
 
     return {
@@ -615,6 +616,7 @@ export class UserProfileController {
       message: 'Localização atualizada com sucesso',
       data: {
         location: location || null,
+        locationVisibility: updateLocationDto.locationVisibility || 'PUBLIC',
       },
     };
   }
@@ -655,15 +657,18 @@ export class UserProfileController {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
+    // Converter string vazia para null
+    const instagramValue = updateInstagramDto.instagram?.trim() || null;
+
     await this.userRepository.updateProfile(userId, {
-      instagram: updateInstagramDto.instagram,
+      instagram: instagramValue,
     });
 
     return {
       success: true,
       message: 'Instagram atualizado com sucesso',
       data: {
-        instagram: updateInstagramDto.instagram,
+        instagram: instagramValue,
       },
     };
   }
@@ -704,15 +709,18 @@ export class UserProfileController {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
+    // Converter string vazia para null
+    const twitterValue = updateTwitterDto.twitter?.trim() || null;
+
     await this.userRepository.updateProfile(userId, {
-      twitter: updateTwitterDto.twitter,
+      twitter: twitterValue,
     });
 
     return {
       success: true,
       message: 'Twitter atualizado com sucesso',
       data: {
-        twitter: updateTwitterDto.twitter,
+        twitter: twitterValue,
       },
     };
   }

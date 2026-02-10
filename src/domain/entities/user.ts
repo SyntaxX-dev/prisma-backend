@@ -30,6 +30,7 @@ export class User {
     public instagram: string | null,
     public twitter: string | null,
     public socialLinksOrder: string | null,
+    public locationVisibility: 'PUBLIC' | 'STATE_ONLY' | 'PRIVATE' = 'PUBLIC',
     public readonly createdAt: Date = new Date(),
   ) {}
 }

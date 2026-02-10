@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsUrl } from 'class-validator';
+import { IsString, IsOptional, IsUrl, ValidateIf } from 'class-validator';
 
 export class UpdateTwitterDto {
   @ApiProperty({
@@ -10,6 +10,7 @@ export class UpdateTwitterDto {
   })
   @IsOptional()
   @IsString()
+  @ValidateIf((o) => o.twitter !== '' && o.twitter !== null)
   @IsUrl({}, { message: 'Twitter deve ser uma URL válida' })
   twitter?: string | null;
 }

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."location_visibility" AS ENUM('PUBLIC', 'STATE_ONLY', 'PRIVATE');--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN "location_visibility" "location_visibility" DEFAULT 'PUBLIC' NOT NULL;

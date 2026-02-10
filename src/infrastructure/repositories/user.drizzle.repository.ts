@@ -43,6 +43,7 @@ export class UserDrizzleRepository implements UserRepository {
       instagram: user.instagram,
       twitter: user.twitter,
       socialLinksOrder: user.socialLinksOrder,
+      locationVisibility: user.locationVisibility,
       createdAt: user.createdAt,
     });
     return user;
@@ -96,6 +97,7 @@ export class UserDrizzleRepository implements UserRepository {
       instagram: row.instagram,
       twitter: row.twitter,
       socialLinksOrder: row.socialLinksOrder,
+      locationVisibility: (row.locationVisibility as 'PUBLIC' | 'STATE_ONLY' | 'PRIVATE') || 'PUBLIC',
       createdAt: row.createdAt,
     };
     return user;
@@ -136,6 +138,7 @@ export class UserDrizzleRepository implements UserRepository {
         instagram: profileData.instagram,
         twitter: profileData.twitter,
         socialLinksOrder: profileData.socialLinksOrder,
+        locationVisibility: profileData.locationVisibility,
       })
       .where(eq(users.id, userId));
   }
@@ -188,6 +191,7 @@ export class UserDrizzleRepository implements UserRepository {
       instagram: row.instagram,
       twitter: row.twitter,
       socialLinksOrder: row.socialLinksOrder,
+      locationVisibility: (row.locationVisibility as 'PUBLIC' | 'STATE_ONLY' | 'PRIVATE') || 'PUBLIC',
       createdAt: row.createdAt,
     };
     return user;
@@ -241,6 +245,7 @@ export class UserDrizzleRepository implements UserRepository {
       instagram: row.instagram,
       twitter: row.twitter,
       socialLinksOrder: row.socialLinksOrder,
+      locationVisibility: (row.locationVisibility as 'PUBLIC' | 'STATE_ONLY' | 'PRIVATE') || 'PUBLIC',
       createdAt: row.createdAt,
     };
     return user;

@@ -27,6 +27,7 @@ export interface UserProfileOutput {
   habilities: string | null;
   momentCareer: string | null;
   location: string | null;
+  locationVisibility?: 'PUBLIC' | 'STATE_ONLY' | 'PRIVATE';
   // Redes sociais
   linkedin: string | null;
   github: string | null;
@@ -107,7 +108,29 @@ export class GetUserProfileUseCase {
       aboutYou: user.aboutYou,
       habilities: user.habilities,
       momentCareer: user.momentCareer,
-      location: user.location,
+      location: (() => {
+        if (!user.location) return null;
+        // Se for o próprio usuário, mostra tudo
+        if (input.viewerId === user.id) return user.location;
+
+        if (user.locationVisibility === 'PRIVATE') return null;
+        if (user.locationVisibility === 'STATE_ONLY') {
+          // Tentar extrair o estado do formato "Logradouro, Bairro, Cidade - UF"
+          // ou retornar a string original se não estiver no formato esperado
+          const parts = user.location.split(' - ');
+          if (parts.length > 1) {
+            return parts[parts.length - 1]; // Retorna apenas o UF (ex: "SP")
+          }
+          // Caso não tenha o separador " - ", tenta pegar a última parte após a vírgula
+          const commaParts = user.location.split(', ');
+          if (commaParts.length > 1) {
+             return commaParts[commaParts.length - 1];
+          }
+          return user.location;
+        }
+        return user.location;
+      })(),
+      locationVisibility: user.locationVisibility,
       linkedin: user.linkedin,
       github: user.github,
       portfolio: user.portfolio,

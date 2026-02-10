@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsUrl } from 'class-validator';
+import { IsString, IsOptional, IsUrl, ValidateIf } from 'class-validator';
 
 export class UpdateInstagramDto {
   @ApiProperty({
@@ -10,6 +10,7 @@ export class UpdateInstagramDto {
   })
   @IsOptional()
   @IsString()
+  @ValidateIf((o) => o.instagram !== '' && o.instagram !== null)
   @IsUrl({}, { message: 'Instagram deve ser uma URL válida' })
   instagram?: string | null;
 }

@@ -5,4 +5,8 @@ export class UpdateLocationDto {
   @IsString()
   @MaxLength(100)
   location?: string;
+
+  @IsOptional()
+  @IsString()
+  locationVisibility?: 'PUBLIC' | 'STATE_ONLY' | 'PRIVATE';
 }
