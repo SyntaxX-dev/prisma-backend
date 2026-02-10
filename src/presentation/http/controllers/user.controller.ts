@@ -92,6 +92,69 @@ export class UserController {
     };
   }
 
+  @Get('status/batch')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Obter status online de múltiplos usuários' })
+  @ApiResponse({
+    status: 200,
+    description: 'Status dos usuários retornado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        data: [
+          {
+            userId: 'd99f095c-32e1-496e-b20e-73a554bb9538',
+            status: 'online',
+            lastSeen: '2025-11-16T20:00:00.000Z',
+          },
+          {
+            userId: '0ac70618-5f71-4eff-991a-d9d25799f9e0',
+            status: 'offline',
+            lastSeen: '2025-11-16T19:30:00.000Z',
+          },
+        ],
+      },
+    },
+  })
+  async getUsersStatus(@Query('userIds') userIds: string) {
+    if (!this.chatGateway) {
+      const userIdsArray = userIds.split(',').filter(Boolean);
+      return {
+        success: true,
+        data: userIdsArray.map((userId) => ({
+          userId,
+          status: 'offline',
+          lastSeen: new Date().toISOString(),
+        })),
+      };
+    }
+
+    const userIdsArray = userIds.split(',').filter(Boolean);
+    const statuses = await Promise.all(
+      userIdsArray.map(async (userId) => {
+        if (!this.chatGateway) {
+          return {
+            userId,
+            status: 'offline',
+            lastSeen: new Date().toISOString(),
+          };
+        }
+        const status = await this.chatGateway.getUserStatus(userId);
+        return {
+          userId,
+          status: status?.status || 'offline',
+          lastSeen: status?.lastSeen || new Date().toISOString(),
+        };
+      }),
+    );
+
+    return {
+      success: true,
+      data: statuses,
+    };
+  }
+
   @Get(':id/profile')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Obter perfil público de um usuário' })
@@ -194,76 +257,11 @@ export class UserController {
 
     return {
       success: true,
-      data: status || {
+      data: {
         userId,
-        status: 'offline',
-        lastSeen: new Date().toISOString(),
+        status: status?.status || 'offline',
+        lastSeen: status?.lastSeen || new Date().toISOString(),
       },
-    };
-  }
-
-  @Get('status/batch')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Obter status online de múltiplos usuários' })
-  @ApiResponse({
-    status: 200,
-    description: 'Status dos usuários retornado com sucesso',
-    schema: {
-      example: {
-        success: true,
-        data: [
-          {
-            userId: 'd99f095c-32e1-496e-b20e-73a554bb9538',
-            status: 'online',
-            lastSeen: '2025-11-16T20:00:00.000Z',
-          },
-          {
-            userId: '0ac70618-5f71-4eff-991a-d9d25799f9e0',
-            status: 'offline',
-            lastSeen: '2025-11-16T19:30:00.000Z',
-          },
-        ],
-      },
-    },
-  })
-  async getUsersStatus(@Query('userIds') userIds: string) {
-    if (!this.chatGateway) {
-      const userIdsArray = userIds.split(',').filter(Boolean);
-      return {
-        success: true,
-        data: userIdsArray.map((userId) => ({
-          userId,
-          status: 'offline',
-          lastSeen: new Date().toISOString(),
-        })),
-      };
-    }
-
-    const userIdsArray = userIds.split(',').filter(Boolean);
-    const statuses = await Promise.all(
-      userIdsArray.map(async (userId) => {
-        if (!this.chatGateway) {
-          return {
-            userId,
-            status: 'offline',
-            lastSeen: new Date().toISOString(),
-          };
-        }
-        const status = await this.chatGateway.getUserStatus(userId);
-        return (
-          status || {
-            userId,
-            status: 'offline',
-            lastSeen: new Date().toISOString(),
-          }
-        );
-      }),
-    );
-
-    return {
-      success: true,
-      data: statuses,
     };
   }
 }

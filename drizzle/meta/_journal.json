@@ -197,6 +197,13 @@
       "when": 1770613010883,
       "tag": "0027_futuristic_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1770704394448,
+      "tag": "0028_open_sleeper",
+      "breakpoints": true
     }
   ]
 }

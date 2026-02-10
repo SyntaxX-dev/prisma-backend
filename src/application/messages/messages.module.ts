@@ -1,6 +1,5 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { InfrastructureModule } from '../../infrastructure/config/infrastructure.module';
-import { WebSocketsModule } from '../../infrastructure/websockets/websockets.module';
 import { SendMessageUseCase } from './use-cases/send-message.use-case';
 import { PinMessageUseCase } from './use-cases/pin-message.use-case';
 import { UnpinMessageUseCase } from './use-cases/unpin-message.use-case';
@@ -14,7 +13,7 @@ import { ListConversationsUseCase } from './use-cases/list-conversations.use-cas
 import { GetConversationAttachmentsUseCase } from './use-cases/get-conversation-attachments.use-case';
 
 @Module({
-  imports: [InfrastructureModule, forwardRef(() => WebSocketsModule)],
+  imports: [InfrastructureModule],
   providers: [
     SendMessageUseCase,
     GetMessagesUseCase,

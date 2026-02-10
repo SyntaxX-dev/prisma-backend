@@ -10,6 +10,7 @@ export enum ContestType {
   TRF = 'TRF',
   TRE = 'TRE',
   TRT = 'TRT',
+  TCU = 'TCU',
   INSS = 'INSS',
   IBGE = 'IBGE',
   ANAC = 'ANAC',

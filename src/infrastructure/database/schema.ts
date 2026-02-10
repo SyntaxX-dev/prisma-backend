@@ -36,6 +36,7 @@ export const contestTypeEnum = pgEnum('contest_type', [
   'TRF',
   'TRE',
   'TRT',
+  'TCU',
   'INSS',
   'IBGE',
   'ANAC',

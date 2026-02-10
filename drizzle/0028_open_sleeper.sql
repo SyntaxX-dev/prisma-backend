@@ -1,0 +1,1 @@
+ALTER TYPE "public"."contest_type" ADD VALUE 'TCU' BEFORE 'INSS';
