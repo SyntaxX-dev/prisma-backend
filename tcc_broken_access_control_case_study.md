@@ -126,7 +126,7 @@ import { JwtPayload } from '../../../domain/interfaces/jwt-payload.interface';
 import { TestVideoCompletionDto } from '../dtos/test-video-completion.dto';
 
 @Controller('progress')
-@UseGuards(JwtAuthGuard) // [1] Garante que todas as rotas exigem autenticação
+@UseGuards(JwtAuthGuard)
 export class ProgressController {
   constructor(
     private readonly testVideoCompletionUseCase: TestVideoCompletionUseCase,
@@ -135,15 +135,13 @@ export class ProgressController {
   @Post('test/video-completion')
   async testVideoCompletion(
     @Body() testDto: TestVideoCompletionDto,
-    @CurrentUser() user: JwtPayload, // [2] Extrai userId do JWT autenticado
+    @CurrentUser() user: JwtPayload,
   ) {
-    // ✅ SEGURO: userId vem exclusivamente do token JWT
-    // O valor é extraído do token que foi validado pelo servidor
-    // Impossível para o cliente forjar ou modificar
+
     const completedAt = new Date(testDto.completedAt);
 
     const result = await this.testVideoCompletionUseCase.execute({
-      userId: user.sub, // [3] Sempre usa o ID do usuário autenticado
+      userId: user.sub,
       videoId: testDto.videoId,
       completedAt: completedAt,
     });
