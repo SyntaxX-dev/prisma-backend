@@ -59,6 +59,8 @@ async function bootstrap() {
         'https://prisma-frontend-rose.vercel.app',
         'https://prisma-backend-production-4c22.up.railway.app',
         'https://prisma-admin-git-main-breno-lima-66c5fadc.vercel.app',
+        'https://prismacademy.app',
+        'https://www.prismacademy.app',
       ],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
