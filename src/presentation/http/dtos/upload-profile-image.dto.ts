@@ -4,7 +4,7 @@ export class UploadProfileImageDto {
   @ApiProperty({
     type: 'string',
     format: 'binary',
-    description: 'Arquivo de imagem do perfil (JPG, PNG, GIF, WebP)',
+    description: 'Arquivo de imagem do perfil (JPG, PNG, GIF, WebP, SVG)',
     example: 'profile-image.jpg',
   })
   image!: Express.Multer.File;

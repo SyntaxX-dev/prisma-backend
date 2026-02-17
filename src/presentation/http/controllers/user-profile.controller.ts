@@ -47,7 +47,7 @@ export class UserProfileController {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     private readonly cloudinaryService: CloudinaryService,
-  ) {}
+  ) { }
 
   @Put('name')
   @ApiOperation({ summary: 'Atualizar nome do usuário' })
@@ -225,10 +225,11 @@ export class UserProfileController {
       'image/png',
       'image/gif',
       'image/webp',
+      'image/svg+xml',
     ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new HttpException(
-        'Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WebP',
+        'Formato não suportado',
         HttpStatus.BAD_REQUEST,
       );
     }
