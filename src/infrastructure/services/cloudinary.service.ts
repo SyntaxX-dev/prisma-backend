@@ -17,11 +17,9 @@ export class CloudinaryService {
               crop: 'fill',
               gravity: 'face',
               quality: 'auto',
-              format: 'auto',
             },
           ],
-          resource_type: 'image',
-          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
+          resource_type: 'auto',
         },
       );
 
@@ -82,11 +80,9 @@ export class CloudinaryService {
               crop: 'fill',
               gravity: 'center',
               quality: 'auto',
-              format: 'auto',
             },
           ],
-          resource_type: 'image',
-          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
+          resource_type: 'auto',
         },
       );
 
