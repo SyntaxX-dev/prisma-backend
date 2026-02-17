@@ -21,7 +21,7 @@ export class CloudinaryService {
             },
           ],
           resource_type: 'image',
-          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
         },
       );
 
@@ -86,7 +86,7 @@ export class CloudinaryService {
             },
           ],
           resource_type: 'image',
-          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
         },
       );
 
