@@ -86,6 +86,12 @@ export class AuthController {
     };
   }
 }
+@Post('login')
+@HttpCode(HttpStatus.OK)
+async login(@Body() body: LoginDto) {
+  const output = await this.loginUser.execute(body);
+  return { mensagem: 'Login realizado com sucesso' };
+}
 ```
 
 ### 4. Análise de Impacto
