@@ -34,11 +34,31 @@ async function bootstrap() {
 
     app.use(
       helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:", "*.cloudinary.com"],
+            connectSrc: ["'self'", "https:"],
+            fontSrc: ["'self'", "https:", "data:"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: [], // Força upgrade para HTTPS
+          },
+        },
+        referrerPolicy: {
+          policy: 'strict-origin-when-cross-origin',
+        },
+        xFrameOptions: {
+          action: 'deny',
+        },
+        xContentTypeOptions: true,
         strictTransportSecurity: {
           maxAge: 31536000,
           includeSubDomains: true,
           preload: true,
         },
+        crossOriginEmbedderPolicy: false, // Evita bloqueios de imagens externas (Cloudinary, etc)
       }),
     );
 

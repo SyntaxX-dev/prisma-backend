@@ -83,6 +83,7 @@ Content-Type: application/json
 **1. Header `X-Powered-By` expõe tecnologia:**
 
 Sem proteção, o Express automaticamente adiciona o header `X-Powered-By: Express` em todas as respostas. Isso revela:
+
 - Que você está usando **Express.js**
 - Facilita para atacantes escolherem exploits específicos para essa tecnologia
 - Expõe informações desnecessárias sobre sua stack
@@ -90,6 +91,7 @@ Sem proteção, o Express automaticamente adiciona o header `X-Powered-By: Expre
 **2. Falta de headers de segurança:**
 
 Sem Helmet, sua API não envia headers importantes como:
+
 - `X-Content-Type-Options`: previne que navegadores "adivinhem" o tipo de arquivo (pode evitar ataques MIME-sniffing)
 - `X-Frame-Options`: previne que sua página seja embutida em um `<iframe>` malicioso (proteção contra clickjacking)
 - `Strict-Transport-Security`: força conexões HTTPS
@@ -106,6 +108,7 @@ Server: nginx/1.18.0
 ```
 
 Agora ele sabe:
+
 - Você usa Express.js (pode procurar vulnerabilidades conhecidas)
 - Você usa nginx (pode tentar exploits específicos)
 - Não há proteção contra clickjacking
@@ -139,30 +142,52 @@ Content-Security-Policy: default-src 'self'
 
 ### Trecho de código (Antes vs Depois)
 
-**Antes (sem Helmet / sem hardening centralizado)**
+**Antes (Configuração Básica do Helmet)**
 
 ```ts
-// Resposta HTTP sem proteção:
-// X-Powered-By: Express  ← Expõe tecnologia
-// (sem outros headers de segurança)
+app.use(
+  helmet({
+    strictTransportSecurity: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  }),
+);
 ```
 
-**Depois (Helmet + desabilitar `X-Powered-By` no Express)**
+**Depois (Configuração Completa de Hardening)**
 
 ```ts
-app.use(helmet());
-
-const httpAdapter = app.getHttpAdapter();
-const instance = httpAdapter.getInstance();
-if (instance && typeof instance.disable === 'function') {
-  instance.disable('x-powered-by');
-}
-
-// Resposta HTTP agora inclui:
-// X-Content-Type-Options: nosniff
-// X-Frame-Options: DENY
-// Strict-Transport-Security: ...
-// (sem X-Powered-By)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:", "*.cloudinary.com"],
+        connectSrc: ["'self'", "https:"],
+        fontSrc: ["'self'", "https:", "data:"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [], // Força upgrade para HTTPS
+      },
+    },
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin',
+    },
+    xFrameOptions: {
+      action: 'deny',
+    },
+    xContentTypeOptions: true,
+    strictTransportSecurity: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 ```
 
 ---
@@ -343,4 +368,3 @@ throw new HttpException(
 - Headers de hardening estão ativos (Helmet)
 - Níveis de log estão compatíveis com o ambiente (`NODE_ENV=production`)
 - Variáveis `SWAGGER_USER` e `SWAGGER_PASSWORD` configuradas como segredo no deploy
-
