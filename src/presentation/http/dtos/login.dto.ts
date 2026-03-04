@@ -9,7 +9,7 @@ export class LoginDto {
   @MinLength(8)
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
     message:
-      'A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial (@$!%*?&)',
+      'As credenciais fornecidas são inválidas.',
   })
   password!: string;
 }

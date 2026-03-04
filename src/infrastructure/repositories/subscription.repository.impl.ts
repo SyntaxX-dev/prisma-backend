@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, and, lt, sql } from 'drizzle-orm';
+import { eq, and, lt, sql, desc } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../domain/tokens';
 import type { SubscriptionRepository } from '../../domain/repositories/subscription.repository';
 import { Subscription, SubscriptionStatus, PaymentMethod } from '../../domain/entities/subscription';
@@ -85,10 +85,15 @@ export class SubscriptionRepositoryImpl implements SubscriptionRepository {
   }
 
   async findByUserId(userId: string): Promise<Subscription | null> {
+    // Prioriza assinatura ACTIVE (ex.: reassinatura após plano expirado) e depois a mais recente
     const [result] = await this.db
       .select()
       .from(subscriptions)
       .where(eq(subscriptions.userId, userId))
+      .orderBy(
+        desc(sql`(${subscriptions.status} = 'ACTIVE')`),
+        desc(subscriptions.updatedAt),
+      )
       .limit(1);
 
     return result ? this.mapToEntity(result) : null;
