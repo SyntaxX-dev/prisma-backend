@@ -43,6 +43,7 @@ async function bootstrap() {
             connectSrc: ["'self'", "https:"],
             fontSrc: ["'self'", "https:", "data:"],
             objectSrc: ["'none'"],
+            frameAncestors: ["'none'"], // Previne clickjacking (CSP moderno)
             upgradeInsecureRequests: [], // Força upgrade para HTTPS
           },
         },

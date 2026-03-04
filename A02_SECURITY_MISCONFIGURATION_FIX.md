@@ -41,7 +41,7 @@ const document = SwaggerModule.createDocument(app, config);
 SwaggerModule.setup('docs', app, document);
 ```
 
-**Depois (Swagger com Basic Auth em `/docs`)**
+#### Depois (Swagger com Basic Auth em `/docs`)
 
 ```ts
 // Proteção do Swagger via Basic Auth
@@ -142,7 +142,7 @@ Content-Security-Policy: default-src 'self'
 
 ### Trecho de código (Antes vs Depois)
 
-**Antes (Configuração Básica do Helmet)**
+#### Antes (Configuração Básica do Helmet)
 
 ```ts
 app.use(
@@ -156,7 +156,7 @@ app.use(
 );
 ```
 
-**Depois (Configuração Completa de Hardening)**
+#### Depois (Configuração Completa de Hardening)
 
 ```ts
 app.use(
@@ -170,6 +170,7 @@ app.use(
         connectSrc: ["'self'", "https:"],
         fontSrc: ["'self'", "https:", "data:"],
         objectSrc: ["'none'"],
+        frameAncestors: ["'none'"], // Previne clickjacking (CSP moderno)
         upgradeInsecureRequests: [], // Força upgrade para HTTPS
       },
     },
@@ -365,6 +366,25 @@ throw new HttpException(
 
 - Em produção, acessar `/docs` exige autenticação Basic Auth
 - Em produção, respostas de erro não retornam stack traces/detalhes internos para o cliente
-- Headers de hardening estão ativos (Helmet)
+- Headers de hardening estão ativos (Helmet no backend e vercel.json/next.config.ts no frontend/admin)
+- CSP inclui `frame-ancestors 'none'` para prevenir clickjacking
+- HSTS configurado com `includeSubDomains` em todos os serviços
 - Níveis de log estão compatíveis com o ambiente (`NODE_ENV=production`)
 - Variáveis `SWAGGER_USER` e `SWAGGER_PASSWORD` configuradas como segredo no deploy
+
+---
+
+## 6) Hardenização do Frontend (Vercel/Next.js)
+
+Como o domínio principal (`prismacademy.app`) está no frontend, as mesmas políticas foram aplicadas via `vercel.json` e `next.config.ts`.
+
+### Onde foi aplicado
+
+- `prisma-frontend/vercel.json`
+- `prisma-admin/next.config.ts`
+
+### Benefícios
+
+- Protege contra Clickjacking no domínio principal
+- Garante HSTS em todos os subdomínios (admin, api, etc.)
+- Consolida a postura de segurança em toda a stack
