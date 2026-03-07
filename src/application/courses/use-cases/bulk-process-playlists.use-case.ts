@@ -17,6 +17,7 @@ import { Video } from '../../../domain/entities/video';
 export interface BulkProcessPlaylistsInput {
   playlistIds: string[];
   aiPrompt?: string;
+  courseId?: string;
 }
 
 export interface BulkProcessPlaylistsOutput {
@@ -56,7 +57,7 @@ export class BulkProcessPlaylistsUseCase {
     private readonly videoRepository: VideoRepository,
     private readonly geminiService: GeminiService,
     private readonly youtubeService: YouTubeService,
-  ) {}
+  ) { }
 
   async execute(
     input: BulkProcessPlaylistsInput,
@@ -65,14 +66,24 @@ export class BulkProcessPlaylistsUseCase {
       `[BulkProcess] Iniciando processamento de ${input.playlistIds.length} playlists`,
     );
 
-    // 1. Buscar lista de cursos existentes
+    // 1. Validar curso se courseId foi fornecido
+    let targetCourse: Course | null = null;
+    if (input.courseId) {
+      targetCourse = await this.courseRepository.findById(input.courseId);
+      if (!targetCourse) {
+        throw new Error(`Curso com ID ${input.courseId} não encontrado`);
+      }
+      console.log(`[BulkProcess] Forçando uso do curso: ${targetCourse.name}`);
+    }
+
+    // 2. Buscar lista de cursos existentes
     const existingCourses = await this.courseRepository.findAll();
     const existingCourseNames = existingCourses.map((c) => c.name);
     console.log(
       `[BulkProcess] Cursos existentes: ${existingCourseNames.join(', ')}`,
     );
 
-    // 2. Buscar informações e vídeos de cada playlist
+    // 3. Buscar informações e vídeos de cada playlist
     const playlistData: PlaylistAnalysisData[] = [];
     const errors: Array<{ playlistId: string; error: string }> = [];
 
@@ -143,15 +154,22 @@ export class BulkProcessPlaylistsUseCase {
       };
     }
 
-    // 3. Enviar para Gemini analisar e sugerir estrutura
+    // 4. Enviar para Gemini analisar e sugerir estrutura
     console.log(
       `[BulkProcess] Enviando ${playlistData.length} playlists para análise do Gemini`,
     );
+
+    // Se tiver courseId, adicionamos ao prompt para a IA não tentar criar novos cursos
+    let aiPrompt = input.aiPrompt || '';
+    if (targetCourse) {
+      aiPrompt = `IMPORTANTE: Todas as playlists DEVEM ser organizadas dentro do curso "${targetCourse.name}". Não crie outros cursos. ${aiPrompt}`;
+    }
+
     const courseSuggestions =
       await this.geminiService.analyzePlaylistsForCourses(
         playlistData,
         existingCourseNames,
-        input.aiPrompt,
+        aiPrompt,
       );
 
     console.log(
@@ -178,29 +196,36 @@ export class BulkProcessPlaylistsUseCase {
         `[BulkProcess] Processando curso: ${courseSuggestion.courseName}`,
       );
 
-      // Verificar se curso já existe
-      let course = existingCourses.find(
-        (c) =>
-          c.name.toLowerCase().trim() ===
-          courseSuggestion.courseName.toLowerCase().trim(),
-      );
+      // Usar curso fornecido ou o que a IA sugeriu
+      let course: Course | undefined;
 
-      if (!course) {
-        // Criar novo curso
-        const courseData = Course.create(
-          courseSuggestion.courseName,
-          `Curso de ${courseSuggestion.courseName}`,
-          undefined, // Sem imagem por padrão
-          false, // Não pago por padrão
-        );
-        course = await this.courseRepository.create(courseData);
-        console.log(
-          `[BulkProcess] Curso criado: ${course.name} (${course.id})`,
-        );
+      if (targetCourse) {
+        course = targetCourse;
       } else {
-        console.log(
-          `[BulkProcess] Curso já existe: ${course.name} (${course.id})`,
+        // Verificar se curso sugerido pela IA já existe
+        course = existingCourses.find(
+          (c) =>
+            c.name.toLowerCase().trim() ===
+            courseSuggestion.courseName.toLowerCase().trim(),
         );
+
+        if (!course) {
+          // Criar novo curso
+          const courseData = Course.create(
+            courseSuggestion.courseName,
+            `Curso de ${courseSuggestion.courseName}`,
+            undefined, // Sem imagem por padrão
+            false, // Não pago por padrão
+          );
+          course = await this.courseRepository.create(courseData);
+          console.log(
+            `[BulkProcess] Curso criado: ${course.name} (${course.id})`,
+          );
+        } else {
+          console.log(
+            `[BulkProcess] Curso já existe: ${course.name} (${course.id})`,
+          );
+        }
       }
 
       const courseOutput: (typeof createdCourses)[0] = {

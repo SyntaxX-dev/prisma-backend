@@ -925,6 +925,7 @@ export class CoursesController {
       const result = await this.bulkProcessPlaylistsUseCase.execute({
         playlistIds: bulkProcessPlaylistsDto.playlistIds,
         aiPrompt: bulkProcessPlaylistsDto.aiPrompt,
+        courseId: bulkProcessPlaylistsDto.courseId,
       });
       return result;
     } catch (error) {
