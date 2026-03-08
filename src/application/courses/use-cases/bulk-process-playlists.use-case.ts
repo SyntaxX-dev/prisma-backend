@@ -192,24 +192,25 @@ export class BulkProcessPlaylistsUseCase {
     });
 
     for (const courseSuggestion of courseSuggestions) {
-      console.log(
-        `[BulkProcess] Processando curso: ${courseSuggestion.courseName}`,
-      );
-
-      // Usar curso fornecido ou o que a IA sugeriu
-      let course: Course | undefined;
+      // Se tivermos um curso alvo forçado, ignoramos a sugestão de nome da IA
+      let course: Course;
 
       if (targetCourse) {
         course = targetCourse;
+        console.log(`[BulkProcess] Respeitando curso alvo: ${course.name} (${course.id})`);
       } else {
+        console.log(
+          `[BulkProcess] Processando curso sugerido: ${courseSuggestion.courseName}`,
+        );
+
         // Verificar se curso sugerido pela IA já existe
-        course = existingCourses.find(
+        const existingCourse = existingCourses.find(
           (c) =>
             c.name.toLowerCase().trim() ===
             courseSuggestion.courseName.toLowerCase().trim(),
         );
 
-        if (!course) {
+        if (!existingCourse) {
           // Criar novo curso
           const courseData = Course.create(
             courseSuggestion.courseName,
@@ -219,11 +220,12 @@ export class BulkProcessPlaylistsUseCase {
           );
           course = await this.courseRepository.create(courseData);
           console.log(
-            `[BulkProcess] Curso criado: ${course.name} (${course.id})`,
+            `[BulkProcess] Novo curso criado: ${course.name} (${course.id})`,
           );
         } else {
+          course = existingCourse;
           console.log(
-            `[BulkProcess] Curso já existe: ${course.name} (${course.id})`,
+            `[BulkProcess] Usando curso existente: ${course.name} (${course.id})`,
           );
         }
       }
@@ -262,18 +264,25 @@ export class BulkProcessPlaylistsUseCase {
           await this.subCourseRepository.findByCourseId(course.id);
         const nextOrder = existingSubCourses.length;
 
-        // Criar subcurso
-        const subCourseData = SubCourse.create(
-          course.id,
-          subCourseSuggestion.subCourseName,
-          undefined, // Sem descrição por padrão
-          nextOrder,
-        );
-        const subCourse = await this.subCourseRepository.create(subCourseData);
-        totalSubCourses++;
-        console.log(
-          `[BulkProcess] Subcurso criado: ${subCourse.name} (${subCourse.id})`,
-        );
+        // Criar subcurso com tratamento de erro
+        let subCourse: SubCourse;
+        try {
+          const subCourseData = SubCourse.create(
+            course.id,
+            subCourseSuggestion.subCourseName,
+            undefined, // Sem descrição por padrão
+            nextOrder,
+          );
+          subCourse = await this.subCourseRepository.create(subCourseData);
+          totalSubCourses++;
+          console.log(
+            `[BulkProcess] Subcurso criado: ${subCourse.name} (${subCourse.id})`,
+          );
+        } catch (error) {
+          console.error(`[BulkProcess] Erro ao criar subcurso ${subCourseSuggestion.subCourseName}:`, error);
+          errors.push({ playlistId: subCourseSuggestion.playlistId, error: `Erro ao criar subcurso: ${error instanceof Error ? error.message : 'Erro desconhecido'}` });
+          continue;
+        }
 
         const subCourseOutput = {
           subCourseId: subCourse.id,
@@ -288,16 +297,23 @@ export class BulkProcessPlaylistsUseCase {
         // Criar módulos e vídeos
         let moduleOrder = 0;
         for (const moduleSuggestion of subCourseSuggestion.modules) {
-          // Criar módulo
-          const moduleData = Module.create(
-            subCourse.id,
-            moduleSuggestion.name,
-            moduleSuggestion.description,
-            moduleOrder,
-          );
-          const module = await this.moduleRepository.create(moduleData);
-          totalModules++;
-          moduleOrder++;
+          // Criar módulo com tratamento de erro
+          let module: Module;
+          try {
+            const moduleData = Module.create(
+              subCourse.id,
+              moduleSuggestion.name,
+              moduleSuggestion.description,
+              moduleOrder,
+            );
+            module = await this.moduleRepository.create(moduleData);
+            totalModules++;
+            moduleOrder++;
+            console.log(`[BulkProcess] Módulo criado: ${module.name} (${module.id})`);
+          } catch (error) {
+            console.error(`[BulkProcess] Erro ao criar módulo ${moduleSuggestion.name}:`, error);
+            continue;
+          }
 
           // Criar vídeos do módulo
           let videoOrder = 0;
@@ -316,29 +332,41 @@ export class BulkProcessPlaylistsUseCase {
               ? youtubeVideo.description.substring(0, 2500)
               : undefined;
 
-            const videoData = Video.create(
-              module.id,
-              subCourse.id,
-              youtubeVideo.videoId,
-              youtubeVideo.title || 'Sem título',
-              youtubeVideo.url,
-              truncatedDescription,
-              youtubeVideo.thumbnailUrl,
-              youtubeVideo.duration || 0,
-              youtubeVideo.channelTitle,
-              youtubeVideo.channelId,
-              youtubeVideo.channelThumbnailUrl,
-              youtubeVideo.publishedAt
-                ? new Date(youtubeVideo.publishedAt)
-                : undefined,
-              youtubeVideo.viewCount,
-              youtubeVideo.tags,
-              youtubeVideo.category,
-              videoOrder,
-            );
-            await this.videoRepository.create(videoData);
-            totalVideos++;
-            videoOrder++;
+            // Validar data
+            let publishedAt: Date | undefined = undefined;
+            if (youtubeVideo.publishedAt) {
+              const date = new Date(youtubeVideo.publishedAt);
+              if (!isNaN(date.getTime())) {
+                publishedAt = date;
+              }
+            }
+
+            try {
+              const videoData = Video.create(
+                module.id,
+                subCourse.id,
+                youtubeVideo.videoId,
+                youtubeVideo.title || 'Sem título',
+                youtubeVideo.url,
+                truncatedDescription,
+                youtubeVideo.thumbnailUrl,
+                youtubeVideo.duration || 0,
+                youtubeVideo.channelTitle,
+                youtubeVideo.channelId,
+                youtubeVideo.channelThumbnailUrl,
+                publishedAt,
+                youtubeVideo.viewCount,
+                youtubeVideo.tags,
+                youtubeVideo.category,
+                videoOrder,
+              );
+              await this.videoRepository.create(videoData);
+              totalVideos++;
+              videoOrder++;
+            } catch (error) {
+              console.error(`[BulkProcess] Erro ao salvar vídeo ${youtubeVideo.videoId}:`, error);
+              // Continuamos para o próximo vídeo
+            }
           }
 
           subCourseOutput.modules.push({
