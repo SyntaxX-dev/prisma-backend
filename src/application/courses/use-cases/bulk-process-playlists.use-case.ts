@@ -310,13 +310,19 @@ export class BulkProcessPlaylistsUseCase {
             }
 
             const youtubeVideo = fullVideos[videoIndex];
+
+            // Truncar descrição para evitar erro de banco de dados (max 2500)
+            const truncatedDescription = youtubeVideo.description
+              ? youtubeVideo.description.substring(0, 2500)
+              : undefined;
+
             const videoData = Video.create(
               module.id,
               subCourse.id,
               youtubeVideo.videoId,
               youtubeVideo.title || 'Sem título',
               youtubeVideo.url,
-              youtubeVideo.description,
+              truncatedDescription,
               youtubeVideo.thumbnailUrl,
               youtubeVideo.duration || 0,
               youtubeVideo.channelTitle,

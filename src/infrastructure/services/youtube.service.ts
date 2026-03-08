@@ -131,21 +131,32 @@ export class YouTubeService {
     }
 
     try {
-      const response = await this.youtube.playlistItems.list({
-        part: ['snippet'],
-        playlistId,
-        maxResults,
-      });
+      let allVideos: YouTubeVideoDto[] = [];
+      let nextPageToken: string | undefined = undefined;
 
-      if (!response.data.items) {
-        return [];
-      }
+      // Busca recursiva para superar o limite de 50 da API
+      do {
+        const response: any = await this.youtube.playlistItems.list({
+          part: ['snippet'],
+          playlistId,
+          maxResults: Math.min(maxResults, 50),
+          pageToken: nextPageToken,
+        });
 
-      const videoIds = response.data.items
-        .map((item) => item.snippet?.resourceId?.videoId)
-        .filter(Boolean) as string[];
+        const items = response.data.items || [];
+        const videoIds = items
+          .map((item: any) => item.snippet?.resourceId?.videoId)
+          .filter(Boolean) as string[];
 
-      return await this.getVideoDetails(videoIds);
+        if (videoIds.length > 0) {
+          const videoDetails = await this.getVideoDetails(videoIds);
+          allVideos = [...allVideos, ...videoDetails];
+        }
+
+        nextPageToken = response.data.nextPageToken;
+      } while (nextPageToken && allVideos.length < maxResults);
+
+      return allVideos;
     } catch (error) {
       this.logger.error(
         `Erro ao obter vídeos da playlist ${playlistId}:`,

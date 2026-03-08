@@ -101,7 +101,7 @@ Responda APENAS com um JSON no seguinte formato:
 
   private async callGeminiAPI(prompt: string): Promise<string> {
     const response = await fetch(
-      `${this.baseUrl}/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
+      `${this.baseUrl}/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -265,6 +265,7 @@ REGRAS IMPORTANTES:
    - Agrupe vídeos relacionados
    - Mantenha sequência lógica
    - Crie nomes descritivos e profissionais
+   - **IMPORTANTE: Inclua TODOS os vídeos fornecidos em cada playlist nos módulos. Não omita nenhum vídeo da lista.**
 
 4. ESTRUTURA:
    - Cada playlist deve gerar 1 subcurso
