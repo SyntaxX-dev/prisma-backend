@@ -137,53 +137,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private handleRedisMessage(message: any) {
     try {
       if (message.type === 'new_message') {
-        // Envia mensagem para o destinatário se estiver conectado
-        const socketId = this.connectedUsers.get(message.receiverId);
-        if (socketId) {
-          this.server.to(socketId).emit('new_message', message.data);
-          this.logger.debug(
-            `📨 Mensagem do Redis enviada para ${message.receiverId}`,
-          );
-        }
+        // Usar room user:{userId} — mais robusto que socketId direto
+        this.server.to(`user:${message.receiverId}`).emit('new_message', message.data);
+        this.logger.debug(
+          `📨 Mensagem do Redis enviada para ${message.receiverId}`,
+        );
       } else if (message.type === 'message_read') {
-        // Notifica que mensagem foi lida
-        const socketId = this.connectedUsers.get(message.senderId);
-        if (socketId) {
-          this.server.to(socketId).emit('message_read', message.data);
-        }
+        this.server.to(`user:${message.senderId}`).emit('message_read', message.data);
       } else if (message.type === 'new_community_message') {
         // Envia mensagem de comunidade para todos os membros online
         if (message.receiverIds && Array.isArray(message.receiverIds)) {
           for (const receiverId of message.receiverIds) {
-            const socketId = this.connectedUsers.get(receiverId);
-            if (socketId) {
-              this.server
-                .to(socketId)
-                .emit('new_community_message', message.data);
-            }
+            this.server.to(`user:${receiverId}`).emit('new_community_message', message.data);
           }
         }
       } else if (message.type === 'message_edited') {
-        // Notifica que mensagem foi editada (chat normal)
-        const receiverSocketId = this.connectedUsers.get(message.receiverId);
-        if (receiverSocketId) {
-          this.server.to(receiverSocketId).emit('message_edited', message.data);
-        }
-        // Também notificar o sender (caso tenha múltiplas abas/dispositivos)
-        const senderSocketId = this.connectedUsers.get(message.senderId);
-        if (senderSocketId) {
-          this.server.to(senderSocketId).emit('message_edited', message.data);
-        }
+        this.server.to(`user:${message.receiverId}`).emit('message_edited', message.data);
+        this.server.to(`user:${message.senderId}`).emit('message_edited', message.data);
       } else if (message.type === 'community_message_edited') {
-        // Notifica que mensagem de comunidade foi editada
-        if (message.receiverIds && Array.isArray(message.receiverIds)) {
+        // Usar room da comunidade se disponível, senão iterar receivers
+        if (message.communityId) {
+          this.server.to(`community:${message.communityId}`).emit('community_message_edited', message.data);
+        } else if (message.receiverIds && Array.isArray(message.receiverIds)) {
           for (const receiverId of message.receiverIds) {
-            const socketId = this.connectedUsers.get(receiverId);
-            if (socketId) {
-              this.server
-                .to(socketId)
-                .emit('community_message_edited', message.data);
-            }
+            this.server.to(`user:${receiverId}`).emit('community_message_edited', message.data);
           }
         }
       }
@@ -198,17 +175,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private handleRedisTyping(message: any) {
     try {
       if (message.type === 'typing') {
-        // Envia evento de typing para o destinatário se estiver conectado
-        const socketId = this.connectedUsers.get(message.receiverId);
-        if (socketId) {
-          this.server.to(socketId).emit('typing', {
-            userId: message.userId,
-            isTyping: message.isTyping,
-          });
-          this.logger.debug(
-            `⌨️  Typing do Redis enviado para ${message.receiverId}`,
-          );
-        }
+        this.server.to(`user:${message.receiverId}`).emit('typing', {
+          userId: message.userId,
+          isTyping: message.isTyping,
+        });
+        this.logger.debug(
+          `⌨️  Typing do Redis enviado para ${message.receiverId}`,
+        );
       }
     } catch (error) {
       this.logger.error('Erro ao processar typing do Redis:', error);
@@ -221,25 +194,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private handleRedisCommunityTyping(message: any) {
     try {
       if (message.type === 'community_typing') {
-        // Envia evento de typing para todos os membros online da comunidade
-        if (message.memberIds && Array.isArray(message.memberIds)) {
-          for (const memberId of message.memberIds) {
-            // Não enviar para o próprio usuário que está digitando
-            if (memberId === message.userId) continue;
-
-            const socketId = this.connectedUsers.get(memberId);
-            if (socketId) {
-              this.server.to(socketId).emit('community_typing', {
-                communityId: message.communityId,
-                userId: message.userId,
-                isTyping: message.isTyping,
-              });
-            }
-          }
-          this.logger.debug(
-            `⌨️  Community typing do Redis enviado para membros da comunidade ${message.communityId}`,
-          );
-        }
+        // Usar room da comunidade — mais eficiente que iterar membros individualmente
+        this.server.to(`community:${message.communityId}`).emit('community_typing', {
+          communityId: message.communityId,
+          userId: message.userId,
+          isTyping: message.isTyping,
+        });
+        this.logger.debug(
+          `⌨️  Community typing do Redis enviado para room community:${message.communityId}`,
+        );
       }
     } catch (error) {
       this.logger.error('Erro ao processar community typing do Redis:', error);
@@ -252,62 +215,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private handleRedisMessageDeleted(message: any) {
     try {
       if (message.type === 'message_deleted') {
-        // Notificar o receiver (outro usuário)
-        const receiverSocketId = this.connectedUsers.get(message.receiverId);
-        if (receiverSocketId) {
-          this.server.to(receiverSocketId).emit('message_deleted', {
+        // Notificar o receiver e sender usando rooms user:{userId}
+        this.server.to(`user:${message.receiverId}`).emit('message_deleted', {
+          messageId: message.messageId,
+          message: message.message,
+        });
+        this.server.to(`user:${message.senderId}`).emit('message_deleted', {
+          messageId: message.messageId,
+          message: message.message,
+        });
+        console.log(
+          '[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando receiver e sender via room',
+          {
             messageId: message.messageId,
-            message: message.message, // Mensagem com conteúdo "Mensagem apagada"
-          });
-          console.log(
-            '[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando receiver via WebSocket',
-            {
-              messageId: message.messageId,
-              receiverId: message.receiverId,
-              socketId: receiverSocketId,
-              timestamp: new Date().toISOString(),
-            },
-          );
-        }
-
-        // Notificar o sender (quem deletou) - caso tenha múltiplas abas/dispositivos
-        const senderSocketId = this.connectedUsers.get(message.senderId);
-        if (senderSocketId) {
-          this.server.to(senderSocketId).emit('message_deleted', {
-            messageId: message.messageId,
-            message: message.message, // Mensagem com conteúdo "Mensagem apagada"
-          });
-          console.log(
-            '[CHAT_GATEWAY] 🗑️ Mensagem deletada - Notificando sender via WebSocket',
-            {
-              messageId: message.messageId,
-              senderId: message.senderId,
-              socketId: senderSocketId,
-              timestamp: new Date().toISOString(),
-            },
-          );
-        }
-
-        if (!receiverSocketId && !senderSocketId) {
-          console.log(
-            '[CHAT_GATEWAY] ℹ️ Nenhum usuário conectado - Mensagem deletada mas não notificados',
-            {
-              messageId: message.messageId,
-              receiverId: message.receiverId,
-              senderId: message.senderId,
-              timestamp: new Date().toISOString(),
-            },
-          );
-        }
+            receiverId: message.receiverId,
+            senderId: message.senderId,
+            timestamp: new Date().toISOString(),
+          },
+        );
       } else if (message.type === 'community_message_deleted') {
-        // Notificar todos os membros da comunidade sobre a exclusão
+        // Notificar membros da comunidade usando a room da comunidade
         const communityId = message.receiverId; // receiverId é na verdade communityId aqui
 
-        // Emitir para todos os usuários conectados (frontend filtra por communityId)
-        this.server.emit('community_message_deleted', {
+        this.server.to(`community:${communityId}`).emit('community_message_deleted', {
           messageId: message.messageId,
           communityId: communityId,
-          message: message.message, // Mensagem com conteúdo "Mensagem apagada"
+          message: message.message,
         });
 
         console.log(
@@ -568,18 +501,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Envia para o destinatário que o usuário está digitando
-    const receiverSocketId = this.connectedUsers.get(data.receiverId);
-    if (receiverSocketId) {
-      // Envia diretamente se o destinatário estiver conectado nesta instância
-      this.server.to(receiverSocketId).emit('typing', {
-        userId: user.sub,
-        isTyping: data.isTyping,
-      });
-      this.logger.debug(
-        `⌨️  Typing enviado para ${data.receiverId}: ${data.isTyping ? 'digitando' : 'parou'}`,
-      );
-    }
+    // Envia para o destinatário usando room user:{receiverId}
+    this.server.to(`user:${data.receiverId}`).emit('typing', {
+      userId: user.sub,
+      isTyping: data.isTyping,
+    });
+    this.logger.debug(
+      `⌨️  Typing enviado para ${data.receiverId}: ${data.isTyping ? 'digitando' : 'parou'}`,
+    );
 
     // Publica no Redis para outras instâncias do servidor
     if (this.redisService) {
@@ -1024,14 +953,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param data - Dados da mensagem
    */
   emitToUser(userId: string, event: string, data: any): boolean {
-    const socketId = this.connectedUsers.get(userId);
-    if (socketId) {
-      this.server.to(socketId).emit(event, data);
-      this.logger.debug(`✅ Mensagem enviada para usuário ${userId}: ${event}`);
-      return true;
-    }
-    this.logger.debug(`❌ Usuário ${userId} não está conectado ao chat`);
-    return false;
+    // Usar room user:{userId} — mais robusto que socketId direto
+    this.server.to(`user:${userId}`).emit(event, data);
+    this.logger.debug(`✅ Mensagem enviada para usuário ${userId} (room user:${userId}): ${event}`);
+    return this.connectedUsers.has(userId);
   }
 
   /**
