@@ -265,6 +265,7 @@ REGRAS IMPORTANTES:
    - Agrupe vídeos relacionados
    - Mantenha sequência lógica
    - Crie nomes descritivos e profissionais
+   - **IMPORTANTE: Inclua TODOS os vídeos fornecidos em cada playlist nos módulos. Não omita nenhum vídeo da lista.**
 
 4. ESTRUTURA:
    - Cada playlist deve gerar 1 subcurso

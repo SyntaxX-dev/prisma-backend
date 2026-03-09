@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import { SubCourseRepository } from '../../domain/repositories/sub-course.repository';
 import { SubCourse } from '../../domain/entities/sub-course';
 import { DrizzleService } from '../config/providers/drizzle.service';
@@ -7,7 +7,7 @@ import { subCourses, videos } from '../database/schema';
 
 @Injectable()
 export class SubCourseDrizzleRepository implements SubCourseRepository {
-  constructor(private readonly drizzleService: DrizzleService) {}
+  constructor(private readonly drizzleService: DrizzleService) { }
 
   async create(
     subCourse: Omit<SubCourse, 'id' | 'createdAt' | 'updatedAt'>,
@@ -73,16 +73,29 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
     );
   }
 
-  async findByCourseIdWithChannelInfo(courseId: string): Promise<SubCourse[]> {
-    const subCoursesList = await this.drizzleService.db
+  async findByCourseIdWithChannelInfo(
+    courseId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<SubCourse[]> {
+    let query = this.drizzleService.db
       .select()
       .from(subCourses)
       .where(eq(subCourses.courseId, courseId))
-      .orderBy(subCourses.order, subCourses.createdAt);
+      .orderBy(asc(subCourses.name));
+
+    if (limit !== undefined) {
+      query = query.limit(limit) as any;
+    }
+    if (offset !== undefined) {
+      query = query.offset(offset) as any;
+    }
+
+    const subCoursesList = await query;
 
     // Para cada sub-course, buscar o primeiro vídeo para obter informações do canal
     const subCoursesWithChannelInfo = await Promise.all(
-      subCoursesList.map(async (subCourse) => {
+      subCoursesList.map(async (subCourse: any) => {
         // Buscar o primeiro vídeo do sub-course para obter informações do canal
         const [firstVideo] = await this.drizzleService.db
           .select({

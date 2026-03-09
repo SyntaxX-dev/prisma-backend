@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   HttpException,
   HttpStatus,
   UseGuards,
@@ -15,6 +16,7 @@ import {
   ApiResponse,
   ApiBody,
   ApiParam,
+  ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CreateCourseUseCase } from '../../../application/courses/use-cases/create-course.use-case';
@@ -368,12 +370,40 @@ export class CoursesController {
       },
     },
   })
-  async listSubCourses(@Param('courseId') courseId: string) {
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  async listSubCourses(
+    @Param('courseId') courseId: string,
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+  ) {
     try {
-      const result = await this.listSubCoursesUseCase.execute({ courseId });
+      const limitNum = limit ? parseInt(limit) : undefined;
+      const pageNum = page ? parseInt(page) : 1;
+      const offset =
+        limitNum !== undefined ? (pageNum - 1) * limitNum : undefined;
+
+      const result = await this.listSubCoursesUseCase.execute({
+        courseId,
+        limit: limitNum,
+        offset,
+      });
+
+      // Limpeza de campos e formatação solicitada
+      const formattedSubCourses = result.subCourses.map((subCourse) => {
+        const { description, createdAt, updatedAt, order, ...rest } =
+          subCourse as any;
+
+        return {
+          ...rest,
+          // Se a descrição for nula, ela nem aparece no retorno
+          ...(description !== null ? { description } : {}),
+        };
+      });
+
       return {
         success: true,
-        data: result.subCourses,
+        data: formattedSubCourses,
       };
     } catch (error) {
       throw new HttpException(
@@ -925,6 +955,7 @@ export class CoursesController {
       const result = await this.bulkProcessPlaylistsUseCase.execute({
         playlistIds: bulkProcessPlaylistsDto.playlistIds,
         aiPrompt: bulkProcessPlaylistsDto.aiPrompt,
+        courseId: bulkProcessPlaylistsDto.courseId,
       });
       return result;
     } catch (error) {

@@ -30,4 +30,13 @@ export class BulkProcessPlaylistsDto {
   @IsOptional()
   @IsString()
   aiPrompt?: string;
+
+  @ApiProperty({
+    description: 'ID do curso existente para vincular as playlists (opcional). Se não informado, a IA decidirá o curso.',
+    example: 'f053ada1-2a6a-4db1-9f72-b52a66a68cc2',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  courseId?: string;
 }

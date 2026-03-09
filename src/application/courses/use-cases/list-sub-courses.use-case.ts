@@ -5,6 +5,8 @@ import { SubCourse } from '../../../domain/entities/sub-course';
 
 export interface ListSubCoursesInput {
   courseId: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface ListSubCoursesOutput {
@@ -16,7 +18,7 @@ export class ListSubCoursesUseCase {
   constructor(
     private readonly courseRepository: CourseRepository,
     private readonly subCourseRepository: SubCourseRepository,
-  ) {}
+  ) { }
 
   async execute(input: ListSubCoursesInput): Promise<ListSubCoursesOutput> {
     // Verificar se o curso existe
@@ -28,6 +30,8 @@ export class ListSubCoursesUseCase {
     const subCourses =
       await this.subCourseRepository.findByCourseIdWithChannelInfo(
         input.courseId,
+        input.limit,
+        input.offset,
       );
     return { subCourses };
   }

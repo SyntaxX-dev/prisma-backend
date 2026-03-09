@@ -7,7 +7,7 @@ import { videos } from '../database/schema';
 
 @Injectable()
 export class VideoDrizzleRepository implements VideoRepository {
-  constructor(private readonly drizzleService: DrizzleService) {}
+  constructor(private readonly drizzleService: DrizzleService) { }
 
   async create(
     video: Omit<Video, 'id' | 'createdAt' | 'updatedAt'>,
@@ -31,6 +31,19 @@ export class VideoDrizzleRepository implements VideoRepository {
         tags: video.tags,
         category: video.category,
         order: video.order,
+      })
+      .onConflictDoUpdate({
+        target: videos.videoId,
+        set: {
+          moduleId: video.moduleId,
+          subCourseId: video.subCourseId,
+          title: video.title,
+          description: video.description,
+          url: video.url,
+          thumbnailUrl: video.thumbnailUrl,
+          duration: video.duration,
+          updatedAt: new Date(),
+        },
       })
       .returning();
 
@@ -297,6 +310,16 @@ export class VideoDrizzleRepository implements VideoRepository {
           order: video.order,
         })),
       )
+      .onConflictDoUpdate({
+        target: videos.videoId,
+        set: {
+          // No bulk, podemos apenas atualizar os campos principais
+          moduleId: videos.moduleId,
+          subCourseId: videos.subCourseId,
+          title: videos.title,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
 
     return created.map(
