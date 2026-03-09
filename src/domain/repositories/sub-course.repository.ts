@@ -6,7 +6,11 @@ export interface SubCourseRepository {
   ): Promise<SubCourse>;
   findById(id: string): Promise<SubCourse | null>;
   findByCourseId(courseId: string): Promise<SubCourse[]>;
-  findByCourseIdWithChannelInfo(courseId: string): Promise<SubCourse[]>;
+  findByCourseIdWithChannelInfo(
+    courseId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<SubCourse[]>;
   findAll(): Promise<SubCourse[]>;
   update(
     id: string,
