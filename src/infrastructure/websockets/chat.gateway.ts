@@ -494,6 +494,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
+   * Handler para entrar na sala de uma comunidade.
+   * Permite receber eventos via server.to(room) sem query ao banco.
+   */
+  @SubscribeMessage('join_community')
+  handleJoinCommunity(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { communityId: string },
+  ) {
+    if (!data?.communityId) return;
+    client.join(`community:${data.communityId}`);
+  }
+
+  /**
+   * Handler para sair da sala de uma comunidade.
+   */
+  @SubscribeMessage('leave_community')
+  handleLeaveCommunity(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { communityId: string },
+  ) {
+    if (!data?.communityId) return;
+    client.leave(`community:${data.communityId}`);
+  }
+
+  /**
    * Handler para mensagem de ping (teste de conexão)
    */
   @SubscribeMessage('ping')
@@ -579,91 +604,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Formato enviado para os membros: { communityId: string, userId: string, isTyping: boolean }
    */
   @SubscribeMessage('community_typing')
-  async handleCommunityTyping(
+  handleCommunityTyping(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { communityId: string; isTyping: boolean },
   ) {
     const user = client.data.user as JwtPayload;
-    if (!user?.sub) {
-      this.logger.warn('Tentativa de community typing sem autenticação');
-      return;
-    }
+    if (!user?.sub || !data?.communityId) return;
 
-    if (!data.communityId) {
-      this.logger.warn('Community typing sem communityId');
-      return;
-    }
-
-    // Verificar se a comunidade existe e se o usuário é membro
-    if (!this.communityRepository || !this.communityMemberRepository) {
-      this.logger.warn('Repositórios de comunidade não disponíveis');
-      return;
-    }
-
-    try {
-      const community = await this.communityRepository.findById(
-        data.communityId,
-      );
-      if (!community) {
-        this.logger.warn(`Comunidade ${data.communityId} não encontrada`);
-        return;
-      }
-
-      // Buscar todos os membros da comunidade
-      const members = await this.communityMemberRepository.findByCommunityId(
-        data.communityId,
-      );
-      const memberIds = members.map((m) => m.userId);
-
-      // Incluir o dono se não estiver na lista de membros
-      if (!memberIds.includes(community.ownerId)) {
-        memberIds.push(community.ownerId);
-      }
-
-      // Remover o sender da lista (não precisa receber seu próprio typing)
-      const receiverIds = memberIds.filter((id) => id !== user.sub);
-
-      // Enviar para todos os membros online nesta instância
-      let onlineCount = 0;
-      for (const memberId of receiverIds) {
-        const isOnline = this.isUserOnline(memberId);
-        if (isOnline) {
-          this.server
-            .to(this.connectedUsers.get(memberId)!)
-            .emit('community_typing', {
-              communityId: data.communityId,
-              userId: user.sub,
-              isTyping: data.isTyping,
-            });
-          onlineCount++;
-        }
-      }
-
-      this.logger.debug(
-        `⌨️  Community typing enviado para ${onlineCount} membros online da comunidade ${data.communityId}: ${data.isTyping ? 'digitando' : 'parou'}`,
-      );
-
-      // Publica no Redis para outras instâncias do servidor
-      if (this.redisService) {
-        try {
-          await this.redisService.publish('chat:community_typing', {
-            type: 'community_typing',
-            communityId: data.communityId,
-            userId: user.sub,
-            memberIds: receiverIds, // Lista de IDs dos membros que devem receber
-            isTyping: data.isTyping,
-          });
-          this.logger.debug('📤 Community typing publicado no Redis');
-        } catch (error) {
-          this.logger.error(
-            'Erro ao publicar community typing no Redis:',
-            error,
-          );
-        }
-      }
-    } catch (error) {
-      this.logger.error('Erro ao processar community typing:', error);
-    }
+    // Envia para todos na room da comunidade, exceto o próprio remetente.
+    // Zero queries ao banco — usa Socket.IO rooms preenchidas pelo join_community.
+    client.to(`community:${data.communityId}`).emit('community_typing', {
+      communityId: data.communityId,
+      userId: user.sub,
+      isTyping: data.isTyping,
+    });
   }
 
   /**
