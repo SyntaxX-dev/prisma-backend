@@ -28,7 +28,7 @@ export const PLANS: Record<PlanType, Plan> = {
   START: {
     id: 'START',
     name: 'Start',
-    price: 12.9,
+    price: 14.9,
     description:
       'O plano ideal para quem está começando o desafiador mundo dos estudos.',
     features: [
@@ -61,12 +61,12 @@ export const PLANS: Record<PlanType, Plan> = {
     aiSummaryDailyLimit: 10,
     aiMindMapDailyLimit: 10,
     aiPdfDailyLimit: 10,
-    isHidden: true, // Plano oculto - não aparece na listagem pública
+    isHidden: true, 
   },
   ULTRA: {
     id: 'ULTRA',
     name: 'Ultra',
-    price: 39.9, // Preço atualizado (anteriormente 59.9)
+    price: 39.9, 
     description:
       'Acesso completo e ilimitado a todas as funcionalidades da Prisma Academy.',
     features: [
@@ -83,14 +83,14 @@ export const PLANS: Record<PlanType, Plan> = {
         limit: 'unlimited',
       },
     ],
-    aiSummaryDailyLimit: -1, // -1 = ilimitado
+    aiSummaryDailyLimit: -1,
     aiMindMapDailyLimit: -1,
     aiPdfDailyLimit: -1,
   },
   PRODUCER: {
     id: 'PRODUCER',
     name: 'Produtor',
-    price: 59.90, // Preço atualizado para produtores
+    price: 59.90, 
     description:
       'Plano exclusivo para produtores de conteúdo com destaque especial na plataforma.',
     features: [
@@ -108,7 +108,7 @@ export const PLANS: Record<PlanType, Plan> = {
       },
       { name: 'Destaque de cursos patrocinados', included: true },
     ],
-    aiSummaryDailyLimit: -1, // -1 = ilimitado
+    aiSummaryDailyLimit: -1,
     aiMindMapDailyLimit: -1,
     aiPdfDailyLimit: -1,
   },

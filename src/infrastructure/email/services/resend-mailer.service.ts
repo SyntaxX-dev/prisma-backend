@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { MailerServicePort } from '../../../domain/services/mailer';
 import { Resend } from 'resend';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   WelcomeEmailTemplate,
   type WelcomeEmailData,
@@ -35,6 +37,17 @@ export class ResendMailerService implements MailerServicePort {
       );
     } else {
       this.resend = new Resend(apiKey);
+    }
+  }
+
+  private getPdfAttachment(): { filename: string; content: Buffer }[] {
+    try {
+      const pdfPath = path.join(process.cwd(), 'public', 'Effective Study Techniques.pdf');
+      const content = fs.readFileSync(pdfPath);
+      return [{ filename: 'Effective Study Techniques.pdf', content }];
+    } catch {
+      console.warn('[Email][Resend] PDF não encontrado em public/Effective Study Techniques.pdf');
+      return [];
     }
   }
 
@@ -117,6 +130,7 @@ export class ResendMailerService implements MailerServicePort {
       subject,
       html,
       text,
+      attachments: this.getPdfAttachment(),
     });
   }
 
@@ -152,6 +166,7 @@ export class ResendMailerService implements MailerServicePort {
       subject,
       html,
       text,
+      attachments: this.getPdfAttachment(),
     });
   }
 }
