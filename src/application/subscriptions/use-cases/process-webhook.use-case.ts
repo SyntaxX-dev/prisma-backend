@@ -138,21 +138,20 @@ export class ProcessWebhookUseCase {
     // Se não é upgrade ou não encontrou pelo externalReference, busca pelo subscription ID do Asaas
     if (!subscription) {
       const asaasSubscriptionId = payment.subscription;
-      if (!asaasSubscriptionId) {
-        this.logger.warn('❌ Pagamento não tem campo "subscription" — impossível encontrar assinatura local');
-        return;
-      }
+      if (asaasSubscriptionId) {
+        this.logger.log(`🔍 Buscando assinatura local pelo ID Asaas: ${asaasSubscriptionId}`);
+        subscription = await this.subscriptionRepository.findByAsaasSubscriptionId(
+          asaasSubscriptionId,
+        );
 
-      this.logger.log(`🔍 Buscando assinatura local pelo ID Asaas: ${asaasSubscriptionId}`);
-      subscription = await this.subscriptionRepository.findByAsaasSubscriptionId(
-        asaasSubscriptionId,
-      );
-
-      if (subscription) {
-        this.logger.log(`   ✅ Assinatura encontrada: id=${subscription.id} | email=${subscription.customerEmail} | plano=${subscription.plan} | status=${subscription.status}`);
+        if (subscription) {
+          this.logger.log(`   ✅ Assinatura encontrada: id=${subscription.id} | email=${subscription.customerEmail} | plano=${subscription.plan} | status=${subscription.status}`);
+        } else {
+          this.logger.warn(`   ❌ Nenhuma assinatura local encontrada com asaasSubscriptionId=${asaasSubscriptionId}`);
+          this.logger.warn(`      Isso pode acontecer se o checkout não foi feito pelo backend (ex: link direto do Asaas)`);
+        }
       } else {
-        this.logger.warn(`   ❌ Nenhuma assinatura local encontrada com asaasSubscriptionId=${asaasSubscriptionId}`);
-        this.logger.warn(`      Isso pode acontecer se o checkout não foi feito pelo backend (ex: link direto do Asaas)`);
+        this.logger.warn('⚠️  Pagamento sem campo "subscription" — verificando se veio de paymentLink...');
       }
     }
 
