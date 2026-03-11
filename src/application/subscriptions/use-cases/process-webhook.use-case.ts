@@ -17,11 +17,14 @@ import type { PasswordHasher } from '../../../domain/services/password-hasher';
 import { RegistrationToken } from '../../../domain/entities/registration-token';
 import { User } from '../../../domain/entities/user';
 import { UserRole } from '../../../domain/enums/user-role';
-import { WebhookPayload, WebhookEvent } from '../../../infrastructure/asaas/types';
+import { WebhookPayload } from '../../../infrastructure/asaas/types';
+import { Subscription } from '../../../domain/entities/subscription';
 import {
   getPlanById,
+  getPlanByPaymentLinkId,
   PlanType,
 } from '../../../infrastructure/asaas/constants/plans.constants';
+import { AsaasCustomerService } from '../../../infrastructure/asaas/services/asaas-customer.service';
 import { CryptoUtil } from '../../../infrastructure/utils/crypto.util';
 
 /**
@@ -49,6 +52,7 @@ export class ProcessWebhookUseCase {
     private readonly userRepository: UserRepository,
     @Inject(PASSWORD_HASHER)
     private readonly passwordHasher: PasswordHasher,
+    private readonly asaasCustomerService: AsaasCustomerService,
   ) { }
 
   async execute(payload: WebhookPayload): Promise<void> {
@@ -153,6 +157,12 @@ export class ProcessWebhookUseCase {
     }
 
     if (!subscription) {
+      // Se veio de um link de pagamento direto do Asaas, trata separadamente
+      if (payment.paymentLink) {
+        this.logger.log(`🔗 Pagamento veio de link direto Asaas (paymentLink=${payment.paymentLink}) — tratando como nova assinatura`);
+        await this.handlePaymentLinkPayment(payment);
+        return;
+      }
       this.logger.warn(`❌ Abortando processamento — assinatura não encontrada para pagamento ${payment.id}`);
       return;
     }
@@ -197,6 +207,81 @@ export class ProcessWebhookUseCase {
     } else {
       this.logger.log(`👤 Usuário já vinculado: ${subscription.userId} — nenhuma ação de conta necessária`);
     }
+  }
+
+  /**
+   * Trata pagamentos originados de links de pagamento direto do Asaas.
+   * Esses pagamentos não têm subscription ID local — precisamos criar tudo do zero.
+   */
+  private async handlePaymentLinkPayment(payment: any): Promise<void> {
+    // 1. Identifica o plano pelo ID do link de pagamento
+    const planId = getPlanByPaymentLinkId(payment.paymentLink);
+    if (!planId) {
+      this.logger.warn(`⚠️  Link de pagamento desconhecido: ${payment.paymentLink} — adicione ao PAYMENT_LINK_PLAN_MAP em plans.constants.ts`);
+      return;
+    }
+    const plan = getPlanById(planId)!;
+    this.logger.log(`📋 Plano identificado pelo link: ${planId} (${plan.name} - R$${plan.price})`);
+
+    // 2. Busca dados do cliente no Asaas para obter email e nome
+    this.logger.log(`🔍 Buscando dados do cliente no Asaas: ${payment.customer}`);
+    let asaasCustomer: any;
+    try {
+      asaasCustomer = await this.asaasCustomerService.findById(payment.customer);
+      this.logger.log(`✅ Cliente encontrado: nome="${asaasCustomer.name}" | email="${asaasCustomer.email}"`);
+    } catch (err) {
+      this.logger.error(`❌ Falha ao buscar cliente no Asaas: ${payment.customer}`);
+      this.logger.error(`   Erro: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
+
+    const customerEmail = asaasCustomer.email;
+    const customerName = asaasCustomer.name;
+
+    if (!customerEmail) {
+      this.logger.error(`❌ Cliente ${payment.customer} não tem email cadastrado no Asaas — impossível criar conta`);
+      return;
+    }
+
+    // 3. Verifica se já existe uma assinatura ativa para este email (evita duplicata)
+    const existing = await this.subscriptionRepository.findByCustomerEmail(customerEmail);
+    if (existing && existing.isActive()) {
+      this.logger.warn(`⚠️  Assinatura já ativa para ${customerEmail} (id=${existing.id}) — ignorando pagamento duplicado`);
+      return;
+    }
+
+    // 4. Cria o registro local de assinatura já ATIVA
+    const periodStart = new Date();
+    const periodEnd = new Date();
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    const subscription = new Subscription(
+      uuidv4(),
+      null,                              // userId — será preenchido ao criar o usuário
+      payment.customer,                  // asaasCustomerId
+      null,                              // asaasSubscriptionId — pagamento avulso via link
+      planId,
+      'ACTIVE',
+      payment.billingType ?? 'PIX',
+      Math.round(plan.price * 100),
+      null, null,
+      periodStart,
+      periodStart,
+      periodEnd,
+      null,
+      customerEmail,
+      customerName,
+    );
+
+    await this.subscriptionRepository.create(subscription);
+    this.logger.log(`✅ Assinatura local criada e ATIVA:`);
+    this.logger.log(`   ID: ${subscription.id}`);
+    this.logger.log(`   Email: ${customerEmail}`);
+    this.logger.log(`   Plano: ${planId}`);
+    this.logger.log(`   Período: ${periodStart.toISOString()} → ${periodEnd.toISOString()}`);
+
+    // 5. Cria usuário e envia email com senha
+    await this.createUserAndSendPassword(subscription);
   }
 
   /**

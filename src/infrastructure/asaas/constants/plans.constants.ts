@@ -143,4 +143,23 @@ export function isPlanUpgrade(fromPlan: PlanType, toPlan: PlanType): boolean {
   return planOrder.indexOf(toPlan) > planOrder.indexOf(fromPlan);
 }
 
+/**
+ * Mapeamento de IDs dos links de pagamento do Asaas para planos.
+ * Chave = parte final da URL asaas.com/c/{id}
+ */
+export const PAYMENT_LINK_PLAN_MAP: Record<string, PlanType> = {
+  'joikfj71qhaj11n5': 'START',
+  '3pc0rfm9ijni4n8t': 'ULTRA',
+  'ewwbyxnqe37e25o8': 'PRODUCER',
+  'utjakpwqu2nccos8': 'START', // link de teste (R$5)
+};
+
+/**
+ * Retorna o plano correspondente a um link de pagamento do Asaas.
+ * Retorna undefined se o link não estiver mapeado.
+ */
+export function getPlanByPaymentLinkId(paymentLinkId: string): PlanType | undefined {
+  return PAYMENT_LINK_PLAN_MAP[paymentLinkId];
+}
+
 
