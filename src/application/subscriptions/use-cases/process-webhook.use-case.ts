@@ -53,7 +53,7 @@ export class ProcessWebhookUseCase {
 
   async execute(payload: WebhookPayload): Promise<void> {
     const { event } = payload;
-    this.logger.log(`Processando webhook: ${event}`);
+    this.logger.log(`━━━ [USE CASE] Iniciando processamento: ${event} ━━━`);
 
     switch (event) {
       case 'PAYMENT_CONFIRMED':
@@ -98,9 +98,18 @@ export class ProcessWebhookUseCase {
   private async handlePaymentConfirmed(payload: WebhookPayload): Promise<void> {
     const payment = payload.payment;
     if (!payment) {
-      this.logger.warn('Webhook de pagamento sem dados de pagamento');
+      this.logger.warn('⚠️  Webhook de pagamento chegou SEM dados de pagamento no payload');
       return;
     }
+
+    this.logger.log(`💳 Pagamento recebido:`);
+    this.logger.log(`   ID: ${payment.id}`);
+    this.logger.log(`   Valor: R$ ${payment.value}`);
+    this.logger.log(`   Status: ${payment.status}`);
+    this.logger.log(`   Tipo: ${payment.billingType}`);
+    this.logger.log(`   Cliente (Asaas): ${payment.customer}`);
+    this.logger.log(`   Assinatura (Asaas): ${payment.subscription ?? 'não vinculado'}`);
+    this.logger.log(`   externalReference: ${payment.externalReference ?? 'nenhum'}`);
 
     // Verifica se é um pagamento de upgrade pelo externalReference
     const isUpgradePayment = payment.externalReference?.startsWith('upgrade_');
@@ -112,8 +121,13 @@ export class ProcessWebhookUseCase {
       const parts = payment.externalReference.split('_');
       if (parts.length >= 2) {
         const subscriptionId = parts[1];
+        this.logger.log(`🔄 Detectado pagamento de UPGRADE — buscando assinatura local: ${subscriptionId}`);
         subscription = await this.subscriptionRepository.findById(subscriptionId);
-        this.logger.log(`Pagamento de upgrade detectado para assinatura: ${subscriptionId}`);
+        if (subscription) {
+          this.logger.log(`   ✅ Assinatura de upgrade encontrada: ${subscription.id}`);
+        } else {
+          this.logger.warn(`   ❌ Assinatura de upgrade NÃO encontrada no banco: ${subscriptionId}`);
+        }
       }
     }
 
@@ -121,19 +135,25 @@ export class ProcessWebhookUseCase {
     if (!subscription) {
       const asaasSubscriptionId = payment.subscription;
       if (!asaasSubscriptionId) {
-        this.logger.warn('Pagamento não vinculado a uma assinatura');
+        this.logger.warn('❌ Pagamento não tem campo "subscription" — impossível encontrar assinatura local');
         return;
       }
 
+      this.logger.log(`🔍 Buscando assinatura local pelo ID Asaas: ${asaasSubscriptionId}`);
       subscription = await this.subscriptionRepository.findByAsaasSubscriptionId(
         asaasSubscriptionId,
       );
+
+      if (subscription) {
+        this.logger.log(`   ✅ Assinatura encontrada: id=${subscription.id} | email=${subscription.customerEmail} | plano=${subscription.plan} | status=${subscription.status}`);
+      } else {
+        this.logger.warn(`   ❌ Nenhuma assinatura local encontrada com asaasSubscriptionId=${asaasSubscriptionId}`);
+        this.logger.warn(`      Isso pode acontecer se o checkout não foi feito pelo backend (ex: link direto do Asaas)`);
+      }
     }
 
     if (!subscription) {
-      this.logger.warn(
-        `Assinatura não encontrada para pagamento: ${payment.id}`,
-      );
+      this.logger.warn(`❌ Abortando processamento — assinatura não encontrada para pagamento ${payment.id}`);
       return;
     }
 
@@ -148,27 +168,34 @@ export class ProcessWebhookUseCase {
       const newPlan = getPlanById(subscription.pendingPlanChange!);
       if (newPlan) {
         this.logger.log(
-          `Aplicando mudança de plano pendente (upgrade pago): ${subscription.plan} -> ${subscription.pendingPlanChange}`,
+          `🔄 Aplicando mudança de plano pendente (upgrade pago): ${subscription.plan} → ${subscription.pendingPlanChange}`,
         );
         subscription.applyPendingPlanChange(Math.round(newPlan.price * 100));
       }
     } else if (subscription.hasPendingPlanChange() && !isUpgradePayment) {
       this.logger.log(
-        `Pagamento regular recebido, mantendo mudança pendente: ${subscription.pendingPlanChange}`,
+        `ℹ️  Pagamento regular — mantendo mudança de plano pendente: ${subscription.pendingPlanChange}`,
       );
     }
 
     // Ativa a assinatura
+    this.logger.log(`⚡ Ativando assinatura no banco...`);
     subscription.activate(periodStart, periodEnd);
     await this.subscriptionRepository.update(subscription);
 
-    this.logger.log(
-      `Assinatura ativada: ${subscription.id} - ${subscription.customerEmail} - Plano: ${subscription.plan}`,
-    );
+    this.logger.log(`✅ Assinatura ATIVADA:`);
+    this.logger.log(`   ID local: ${subscription.id}`);
+    this.logger.log(`   Email: ${subscription.customerEmail}`);
+    this.logger.log(`   Plano: ${subscription.plan}`);
+    this.logger.log(`   Período: ${periodStart.toISOString()} → ${periodEnd.toISOString()}`);
+    this.logger.log(`   userId vinculado: ${subscription.userId ?? 'ainda não vinculado'}`);
 
     // Se o usuário ainda não se registrou, cria usuário automaticamente com senha gerada
     if (!subscription.userId) {
+      this.logger.log(`👤 Usuário não vinculado — iniciando criação automática de conta...`);
       await this.createUserAndSendPassword(subscription);
+    } else {
+      this.logger.log(`👤 Usuário já vinculado: ${subscription.userId} — nenhuma ação de conta necessária`);
     }
   }
 
@@ -176,30 +203,36 @@ export class ProcessWebhookUseCase {
    * Cria usuário automaticamente com senha gerada e envia email
    */
   private async createUserAndSendPassword(subscription: any): Promise<void> {
+    this.logger.log(`🔍 Verificando se usuário já existe: ${subscription.customerEmail}`);
+
     // Verifica se já existe usuário com este email
     const existingUser = await this.userRepository.findByEmail(
       subscription.customerEmail,
     );
 
     if (existingUser) {
-      // Se usuário já existe, apenas vincula a subscription
+      this.logger.log(`👤 Usuário já existe no banco: id=${existingUser.id} | email=${existingUser.email}`);
+      this.logger.log(`🔗 Vinculando assinatura ao usuário existente...`);
       subscription.linkUser(existingUser.id);
       await this.subscriptionRepository.update(subscription);
-      this.logger.log(
-        `Subscription vinculada ao usuário existente: ${existingUser.id}`,
-      );
+      this.logger.log(`✅ Assinatura vinculada ao usuário existente: ${existingUser.id}`);
       return;
     }
 
+    this.logger.log(`👤 Usuário não existe — criando nova conta automaticamente`);
+
     // Gera senha segura automaticamente
     const generatedPassword = CryptoUtil.generateSecurePassword(12);
+    this.logger.log(`🔐 Senha gerada (não logada por segurança)`);
 
     // Hash da senha
     const passwordHash = await this.passwordHasher.hash(generatedPassword);
+    this.logger.log(`🔐 Hash da senha gerado`);
 
     // Cria usuário com dados mínimos (idade e educationLevel podem ser preenchidos depois)
+    const userId = uuidv4();
     const user = new User(
-      uuidv4(),
+      userId,
       subscription.customerName,
       subscription.customerEmail,
       passwordHash,
@@ -224,49 +257,50 @@ export class ProcessWebhookUseCase {
       null, // socialLinksOrder
     );
 
+    this.logger.log(`💾 Salvando usuário no banco: id=${userId} | nome=${subscription.customerName} | email=${subscription.customerEmail}`);
     await this.userRepository.create(user);
+    this.logger.log(`✅ Usuário salvo no banco com sucesso`);
 
     // Vincula a subscription ao usuário
     subscription.linkUser(user.id);
     await this.subscriptionRepository.update(subscription);
-
-    this.logger.log(
-      `✅ Usuário criado automaticamente: ${user.id} - Email: ${user.email}`,
-    );
+    this.logger.log(`🔗 Assinatura vinculada ao novo usuário: ${user.id}`);
 
     // Busca o plano para o email
     const plan = getPlanById(subscription.plan);
+    this.logger.log(`📋 Plano do usuário: ${plan?.name ?? subscription.plan}`);
 
     // Valida e constrói o link de login
     const frontendUrl = process.env.FRONTEND_URL;
     if (!frontendUrl || frontendUrl.trim() === '' || frontendUrl === 'undefined') {
-      this.logger.error(
-        '❌ FRONTEND_URL não configurada! Configure a variável de ambiente FRONTEND_URL no Railway',
-      );
-      this.logger.error(
-        '   Exemplo: FRONTEND_URL=https://seu-frontend.vercel.app',
-      );
-      throw new Error(
-        'FRONTEND_URL não configurada. Não é possível enviar email com senha.',
-      );
+      this.logger.error('❌ FRONTEND_URL não configurada! Configure a variável de ambiente FRONTEND_URL no Railway');
+      this.logger.error('   Exemplo: FRONTEND_URL=https://seu-frontend.vercel.app');
+      throw new Error('FRONTEND_URL não configurada. Não é possível enviar email com senha.');
     }
 
     // Remove barra final se existir para evitar dupla barra
     const baseUrl = frontendUrl.replace(/\/$/, '');
     const loginUrl = `${baseUrl}/login`;
+    this.logger.log(`🔗 Link de login: ${loginUrl}`);
 
     // Envia email com senha gerada
-    await this.mailerService.sendPasswordEmail(
-      subscription.customerEmail,
-      subscription.customerName,
-      generatedPassword,
-      plan?.name || subscription.plan,
-      loginUrl,
-    );
-
-    this.logger.log(
-      `Email com senha enviado para: ${subscription.customerEmail}`,
-    );
+    this.logger.log(`📧 Enviando email com senha para: ${subscription.customerEmail}`);
+    try {
+      await this.mailerService.sendPasswordEmail(
+        subscription.customerEmail,
+        subscription.customerName,
+        generatedPassword,
+        plan?.name || subscription.plan,
+        loginUrl,
+      );
+      this.logger.log(`✅ Email com senha enviado com sucesso para: ${subscription.customerEmail}`);
+    } catch (emailError) {
+      this.logger.error(`❌ FALHA AO ENVIAR EMAIL para: ${subscription.customerEmail}`);
+      this.logger.error(`   Erro: ${emailError instanceof Error ? emailError.message : String(emailError)}`);
+      this.logger.error(`   Stack: ${emailError instanceof Error ? emailError.stack : 'N/A'}`);
+      this.logger.error(`   ⚠️  Conta foi criada mas email não foi entregue — usuário: ${userId}`);
+      // Não relança o erro para não reverter a criação do usuário
+    }
   }
 
   /**
@@ -345,8 +379,11 @@ export class ProcessWebhookUseCase {
   private async handlePaymentOverdue(payload: WebhookPayload): Promise<void> {
     const payment = payload.payment;
     if (!payment?.subscription) {
+      this.logger.warn('⚠️  PAYMENT_OVERDUE sem subscription ID no payload — ignorando');
       return;
     }
+
+    this.logger.log(`⏰ Pagamento em atraso — pagamento: ${payment.id} | assinatura Asaas: ${payment.subscription}`);
 
     const subscription =
       await this.subscriptionRepository.findByAsaasSubscriptionId(
@@ -354,15 +391,14 @@ export class ProcessWebhookUseCase {
       );
 
     if (!subscription) {
+      this.logger.warn(`❌ Assinatura não encontrada no banco para OVERDUE: ${payment.subscription}`);
       return;
     }
 
+    this.logger.log(`📋 Assinatura encontrada: id=${subscription.id} | email=${subscription.customerEmail} | plano=${subscription.plan}`);
     subscription.markAsOverdue();
     await this.subscriptionRepository.update(subscription);
-
-    this.logger.log(
-      `Assinatura marcada como em atraso: ${subscription.id}`,
-    );
+    this.logger.log(`⚠️  Assinatura marcada como OVERDUE: ${subscription.id} — acesso suspenso`);
   }
 
   /**
@@ -373,8 +409,11 @@ export class ProcessWebhookUseCase {
   ): Promise<void> {
     const subscriptionData = payload.subscription;
     if (!subscriptionData) {
+      this.logger.warn('⚠️  SUBSCRIPTION_INACTIVATED/DELETED sem dados de assinatura no payload — ignorando');
       return;
     }
+
+    this.logger.log(`🚫 Assinatura cancelada/inativada no Asaas: ${subscriptionData.id}`);
 
     const subscription =
       await this.subscriptionRepository.findByAsaasSubscriptionId(
@@ -382,13 +421,14 @@ export class ProcessWebhookUseCase {
       );
 
     if (!subscription) {
+      this.logger.warn(`❌ Assinatura não encontrada no banco: ${subscriptionData.id}`);
       return;
     }
 
+    this.logger.log(`📋 Assinatura encontrada: id=${subscription.id} | email=${subscription.customerEmail} | plano=${subscription.plan}`);
     subscription.cancel();
     await this.subscriptionRepository.update(subscription);
-
-    this.logger.log(`Assinatura cancelada: ${subscription.id}`);
+    this.logger.log(`✅ Assinatura cancelada no banco: ${subscription.id} — acesso revogado`);
   }
 
   /**

@@ -205,16 +205,37 @@ export class SubscriptionsController {
     @Body() payload: WebhookPayload,
     @Headers('asaas-access-token') accessToken?: string,
   ) {
-    this.logger.log(`Webhook recebido: ${payload.event}`);
+    this.logger.log('========================================');
+    this.logger.log('📨 WEBHOOK ASAAS RECEBIDO');
+    this.logger.log('========================================');
+    this.logger.log(`🔔 Evento: ${payload?.event ?? 'INDEFINIDO'}`);
+    this.logger.log(`🔑 Header asaas-access-token: ${accessToken ? `"${accessToken.substring(0, 15)}..."` : 'NÃO ENVIADO'}`);
+    this.logger.log(`📦 Payload completo:\n${JSON.stringify(payload, null, 2)}`);
 
-    // Valida o token do webhook (opcional se não configurado)
-    if (accessToken && !this.asaasWebhookService.validateWebhookToken(accessToken)) {
-      this.logger.warn('Token de webhook inválido');
-      throw new BadRequestException('Token de webhook inválido');
+    // Valida o token do webhook
+    if (accessToken) {
+      const isValid = this.asaasWebhookService.validateWebhookToken(accessToken);
+      if (!isValid) {
+        this.logger.error(`❌ TOKEN INVÁLIDO — recebido: "${accessToken.substring(0, 20)}..."`);
+        this.logger.error(`   Verifique se ASAAS_WEBHOOK_TOKEN no .env / Railway bate com o configurado no painel Asaas`);
+        throw new BadRequestException('Token de webhook inválido');
+      }
+      this.logger.log('✅ Token validado com sucesso');
+    } else {
+      this.logger.warn('⚠️  Nenhum token no header — aceitando webhook sem validação');
     }
 
-    await this.processWebhookUseCase.execute(payload);
+    try {
+      await this.processWebhookUseCase.execute(payload);
+      this.logger.log(`✅ Webhook processado com sucesso: ${payload?.event}`);
+    } catch (error) {
+      this.logger.error(`❌ ERRO AO PROCESSAR WEBHOOK: ${payload?.event}`);
+      this.logger.error(`   Mensagem: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`   Stack:\n${error instanceof Error ? error.stack : 'N/A'}`);
+      throw error;
+    }
 
+    this.logger.log('========================================');
     return { received: true };
   }
 
