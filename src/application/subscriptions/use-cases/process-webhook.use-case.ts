@@ -364,7 +364,7 @@ export class ProcessWebhookUseCase {
 
     // Remove barra final se existir para evitar dupla barra
     const baseUrl = frontendUrl.replace(/\/$/, '');
-    const loginUrl = `${baseUrl}/login`;
+    const loginUrl = `${baseUrl}/auth/login`;
     this.logger.log(`🔗 Link de login: ${loginUrl}`);
 
     // Envia email com senha gerada
