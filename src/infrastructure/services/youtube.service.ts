@@ -35,6 +35,43 @@ export class YouTubeService {
   }
 
   /**
+   * Busca playlists por termo de pesquisa
+   */
+  async searchPlaylists(query: string, maxResults: number = 10): Promise<YouTubePlaylistDto[]> {
+    if (!this.youtube || !this.apiKey) {
+      this.logger.warn(
+        'YouTube API não configurada. Não é possível buscar playlists.',
+      );
+      return [];
+    }
+
+    try {
+      const response = await this.youtube.search.list({
+        part: ['snippet'],
+        q: query,
+        maxResults,
+        type: ['playlist'],
+      });
+
+      if (!response.data.items) {
+        return [];
+      }
+
+      return response.data.items.map((item) => ({
+        playlistId: item.id?.playlistId || '',
+        title: item.snippet?.title || '',
+        description: item.snippet?.description || undefined,
+        thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.default?.url || '',
+        itemCount: 0, // A busca inicial não retorna contagem de itens
+        channelTitle: item.snippet?.channelTitle || '',
+      }));
+    } catch (error) {
+      this.logger.error('Erro ao buscar playlists:', error);
+      throw new Error('Falha ao buscar playlists do YouTube');
+    }
+  }
+
+  /**
    * Busca vídeos por termo de pesquisa
    */
   async searchVideos(searchDto: YouTubeSearchDto): Promise<YouTubeVideoDto[]> {

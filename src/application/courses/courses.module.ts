@@ -19,6 +19,7 @@ import { RemoveVideoFromModuleUseCase } from './use-cases/remove-video-from-modu
 import { ListModulesWithVideosUseCase } from './use-cases/list-modules-with-videos.use-case';
 import { ProcessYouTubePlaylistUseCase } from './use-cases/process-youtube-playlist.use-case';
 import { BulkProcessPlaylistsUseCase } from './use-cases/bulk-process-playlists.use-case';
+import { AutoDeployCourseUseCase } from './use-cases/auto-deploy-course.use-case';
 import { GenerateMindMapUseCase } from './use-cases/generate-mind-map.use-case';
 import { GetMindMapByVideoUseCase } from './use-cases/get-mind-map-by-video.use-case';
 import { ListUserMindMapsUseCase } from './use-cases/list-user-mind-maps.use-case';
@@ -227,6 +228,12 @@ import { PlanVerificationService } from '../../infrastructure/services/plan-veri
       ],
     },
     {
+      provide: AutoDeployCourseUseCase,
+      useFactory: (youtubeService, geminiService, bulkProcessPlaylistsUseCase) =>
+        new AutoDeployCourseUseCase(youtubeService, geminiService, bulkProcessPlaylistsUseCase),
+      inject: [YouTubeService, GeminiService, BulkProcessPlaylistsUseCase],
+    },
+    {
       provide: GenerateMindMapUseCase,
       useFactory: (geminiService, mindMapRepository, userRepository) =>
         new GenerateMindMapUseCase(geminiService, mindMapRepository, userRepository),
@@ -277,6 +284,7 @@ import { PlanVerificationService } from '../../infrastructure/services/plan-veri
     ListModulesWithVideosUseCase,
     ProcessYouTubePlaylistUseCase,
     BulkProcessPlaylistsUseCase,
+    AutoDeployCourseUseCase,
     GenerateMindMapUseCase,
     GetMindMapByVideoUseCase,
     ListUserMindMapsUseCase,

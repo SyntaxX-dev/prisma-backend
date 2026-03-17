@@ -29,6 +29,7 @@ import { UpdateCourseSubscriptionUseCase } from '../../../application/courses/us
 import { UpdateCourseProducerStatusUseCase } from '../../../application/courses/use-cases/update-course-producer-status.use-case';
 import { ProcessYouTubePlaylistUseCase } from '../../../application/courses/use-cases/process-youtube-playlist.use-case';
 import { BulkProcessPlaylistsUseCase } from '../../../application/courses/use-cases/bulk-process-playlists.use-case';
+import { AutoDeployCourseUseCase } from '../../../application/courses/use-cases/auto-deploy-course.use-case';
 import { GenerateMindMapUseCase } from '../../../application/courses/use-cases/generate-mind-map.use-case';
 import { GetMindMapByVideoUseCase } from '../../../application/courses/use-cases/get-mind-map-by-video.use-case';
 import { ListUserMindMapsUseCase } from '../../../application/courses/use-cases/list-user-mind-maps.use-case';
@@ -37,6 +38,7 @@ import { ListProducerCoursesUseCase } from '../../../application/courses/use-cas
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
+import { AutoDeployCourseDto } from '../dtos/auto-deploy-course.dto';
 import { UpdateCourseSubscriptionDto } from '../dtos/update-course-subscription.dto';
 import { UpdateCourseProducerDto } from '../dtos/update-course-producer.dto';
 import { ProcessYouTubePlaylistDto } from '../dtos/process-youtube-playlist.dto';
@@ -71,6 +73,7 @@ export class CoursesController {
     private readonly updateCourseProducerStatusUseCase: UpdateCourseProducerStatusUseCase,
     private readonly processYouTubePlaylistUseCase: ProcessYouTubePlaylistUseCase,
     private readonly bulkProcessPlaylistsUseCase: BulkProcessPlaylistsUseCase,
+    private readonly autoDeployCourseUseCase: AutoDeployCourseUseCase,
     private readonly generateMindMapUseCase: GenerateMindMapUseCase,
     private readonly getMindMapByVideoUseCase: GetMindMapByVideoUseCase,
     private readonly listUserMindMapsUseCase: ListUserMindMapsUseCase,
@@ -966,6 +969,51 @@ export class CoursesController {
             error instanceof Error
               ? error.message
               : 'Erro ao processar playlists',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('auto-deploy')
+  @ApiOperation({
+    summary:
+      'Auto-deploy: Busca playlists e cria curso, subcursos, módulos e vídeos automaticamente (Apenas Admin)',
+  })
+  @ApiBody({ type: AutoDeployCourseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Curso criado e processado com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Erro ao processar as playlists ou nenhuma encontrada',
+  })
+  async autoDeploy(
+    @CurrentUser() user: JwtPayload,
+    @Body() autoDeployCourseDto: AutoDeployCourseDto,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('create', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para realizar o auto-deploy');
+    }
+
+    try {
+      const result = await this.autoDeployCourseUseCase.execute({
+        topic: autoDeployCourseDto.topic,
+        maxSubCourses: autoDeployCourseDto.maxSubCourses,
+        aiPrompt: autoDeployCourseDto.aiPrompt,
+        courseId: autoDeployCourseDto.courseId,
+      });
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao realizar auto-deploy do curso',
         },
         HttpStatus.BAD_REQUEST,
       );

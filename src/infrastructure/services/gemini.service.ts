@@ -48,6 +48,52 @@ export class GeminiService {
     }
   }
 
+  /**
+   * Seleciona as melhores playlists de uma lista de resultados para um determinado tópico
+   */
+  async selectBestPlaylistsForTopic(
+    topic: string,
+    playlists: any[],
+    limit: number = 5,
+  ): Promise<string[]> {
+    if (!this.apiKey || playlists.length === 0) {
+      return playlists.slice(0, limit).map((p) => p.playlistId);
+    }
+
+    const prompt = `
+Você é um especialista em curadoria de conteúdo educacional.
+O usuário quer criar um curso completo sobre: "${topic}".
+
+Abaixo está uma lista de playlists encontradas no YouTube.
+Selecione as ${limit} MELHORES playlists que, juntas, formariam um curso abrangente, de alta qualidade e sem muita sobreposição de conteúdo.
+
+REGRAS:
+1. Priorize playlists com títulos claros e que pareçam ser cursos completos ou tutoriais passo a passo.
+2. Evite escolher playlists que tratam exatamente do mesmo sub-tópico, a menos que sejam complementares.
+3. Se houver nomes de canais famosos por educação, dê preferência.
+
+LISTA DE PLAYLISTS:
+${playlists.map((p, i) => `${i}: [${p.playlistId}] Título: ${p.title} | Canal: ${p.channelTitle} | Descrição: ${p.description || 'N/A'}`).join('\n')}
+
+Responda APENAS com um JSON contendo os IDs das playlists selecionadas no formato:
+{
+  "selectedPlaylistIds": ["id1", "id2", "id3"]
+}
+`;
+
+    try {
+      const response = await this.callGeminiAPI(prompt);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return playlists.slice(0, limit).map((p) => p.playlistId);
+      
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.selectedPlaylistIds || playlists.slice(0, limit).map((p) => p.playlistId);
+    } catch (error) {
+      console.error('Erro ao selecionar playlists com Gemini:', error);
+      return playlists.slice(0, limit).map((p) => p.playlistId);
+    }
+  }
+
   async organizeVideosIntoModules(
     videos: VideoData[],
     customPrompt?: string,
