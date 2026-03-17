@@ -1004,6 +1004,7 @@ export class CoursesController {
         maxSubCourses: autoDeployCourseDto.maxSubCourses,
         aiPrompt: autoDeployCourseDto.aiPrompt,
         courseId: autoDeployCourseDto.courseId,
+        channelIds: autoDeployCourseDto.channelIds,
       });
       return result;
     } catch (error) {

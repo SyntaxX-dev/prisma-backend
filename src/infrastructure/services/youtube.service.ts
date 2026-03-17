@@ -37,7 +37,11 @@ export class YouTubeService {
   /**
    * Busca playlists por termo de pesquisa
    */
-  async searchPlaylists(query: string, maxResults: number = 10): Promise<YouTubePlaylistDto[]> {
+  async searchPlaylists(
+    query: string,
+    maxResults: number = 10,
+    channelId?: string,
+  ): Promise<YouTubePlaylistDto[]> {
     if (!this.youtube || !this.apiKey) {
       this.logger.warn(
         'YouTube API não configurada. Não é possível buscar playlists.',
@@ -51,6 +55,7 @@ export class YouTubeService {
         q: query,
         maxResults,
         type: ['playlist'],
+        channelId: channelId || undefined,
       });
 
       if (!response.data.items) {

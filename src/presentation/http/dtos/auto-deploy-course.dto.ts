@@ -39,4 +39,14 @@ export class AutoDeployCourseDto {
   @IsOptional()
   @IsString()
   courseId?: string;
+
+  @ApiProperty({
+    description: 'IDs dos canais do YouTube para restringir a busca (opcional)',
+    example: ['UCxxxxxxxxxxxx1', 'UCxxxxxxxxxxxx2'],
+    type: [String],
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ each: true })
+  channelIds?: string[];
 }

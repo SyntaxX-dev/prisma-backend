@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { YouTubeService } from '../../../infrastructure/services/youtube.service';
 import { GeminiService } from '../../../infrastructure/services/gemini.service';
+import { YouTubePlaylistDto } from '../../../presentation/http/dtos/youtube-video.dto';
 import { BulkProcessPlaylistsUseCase, BulkProcessPlaylistsOutput } from './bulk-process-playlists.use-case';
 
 export interface AutoDeployCourseInput {
@@ -8,6 +9,7 @@ export interface AutoDeployCourseInput {
   maxSubCourses?: number;
   aiPrompt?: string;
   courseId?: string;
+  channelIds?: string[];
 }
 
 @Injectable()
@@ -22,9 +24,25 @@ export class AutoDeployCourseUseCase {
     const limit = input.maxSubCourses || 5;
     console.log(`[AutoDeploy] Iniciando busca para o tópico: "${input.topic}" (limit: ${limit})`);
 
-    // 1. Buscar playlists no YouTube relacionadas ao tópico
-    // Buscamos um pouco mais do que o limite para dar opções à IA
-    const searchResults = await this.youtubeService.searchPlaylists(input.topic, 20);
+    let searchResults: YouTubePlaylistDto[] = [];
+
+    // 1. Buscar playlists
+    if (input.channelIds && input.channelIds.length > 0) {
+      console.log(`[AutoDeploy] Restringindo busca a ${input.channelIds.length} canais: ${input.channelIds.join(', ')}`);
+      
+      // Buscar playlists específicas dentro de cada canal
+      for (const channelId of input.channelIds) {
+        try {
+          const results = await this.youtubeService.searchPlaylists(input.topic, 10, channelId);
+          searchResults = [...searchResults, ...results];
+        } catch (error) {
+          console.error(`[AutoDeploy] Erro ao buscar no canal ${channelId}:`, error);
+        }
+      }
+    } else {
+      // Busca global (legado)
+      searchResults = await this.youtubeService.searchPlaylists(input.topic, 20);
+    }
     
     if (searchResults.length === 0) {
       throw new Error(`Nenhuma playlist encontrada para o tópico "${input.topic}"`);
