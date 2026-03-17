@@ -46,17 +46,18 @@ export class AutoDeployCourseUseCase {
 
       console.log(`[AutoDeploy] Canais resolvidos: ${resolvedChannelIds.join(', ')}`);
       
-      // Buscar playlists específicas dentro de cada canal resolvido
+      // Listar TODAS as playlists de cada canal resolvido
       for (const channelId of resolvedChannelIds) {
         try {
-          const results = await this.youtubeService.searchPlaylists(input.topic, 50, channelId);
+          // Buscamos um limite alto (ex: 200) para garantir que pegamos tudo
+          const results = await this.youtubeService.listChannelPlaylists(channelId, 200);
           searchResults = [...searchResults, ...results];
         } catch (error) {
-          console.error(`[AutoDeploy] Erro ao buscar no canal ${channelId}:`, error);
+          console.error(`[AutoDeploy] Erro ao listar playlists no canal ${channelId}:`, error);
         }
       }
     } else {
-      // Busca global (legado)
+      // Busca global (legado) - mantemos busca por termo
       searchResults = await this.youtubeService.searchPlaylists(input.topic, 50);
     }
     

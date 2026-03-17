@@ -77,6 +77,60 @@ export class YouTubeService {
   }
 
   /**
+   * Lista todas as playlists de um canal específico
+   */
+  async listChannelPlaylists(
+    channelId: string,
+    maxResults: number = 50,
+  ): Promise<YouTubePlaylistDto[]> {
+    if (!this.youtube || !this.apiKey) {
+      this.logger.warn(
+        'YouTube API não configurada. Não é possível listar playlists.',
+      );
+      return [];
+    }
+
+    try {
+      let allPlaylists: YouTubePlaylistDto[] = [];
+      let nextPageToken: string | undefined = undefined;
+
+      do {
+        const response = await this.youtube.playlists.list({
+          part: ['snippet', 'contentDetails'],
+          channelId: channelId,
+          maxResults: Math.min(maxResults - allPlaylists.length, 50),
+          pageToken: nextPageToken,
+        });
+
+        if (!response.data.items) break;
+
+        const mapped = response.data.items.map((item) => ({
+          playlistId: item.id!,
+          title: item.snippet?.title || '',
+          description: item.snippet?.description || undefined,
+          thumbnailUrl:
+            item.snippet?.thumbnails?.high?.url ||
+            item.snippet?.thumbnails?.default?.url ||
+            '',
+          itemCount: parseInt(String(item.contentDetails?.itemCount || '0')),
+          channelTitle: item.snippet?.channelTitle || '',
+        }));
+
+        allPlaylists = [...allPlaylists, ...mapped];
+        nextPageToken = response.data.nextPageToken || undefined;
+      } while (nextPageToken && allPlaylists.length < maxResults);
+
+      return allPlaylists;
+    } catch (error) {
+      this.logger.error(
+        `Erro ao listar playlists do canal ${channelId}:`,
+        error,
+      );
+      throw new Error('Falha ao listar playlists do YouTube');
+    }
+  }
+
+  /**
    * Busca vídeos por termo de pesquisa
    */
   async searchVideos(searchDto: YouTubeSearchDto): Promise<YouTubeVideoDto[]> {
