@@ -185,6 +185,7 @@ export const subCourses = pgTable(
       .references(() => courses.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     description: text('description'),
+    playlistId: text('playlist_id'),
     order: integer('order').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: false })
       .notNull()
@@ -195,6 +196,11 @@ export const subCourses = pgTable(
   },
   (table) => ({
     courseIdIdx: index('sub_courses_course_id_idx').on(table.courseId),
+    playlistIdIdx: index('sub_courses_playlist_id_idx').on(table.playlistId),
+    coursePlaylistUniqueIdx: uniqueIndex('sub_courses_course_playlist_unique').on(
+      table.courseId,
+      table.playlistId,
+    ),
     orderIdx: index('sub_courses_order_idx').on(table.order),
     createdAtIdx: index('sub_courses_created_at_idx').on(table.createdAt),
   }),

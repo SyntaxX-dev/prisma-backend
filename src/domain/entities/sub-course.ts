@@ -4,6 +4,7 @@ export class SubCourse {
     public readonly courseId: string,
     public readonly name: string,
     public readonly description: string | null,
+    public readonly playlistId: string | null,
     public readonly order: number,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
@@ -14,6 +15,7 @@ export class SubCourse {
     courseId: string,
     name: string,
     description?: string,
+    playlistId?: string,
     order?: number,
     channelThumbnailUrl?: string,
   ): Omit<SubCourse, 'id' | 'createdAt' | 'updatedAt'> {
@@ -21,6 +23,7 @@ export class SubCourse {
       courseId,
       name,
       description: description || null,
+      playlistId: playlistId || null,
       order: order || 0,
       channelThumbnailUrl: channelThumbnailUrl || null,
     };

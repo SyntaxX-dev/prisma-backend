@@ -259,30 +259,50 @@ export class BulkProcessPlaylistsUseCase {
           200,
         );
 
-        // Buscar subcursos existentes para calcular ordem
-        const existingSubCourses =
-          await this.subCourseRepository.findByCourseId(course.id);
-        const nextOrder = existingSubCourses.length;
+        // 1. Verificar se o subcurso já existe para esta playlist neste curso
+        let subCourse: SubCourse | null = await this.subCourseRepository.findByPlaylistId(
+          course.id,
+          subCourseSuggestion.playlistId,
+        );
 
-        // Criar subcurso com tratamento de erro
-        let subCourse: SubCourse;
-        try {
-          const subCourseData = SubCourse.create(
-            course.id,
-            subCourseSuggestion.subCourseName,
-            undefined, // Sem descrição por padrão
-            nextOrder,
-          );
-          subCourse = await this.subCourseRepository.create(subCourseData);
-          totalSubCourses++;
+        if (subCourse) {
           console.log(
-            `[BulkProcess] Subcurso criado: ${subCourse.name} (${subCourse.id})`,
+            `[BulkProcess] Subcurso já existe para a playlist ${subCourseSuggestion.playlistId}: ${subCourse.name} (${subCourse.id}). Pulando criação...`,
           );
-        } catch (error) {
-          console.error(`[BulkProcess] Erro ao criar subcurso ${subCourseSuggestion.subCourseName}:`, error);
-          errors.push({ playlistId: subCourseSuggestion.playlistId, error: `Erro ao criar subcurso: ${error instanceof Error ? error.message : 'Erro desconhecido'}` });
-          continue;
+        } else {
+          // Buscar subcursos existentes para calcular ordem
+          const existingSubCourses =
+            await this.subCourseRepository.findByCourseId(course.id);
+          const nextOrder = existingSubCourses.length;
+
+          // Criar subcurso com tratamento de erro
+          try {
+            const subCourseData = SubCourse.create(
+              course.id,
+              subCourseSuggestion.subCourseName,
+              undefined, // Sem descrição por padrão
+              subCourseSuggestion.playlistId,
+              nextOrder,
+            );
+            subCourse = await this.subCourseRepository.create(subCourseData);
+            totalSubCourses++;
+            console.log(
+              `[BulkProcess] Subcurso criado: ${subCourse.name} (${subCourse.id})`,
+            );
+          } catch (error) {
+            console.error(
+              `[BulkProcess] Erro ao criar subcurso ${subCourseSuggestion.subCourseName}:`,
+              error,
+            );
+            errors.push({
+              playlistId: subCourseSuggestion.playlistId,
+              error: `Erro ao criar subcurso: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+            });
+            continue;
+          }
         }
+
+        if (!subCourse) continue;
 
         const subCourseOutput = {
           subCourseId: subCourse.id,

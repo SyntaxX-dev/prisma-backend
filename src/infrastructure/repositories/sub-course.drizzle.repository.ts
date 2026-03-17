@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 import { SubCourseRepository } from '../../domain/repositories/sub-course.repository';
 import { SubCourse } from '../../domain/entities/sub-course';
 import { DrizzleService } from '../config/providers/drizzle.service';
@@ -18,6 +18,7 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
         courseId: subCourse.courseId,
         name: subCourse.name,
         description: subCourse.description,
+        playlistId: subCourse.playlistId,
         order: subCourse.order,
       })
       .returning();
@@ -27,6 +28,7 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
       created.courseId,
       created.name,
       created.description,
+      created.playlistId,
       created.order,
       created.createdAt,
       created.updatedAt,
@@ -46,6 +48,7 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
       subCourse.courseId,
       subCourse.name,
       subCourse.description,
+      subCourse.playlistId,
       subCourse.order,
       subCourse.createdAt,
       subCourse.updatedAt,
@@ -66,10 +69,36 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
           subCourse.courseId,
           subCourse.name,
           subCourse.description,
+          subCourse.playlistId,
           subCourse.order,
           subCourse.createdAt,
           subCourse.updatedAt,
         ),
+    );
+  }
+
+  async findByPlaylistId(
+    courseId: string,
+    playlistId: string,
+  ): Promise<SubCourse | null> {
+    const [subCourse] = await this.drizzleService.db
+      .select()
+      .from(subCourses)
+      .where(
+        and(eq(subCourses.courseId, courseId), eq(subCourses.playlistId, playlistId)),
+      );
+
+    if (!subCourse) return null;
+
+    return new SubCourse(
+      subCourse.id,
+      subCourse.courseId,
+      subCourse.name,
+      subCourse.description,
+      subCourse.playlistId,
+      subCourse.order,
+      subCourse.createdAt,
+      subCourse.updatedAt,
     );
   }
 
@@ -110,6 +139,7 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
           subCourse.courseId,
           subCourse.name,
           subCourse.description,
+          subCourse.playlistId,
           subCourse.order,
           subCourse.createdAt,
           subCourse.updatedAt,
@@ -134,6 +164,7 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
           subCourse.courseId,
           subCourse.name,
           subCourse.description,
+          subCourse.playlistId,
           subCourse.order,
           subCourse.createdAt,
           subCourse.updatedAt,
@@ -162,6 +193,7 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
       updated.courseId,
       updated.name,
       updated.description,
+      updated.playlistId,
       updated.order,
       updated.createdAt,
       updated.updatedAt,
