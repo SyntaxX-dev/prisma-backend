@@ -28,10 +28,26 @@ export class AutoDeployCourseUseCase {
 
     // 1. Buscar playlists
     if (input.channelIds && input.channelIds.length > 0) {
-      console.log(`[AutoDeploy] Restringindo busca a ${input.channelIds.length} canais: ${input.channelIds.join(', ')}`);
+      console.log(`[AutoDeploy] Resolvendo e restringindo busca a ${input.channelIds.length} handles/canais`);
       
-      // Buscar playlists específicas dentro de cada canal
-      for (const channelId of input.channelIds) {
+      const resolvedChannelIds: string[] = [];
+      for (const id of input.channelIds) {
+        const resolvedId = await this.youtubeService.resolveChannelId(id);
+        if (resolvedId) {
+          resolvedChannelIds.push(resolvedId);
+        } else {
+          console.warn(`[AutoDeploy] Não foi possível resolver o canal: ${id}`);
+        }
+      }
+
+      if (resolvedChannelIds.length === 0) {
+        throw new Error(`Não foi possível resolver nenhum dos canais fornecidos.`);
+      }
+
+      console.log(`[AutoDeploy] Canais resolvidos: ${resolvedChannelIds.join(', ')}`);
+      
+      // Buscar playlists específicas dentro de cada canal resolvido
+      for (const channelId of resolvedChannelIds) {
         try {
           const results = await this.youtubeService.searchPlaylists(input.topic, 10, channelId);
           searchResults = [...searchResults, ...results];

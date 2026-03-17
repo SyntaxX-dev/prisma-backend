@@ -91,4 +91,26 @@ export class YouTubeChannelService {
       return null;
     }
   }
+
+  async getChannelIdByHandle(handle: string): Promise<string | null> {
+    if (!this.apiKey) return null;
+
+    try {
+      // Garantir que o handle começa com @
+      const formattedHandle = handle.startsWith('@') ? handle : `@${handle}`;
+      const url = `${this.baseUrl}/channels?part=id&forHandle=${formattedHandle}&key=${this.apiKey}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.items && data.items.length > 0) {
+        return data.items[0].id;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Erro ao buscar ID do canal pelo handle ${handle}:`, error);
+      return null;
+    }
+  }
 }

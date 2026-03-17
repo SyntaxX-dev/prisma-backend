@@ -325,4 +325,24 @@ export class YouTubeService {
     const match = url.match(pattern);
     return match ? match[1] : null;
   }
+
+  /**
+   * Resolve um handle (ex: @ProfessorNoslen) ou ID de canal para um ID de canal válido
+   */
+  async resolveChannelId(identifier: string): Promise<string | null> {
+    if (!identifier) return null;
+
+    // Se já parece um ID de canal (começa com UC e tem ~24 caracteres)
+    if (identifier.startsWith('UC') && identifier.length >= 20) {
+      return identifier;
+    }
+
+    // Se for um handle (@...)
+    if (identifier.startsWith('@')) {
+      return await this.channelService.getChannelIdByHandle(identifier);
+    }
+
+    // Tentar como handle mesmo sem o @
+    return await this.channelService.getChannelIdByHandle(`@${identifier}`);
+  }
 }
