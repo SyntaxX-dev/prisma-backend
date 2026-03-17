@@ -19,7 +19,7 @@ export class AutoDeployCourseDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
-  @Max(20)
+  @Max(50)
   maxSubCourses?: number;
 
   @ApiProperty({

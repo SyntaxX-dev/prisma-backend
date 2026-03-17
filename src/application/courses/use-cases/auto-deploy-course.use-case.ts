@@ -49,7 +49,7 @@ export class AutoDeployCourseUseCase {
       // Buscar playlists específicas dentro de cada canal resolvido
       for (const channelId of resolvedChannelIds) {
         try {
-          const results = await this.youtubeService.searchPlaylists(input.topic, 10, channelId);
+          const results = await this.youtubeService.searchPlaylists(input.topic, 50, channelId);
           searchResults = [...searchResults, ...results];
         } catch (error) {
           console.error(`[AutoDeploy] Erro ao buscar no canal ${channelId}:`, error);
@@ -57,7 +57,7 @@ export class AutoDeployCourseUseCase {
       }
     } else {
       // Busca global (legado)
-      searchResults = await this.youtubeService.searchPlaylists(input.topic, 20);
+      searchResults = await this.youtubeService.searchPlaylists(input.topic, 50);
     }
     
     if (searchResults.length === 0) {
