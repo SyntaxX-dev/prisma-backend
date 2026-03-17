@@ -32,6 +32,7 @@ export class CreateSubCourseUseCase {
       input.courseId,
       input.name,
       input.description,
+      undefined, // playlistId (não aplicável aqui)
       input.order,
     );
     const subCourse = await this.subCourseRepository.create(subCourseData);

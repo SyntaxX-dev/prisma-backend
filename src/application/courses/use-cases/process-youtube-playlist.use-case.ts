@@ -76,6 +76,7 @@ export class ProcessYouTubePlaylistUseCase {
       courseId: input.courseId,
       name: input.subCourseName,
       description: input.subCourseDescription || null,
+      playlistId: null,
       order: 0, // Será calculado automaticamente
     });
 
