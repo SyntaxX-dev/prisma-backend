@@ -112,8 +112,8 @@ export class BulkProcessPlaylistsUseCase {
         // Buscar vídeos da playlist
         const videos = await this.youtubeService.getPlaylistVideos(
           playlistId,
-          200,
-        ); // Limite alto
+          50,
+        ); // Limite reduzido para economizar cota
         if (videos.length === 0) {
           errors.push({ playlistId, error: 'Playlist não contém vídeos' });
           continue;

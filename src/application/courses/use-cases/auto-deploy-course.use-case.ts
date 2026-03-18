@@ -46,11 +46,11 @@ export class AutoDeployCourseUseCase {
 
       console.log(`[AutoDeploy] Canais resolvidos: ${resolvedChannelIds.join(', ')}`);
       
-      // Listar TODAS as playlists de cada canal resolvido
+      // Buscar playlists específicas dentro de cada canal resolvido
       for (const channelId of resolvedChannelIds) {
         try {
-          // Buscamos um limite alto (ex: 200) para garantir que pegamos tudo
-          const results = await this.youtubeService.listChannelPlaylists(channelId, 200);
+          // Limite reduzido para 50 para economizar cota (antes era 200)
+          const results = await this.youtubeService.listChannelPlaylists(channelId, 50);
           searchResults = [...searchResults, ...results];
         } catch (error) {
           console.error(`[AutoDeploy] Erro ao listar playlists no canal ${channelId}:`, error);
@@ -58,8 +58,8 @@ export class AutoDeployCourseUseCase {
       }
     } else {
       // Busca global (legado) - mantemos busca por termo
-      // Pegamos 100 resultados para a IA escolher os melhores
-      searchResults = await this.youtubeService.searchPlaylists(input.topic, 100);
+      // Reduzimos para 30 para economizar cota da API (antes era 100)
+      searchResults = await this.youtubeService.searchPlaylists(input.topic, 30);
     }
     
     if (searchResults.length === 0) {
