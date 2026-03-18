@@ -58,7 +58,8 @@ export class AutoDeployCourseUseCase {
       }
     } else {
       // Busca global (legado) - mantemos busca por termo
-      searchResults = await this.youtubeService.searchPlaylists(input.topic, 50);
+      // Pegamos 100 resultados para a IA escolher os melhores
+      searchResults = await this.youtubeService.searchPlaylists(input.topic, 100);
     }
     
     if (searchResults.length === 0) {

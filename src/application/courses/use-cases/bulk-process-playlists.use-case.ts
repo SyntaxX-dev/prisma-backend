@@ -13,6 +13,9 @@ import { Course } from '../../../domain/entities/course';
 import { SubCourse } from '../../../domain/entities/sub-course';
 import { Module } from '../../../domain/entities/module';
 import { Video } from '../../../domain/entities/video';
+import { YouTubeVideoDto } from '../../../presentation/http/dtos/youtube-video.dto';
+
+
 
 export interface BulkProcessPlaylistsInput {
   playlistIds: string[];
@@ -84,7 +87,14 @@ export class BulkProcessPlaylistsUseCase {
     );
 
     // 3. Buscar informações e vídeos de cada playlist
-    const playlistData: PlaylistAnalysisData[] = [];
+    const playlistData: Array<{
+      playlistId: string;
+      playlistTitle: string;
+      playlistDescription?: string;
+      channelName: string;
+      channelId?: string;
+      videos: YouTubeVideoDto[];
+    }> = [];
     const errors: Array<{ playlistId: string; error: string }> = [];
 
     for (const playlistId of input.playlistIds) {
@@ -115,13 +125,7 @@ export class BulkProcessPlaylistsUseCase {
           playlistDescription: playlistInfo.description,
           channelName: playlistInfo.channelTitle || 'Canal Desconhecido',
           channelId: undefined, // Pode ser adicionado se necessário
-          videos: videos.map((video) => ({
-            videoId: video.videoId,
-            title: video.title || '',
-            description: video.description,
-            duration: video.duration,
-            tags: video.tags,
-          })),
+          videos: videos, // Guardamos o DTO completo aqui
         });
 
         console.log(
@@ -165,9 +169,24 @@ export class BulkProcessPlaylistsUseCase {
       aiPrompt = `IMPORTANTE: Todas as playlists DEVEM ser organizadas dentro do curso "${targetCourse.name}". Não crie outros cursos. ${aiPrompt}`;
     }
 
+    const geminiInput: PlaylistAnalysisData[] = playlistData.map((data) => ({
+      playlistId: data.playlistId,
+      playlistTitle: data.playlistTitle,
+      playlistDescription: data.playlistDescription,
+      channelName: data.channelName,
+      channelId: data.channelId,
+      videos: data.videos.map((v) => ({
+        videoId: v.videoId,
+        title: v.title,
+        description: v.description,
+        duration: v.duration,
+        tags: v.tags,
+      })),
+    }));
+
     const courseSuggestions =
       await this.geminiService.analyzePlaylistsForCourses(
-        playlistData,
+        geminiInput,
         existingCourseNames,
         aiPrompt,
       );
@@ -182,11 +201,7 @@ export class BulkProcessPlaylistsUseCase {
     let totalModules = 0;
     let totalVideos = 0;
 
-    // Mapa para armazenar vídeos por playlistId (para buscar depois)
-    const videosByPlaylistId = new Map<
-      string,
-      (typeof playlistData)[0]['videos']
-    >();
+    const videosByPlaylistId = new Map<string, YouTubeVideoDto[]>();
     playlistData.forEach((data) => {
       videosByPlaylistId.set(data.playlistId, data.videos);
     });
@@ -242,34 +257,33 @@ export class BulkProcessPlaylistsUseCase {
           `[BulkProcess] Processando subcurso: ${subCourseSuggestion.subCourseName}`,
         );
 
-        // Buscar vídeos da playlist correspondente
-        const playlistVideos = videosByPlaylistId.get(
-          subCourseSuggestion.playlistId,
-        );
-        if (!playlistVideos || playlistVideos.length === 0) {
-          console.warn(
-            `[BulkProcess] Vídeos não encontrados para playlist ${subCourseSuggestion.playlistId}`,
-          );
-          continue;
-        }
-
-        // Buscar vídeos completos do YouTube
-        const fullVideos = await this.youtubeService.getPlaylistVideos(
-          subCourseSuggestion.playlistId,
-          200,
-        );
-
         // 1. Verificar se o subcurso já existe para esta playlist neste curso
-        let subCourse: SubCourse | null = await this.subCourseRepository.findByPlaylistId(
-          course.id,
-          subCourseSuggestion.playlistId,
-        );
+        let subCourse: SubCourse | null = null;
+        try {
+          subCourse = await this.subCourseRepository.findByPlaylistId(
+            course.id,
+            subCourseSuggestion.playlistId,
+          );
+        } catch (error) {
+          console.error(`[BulkProcess] Erro ao buscar subcurso existente:`, error);
+        }
 
         if (subCourse) {
           console.log(
             `[BulkProcess] Subcurso já existe para a playlist ${subCourseSuggestion.playlistId}: ${subCourse.name} (${subCourse.id}). Pulando criação...`,
           );
         } else {
+          // Buscar vídeos da playlist correspondente (já carregados no início)
+          const playlistVideos = videosByPlaylistId.get(
+            subCourseSuggestion.playlistId,
+          );
+          if (!playlistVideos || playlistVideos.length === 0) {
+            console.warn(
+              `[BulkProcess] Vídeos não encontrados para playlist ${subCourseSuggestion.playlistId}`,
+            );
+            continue;
+          }
+
           // Buscar subcursos existentes para calcular ordem
           const existingSubCourses =
             await this.subCourseRepository.findByCourseId(course.id);
@@ -289,118 +303,96 @@ export class BulkProcessPlaylistsUseCase {
             console.log(
               `[BulkProcess] Subcurso criado: ${subCourse.name} (${subCourse.id})`,
             );
+
+            // Criar módulos e vídeos (Mover para dentro do bloco try)
+            const subCourseOutput = {
+              subCourseId: subCourse.id,
+              subCourseName: subCourse.name,
+              modules: [] as Array<{
+                moduleId: string;
+                moduleName: string;
+                videoCount: number;
+              }>,
+            };
+
+            let moduleOrder = 0;
+            for (const moduleSuggestion of subCourseSuggestion.modules) {
+              const moduleData = Module.create(
+                subCourse.id,
+                moduleSuggestion.name,
+                moduleSuggestion.description,
+                moduleOrder,
+              );
+              const module = await this.moduleRepository.create(moduleData);
+              totalModules++;
+              moduleOrder++;
+
+              let videoOrder = 0;
+              for (const videoIndex of moduleSuggestion.videoIndices) {
+                if (videoIndex >= playlistVideos.length) continue;
+
+                const youtubeVideo = playlistVideos[videoIndex];
+                const truncatedDescription = youtubeVideo.description
+                  ? youtubeVideo.description.substring(0, 2500)
+                  : undefined;
+
+                let publishedAt: Date | undefined = undefined;
+                if (youtubeVideo.publishedAt) {
+                  const date = new Date(youtubeVideo.publishedAt);
+                  if (!isNaN(date.getTime())) publishedAt = date;
+                }
+
+                try {
+                  const videoData = Video.create(
+                    module.id,
+                    subCourse.id,
+                    youtubeVideo.videoId,
+                    youtubeVideo.title || 'Sem título',
+                    youtubeVideo.url,
+                    truncatedDescription,
+                    youtubeVideo.thumbnailUrl,
+                    youtubeVideo.duration || 0,
+                    youtubeVideo.channelTitle,
+                    youtubeVideo.channelId,
+                    youtubeVideo.channelThumbnailUrl,
+                    publishedAt,
+                    youtubeVideo.viewCount,
+                    youtubeVideo.tags,
+                    youtubeVideo.category,
+                    videoOrder,
+                  );
+                  await this.videoRepository.create(videoData);
+                  totalVideos++;
+                  videoOrder++;
+                } catch (vError) {
+                  console.error(`[BulkProcess] Erro ao salvar vídeo:`, vError);
+                }
+              }
+
+              subCourseOutput.modules.push({
+                moduleId: module.id,
+                moduleName: module.name,
+                videoCount: moduleSuggestion.videoIndices.length,
+              });
+            }
+            courseOutput.subCourses.push(subCourseOutput);
+
           } catch (error) {
             console.error(
-              `[BulkProcess] Erro ao criar subcurso ${subCourseSuggestion.subCourseName}:`,
+              `[BulkProcess] Erro ao processar subcurso ${subCourseSuggestion.subCourseName}:`,
               error,
             );
             errors.push({
               playlistId: subCourseSuggestion.playlistId,
-              error: `Erro ao criar subcurso: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+              error: `Erro ao processar subcurso: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
             });
             continue;
           }
         }
-
-        if (!subCourse) continue;
-
-        const subCourseOutput = {
-          subCourseId: subCourse.id,
-          subCourseName: subCourse.name,
-          modules: [] as Array<{
-            moduleId: string;
-            moduleName: string;
-            videoCount: number;
-          }>,
-        };
-
-        // Criar módulos e vídeos
-        let moduleOrder = 0;
-        for (const moduleSuggestion of subCourseSuggestion.modules) {
-          // Criar módulo com tratamento de erro
-          let module: Module;
-          try {
-            const moduleData = Module.create(
-              subCourse.id,
-              moduleSuggestion.name,
-              moduleSuggestion.description,
-              moduleOrder,
-            );
-            module = await this.moduleRepository.create(moduleData);
-            totalModules++;
-            moduleOrder++;
-            console.log(`[BulkProcess] Módulo criado: ${module.name} (${module.id})`);
-          } catch (error) {
-            console.error(`[BulkProcess] Erro ao criar módulo ${moduleSuggestion.name}:`, error);
-            continue;
-          }
-
-          // Criar vídeos do módulo
-          let videoOrder = 0;
-          for (const videoIndex of moduleSuggestion.videoIndices) {
-            if (videoIndex >= fullVideos.length) {
-              console.warn(
-                `[BulkProcess] Índice de vídeo ${videoIndex} fora do range`,
-              );
-              continue;
-            }
-
-            const youtubeVideo = fullVideos[videoIndex];
-
-            // Truncar descrição para evitar erro de banco de dados (max 2500)
-            const truncatedDescription = youtubeVideo.description
-              ? youtubeVideo.description.substring(0, 2500)
-              : undefined;
-
-            // Validar data
-            let publishedAt: Date | undefined = undefined;
-            if (youtubeVideo.publishedAt) {
-              const date = new Date(youtubeVideo.publishedAt);
-              if (!isNaN(date.getTime())) {
-                publishedAt = date;
-              }
-            }
-
-            try {
-              const videoData = Video.create(
-                module.id,
-                subCourse.id,
-                youtubeVideo.videoId,
-                youtubeVideo.title || 'Sem título',
-                youtubeVideo.url,
-                truncatedDescription,
-                youtubeVideo.thumbnailUrl,
-                youtubeVideo.duration || 0,
-                youtubeVideo.channelTitle,
-                youtubeVideo.channelId,
-                youtubeVideo.channelThumbnailUrl,
-                publishedAt,
-                youtubeVideo.viewCount,
-                youtubeVideo.tags,
-                youtubeVideo.category,
-                videoOrder,
-              );
-              await this.videoRepository.create(videoData);
-              totalVideos++;
-              videoOrder++;
-            } catch (error) {
-              console.error(`[BulkProcess] Erro ao salvar vídeo ${youtubeVideo.videoId}:`, error);
-              // Continuamos para o próximo vídeo
-            }
-          }
-
-          subCourseOutput.modules.push({
-            moduleId: module.id,
-            moduleName: module.name,
-            videoCount: moduleSuggestion.videoIndices.length,
-          });
-        }
-
-        courseOutput.subCourses.push(subCourseOutput);
       }
-
       createdCourses.push(courseOutput);
     }
+
 
     const message = `Processamento concluído! Criados ${courseSuggestions.length} curso(s), ${totalSubCourses} subcurso(s), ${totalModules} módulo(s) e ${totalVideos} vídeo(s).`;
 

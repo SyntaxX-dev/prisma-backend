@@ -15,6 +15,7 @@ export interface ChannelInfo {
 export class YouTubeChannelService {
   private readonly apiKey: string | null;
   private readonly baseUrl = 'https://www.googleapis.com/youtube/v3';
+  private readonly cache = new Map<string, ChannelInfo>();
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
@@ -27,6 +28,10 @@ export class YouTubeChannelService {
   }
 
   async getChannelInfo(channelId: string): Promise<ChannelInfo | null> {
+    if (this.cache.has(channelId)) {
+      return this.cache.get(channelId) || null;
+    }
+
     if (!this.apiKey) {
       console.warn(
         'YOUTUBE_API_KEY não configurada. Não é possível buscar informações do canal.',
@@ -42,7 +47,7 @@ export class YouTubeChannelService {
 
       if (data.items && data.items.length > 0) {
         const channel = data.items[0];
-        return {
+        const info = {
           id: channel.id,
           title: channel.snippet.title,
           description: channel.snippet.description,
@@ -54,6 +59,8 @@ export class YouTubeChannelService {
           viewCount: channel.statistics.viewCount,
           videoCount: channel.statistics.videoCount,
         };
+        this.cache.set(channelId, info);
+        return info;
       }
 
       return null;

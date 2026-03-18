@@ -50,26 +50,38 @@ export class YouTubeService {
     }
 
     try {
-      const response = await this.youtube.search.list({
-        part: ['snippet'],
-        q: query,
-        maxResults,
-        type: ['playlist'],
-        channelId: channelId || undefined,
-      });
+      let allPlaylists: YouTubePlaylistDto[] = [];
+      let nextPageToken: string | undefined = undefined;
 
-      if (!response.data.items) {
-        return [];
-      }
+      do {
+        const response: any = await this.youtube.search.list({
+          part: ['snippet'],
+          q: query,
+          maxResults: Math.min(maxResults - allPlaylists.length, 50),
+          type: ['playlist'],
+          channelId: channelId || undefined,
+          pageToken: nextPageToken,
+        });
 
-      return response.data.items.map((item) => ({
-        playlistId: item.id?.playlistId || '',
-        title: item.snippet?.title || '',
-        description: item.snippet?.description || undefined,
-        thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.default?.url || '',
-        itemCount: 0, // A busca inicial não retorna contagem de itens
-        channelTitle: item.snippet?.channelTitle || '',
-      }));
+        if (!response.data.items) break;
+
+        const mapped = response.data.items.map((item: any) => ({
+          playlistId: item.id?.playlistId || '',
+          title: item.snippet?.title || '',
+          description: item.snippet?.description || undefined,
+          thumbnailUrl:
+            item.snippet?.thumbnails?.high?.url ||
+            item.snippet?.thumbnails?.default?.url ||
+            '',
+          itemCount: 0,
+          channelTitle: item.snippet?.channelTitle || '',
+        }));
+
+        allPlaylists = [...allPlaylists, ...mapped];
+        nextPageToken = response.data.nextPageToken || undefined;
+      } while (nextPageToken && allPlaylists.length < maxResults);
+
+      return allPlaylists;
     } catch (error) {
       this.logger.error('Erro ao buscar playlists:', error);
       throw new Error('Falha ao buscar playlists do YouTube');
