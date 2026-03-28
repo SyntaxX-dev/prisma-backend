@@ -426,6 +426,96 @@ export class CoursesController {
     }
   }
 
+  @Get('sub-courses/id-by-name')
+  @ApiOperation({ summary: 'Buscar ID de um subcurso pelo nome' })
+  @ApiQuery({ name: 'name', description: 'Nome do subcurso para buscar o ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'ID do subcurso encontrado ou null se não existir',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            id: { type: 'string', example: 'uuid-do-subcurso' },
+          },
+        },
+      },
+    },
+  })
+  async getSubCourseIdByName(@Query('name') name: string) {
+    if (!name) {
+      throw new HttpException(
+        { success: false, message: 'O nome do subcurso é obrigatório' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    try {
+      const result = await this.getSubCourseIdByNameUseCase.execute({ name });
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao buscar subcurso'
+              : error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('sub-courses/:id/delete') // Usando POST para evitar problemas com alguns proxies, mas preservando o sentido de delete
+  @ApiOperation({ summary: 'Deletar um subcurso e todos seus módulos e vídeos (Apenas Admin)' })
+  @ApiParam({ name: 'id', description: 'ID do subcurso a ser deletado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subcurso deletado com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Subcurso deletado com sucesso' },
+      },
+    },
+  })
+  async deleteSubCourse(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+  ) {
+    const ability = getUserPermissions(user.sub, user.role);
+    if (ability.cannot('delete', 'Course')) {
+      throw new ForbiddenException('Você não tem permissão para deletar subcursos');
+    }
+
+    try {
+      await this.deleteSubCourseUseCase.execute({ id });
+      return {
+        success: true,
+        message: 'Subcurso deletado com sucesso',
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'Erro ao deletar subcurso'
+              : error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
   @Post('sub-courses/:subCourseId/videos')
   @ApiOperation({ summary: 'Adicionar vídeos a um sub-curso (Apenas Admin)' })
   @ApiParam({
@@ -1300,96 +1390,6 @@ export class CoursesController {
             error instanceof Error
               ? error.message
               : 'Erro ao listar mapas mentais',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  @Get('sub-courses/id-by-name')
-  @ApiOperation({ summary: 'Buscar ID de um subcurso pelo nome' })
-  @ApiQuery({ name: 'name', description: 'Nome do subcurso para buscar o ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'ID do subcurso encontrado ou null se não existir',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        data: {
-          type: 'object',
-          nullable: true,
-          properties: {
-            id: { type: 'string', example: 'uuid-do-subcurso' },
-          },
-        },
-      },
-    },
-  })
-  async getSubCourseIdByName(@Query('name') name: string) {
-    if (!name) {
-      throw new HttpException(
-        { success: false, message: 'O nome do subcurso é obrigatório' },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    try {
-      const result = await this.getSubCourseIdByNameUseCase.execute({ name });
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message:
-            process.env.NODE_ENV === 'production'
-              ? 'Erro ao buscar subcurso'
-              : error.message,
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  @Post('sub-courses/:id/delete') // Usando POST para evitar problemas com alguns proxies, mas preservando o sentido de delete
-  @ApiOperation({ summary: 'Deletar um subcurso e todos seus módulos e vídeos (Apenas Admin)' })
-  @ApiParam({ name: 'id', description: 'ID do subcurso a ser deletado' })
-  @ApiResponse({
-    status: 200,
-    description: 'Subcurso deletado com sucesso',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Subcurso deletado com sucesso' },
-      },
-    },
-  })
-  async deleteSubCourse(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-  ) {
-    const ability = getUserPermissions(user.sub, user.role);
-    if (ability.cannot('delete', 'Course')) {
-      throw new ForbiddenException('Você não tem permissão para deletar subcursos');
-    }
-
-    try {
-      await this.deleteSubCourseUseCase.execute({ id });
-      return {
-        success: true,
-        message: 'Subcurso deletado com sucesso',
-      };
-    } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message:
-            process.env.NODE_ENV === 'production'
-              ? 'Erro ao deletar subcurso'
-              : error.message,
         },
         HttpStatus.BAD_REQUEST,
       );
