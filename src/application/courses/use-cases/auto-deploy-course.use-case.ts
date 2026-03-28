@@ -18,7 +18,7 @@ export class AutoDeployCourseUseCase {
     private readonly youtubeService: YouTubeService,
     private readonly geminiService: GeminiService,
     private readonly bulkProcessPlaylistsUseCase: BulkProcessPlaylistsUseCase,
-  ) {}
+  ) { }
 
   async execute(input: AutoDeployCourseInput): Promise<BulkProcessPlaylistsOutput> {
     const limit = input.maxSubCourses || 5;
@@ -29,7 +29,7 @@ export class AutoDeployCourseUseCase {
     // 1. Buscar playlists
     if (input.channelIds && input.channelIds.length > 0) {
       console.log(`[AutoDeploy] Resolvendo e restringindo busca a ${input.channelIds.length} handles/canais`);
-      
+
       const resolvedChannelIds: string[] = [];
       for (const id of input.channelIds) {
         const resolvedId = await this.youtubeService.resolveChannelId(id);
@@ -45,7 +45,7 @@ export class AutoDeployCourseUseCase {
       }
 
       console.log(`[AutoDeploy] Canais resolvidos: ${resolvedChannelIds.join(', ')}`);
-      
+
       // Buscar playlists específicas dentro de cada canal resolvido
       for (const channelId of resolvedChannelIds) {
         try {
@@ -61,7 +61,7 @@ export class AutoDeployCourseUseCase {
       // Reduzimos para 30 para economizar cota da API (antes era 100)
       searchResults = await this.youtubeService.searchPlaylists(input.topic, 30);
     }
-    
+
     if (searchResults.length === 0) {
       throw new Error(`Nenhuma playlist encontrada para o tópico "${input.topic}"`);
     }

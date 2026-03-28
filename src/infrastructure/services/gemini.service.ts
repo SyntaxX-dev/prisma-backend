@@ -62,15 +62,16 @@ export class GeminiService {
 
     const prompt = `
 Você é um especialista em curadoria de conteúdo educacional.
-O usuário quer criar um curso completo sobre: "${topic}".
+O usuário quer criar um curso completo sobre o tópico: "${topic}".
 
 Abaixo está uma lista de playlists encontradas no YouTube.
-Selecione as ${limit} MELHORES playlists que, juntas, formariam um curso abrangente, de alta qualidade e sem muita sobreposição de conteúdo.
+Selecione as MELHORES playlists que sejam EXCLUSIVAMENTE RELEVANTES para o tópico "${topic}". 
+O limite máximo é de ${limit} playlists, mas você DEVE selecionar apenas as que realmente tratam do assunto solicitado.
 
-REGRAS:
-1. Priorize playlists com títulos claros e que pareçam ser cursos completos ou tutoriais passo a passo.
-2. Evite escolher playlists que tratam exatamente do mesmo sub-tópico, a menos que sejam complementares.
-3. Se houver nomes de canais famosos por educação, dê preferência.
+REGRAS CRÍTICAS:
+1. RIGOR NO TÓPICO: Se uma playlist tratar de um assunto diferente (ex: se o tópico for "Concurso Correios" e a playlist for "Concurso Banco do Brasil" ou "TJSP"), você DEVE EXCLUÍ-LA obrigatoriamente, mesmo que isso resulte em muito menos de ${limit} playlists selecionadas.
+2. QUALIDADE: Priorize playlists com títulos claros e que pareçam ser cursos completos ou tutoriais passo a passo.
+3. DIVERSIDADE: Evite escolher playlists que tratam exatamente do mesmo sub-tópico, a menos que sejam complementares, para garantir uma cobertura abrangente do tema "${topic}".
 
 LISTA DE PLAYLISTS:
 ${playlists.map((p, i) => `${i}: [${p.playlistId}] Título: ${p.title} | Canal: ${p.channelTitle} | Descrição: ${p.description || 'N/A'}`).join('\n')}
