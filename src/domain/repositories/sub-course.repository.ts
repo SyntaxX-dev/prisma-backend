@@ -21,4 +21,5 @@ export interface SubCourseRepository {
     subCourse: Partial<Omit<SubCourse, 'id' | 'createdAt' | 'updatedAt'>>,
   ): Promise<SubCourse>;
   delete(id: string): Promise<void>;
+  findByName(name: string): Promise<SubCourse | null>;
 }

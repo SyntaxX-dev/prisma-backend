@@ -205,4 +205,25 @@ export class SubCourseDrizzleRepository implements SubCourseRepository {
       .delete(subCourses)
       .where(eq(subCourses.id, id));
   }
+  
+  async findByName(name: string): Promise<SubCourse | null> {
+    const [subCourse] = await this.drizzleService.db
+      .select()
+      .from(subCourses)
+      .where(eq(subCourses.name, name))
+      .limit(1);
+
+    if (!subCourse) return null;
+
+    return new SubCourse(
+      subCourse.id,
+      subCourse.courseId,
+      subCourse.name,
+      subCourse.description,
+      subCourse.playlistId,
+      subCourse.order,
+      subCourse.createdAt,
+      subCourse.updatedAt,
+    );
+  }
 }

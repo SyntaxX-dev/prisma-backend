@@ -25,6 +25,8 @@ import { GetMindMapByVideoUseCase } from './use-cases/get-mind-map-by-video.use-
 import { ListUserMindMapsUseCase } from './use-cases/list-user-mind-maps.use-case';
 import { UpdateVideoDurationUseCase } from './use-cases/update-video-duration.use-case';
 import { UpdateAllVideoDurationsUseCase } from './use-cases/update-all-video-durations.use-case';
+import { GetSubCourseIdByNameUseCase } from './use-cases/get-sub-course-id-by-name.use-case';
+import { DeleteSubCourseUseCase } from './use-cases/delete-sub-course.use-case';
 import {
   COURSE_REPOSITORY,
   SUB_COURSE_REPOSITORY,
@@ -263,6 +265,18 @@ import { PlanVerificationService } from '../../infrastructure/services/plan-veri
         new UpdateAllVideoDurationsUseCase(videoRepository, youtubeService),
       inject: [VIDEO_REPOSITORY, YouTubeService],
     },
+    {
+      provide: GetSubCourseIdByNameUseCase,
+      useFactory: (subCourseRepository) =>
+        new GetSubCourseIdByNameUseCase(subCourseRepository),
+      inject: [SUB_COURSE_REPOSITORY],
+    },
+    {
+      provide: DeleteSubCourseUseCase,
+      useFactory: (subCourseRepository) =>
+        new DeleteSubCourseUseCase(subCourseRepository),
+      inject: [SUB_COURSE_REPOSITORY],
+    },
     GeminiService,
   ],
   exports: [
@@ -290,6 +304,8 @@ import { PlanVerificationService } from '../../infrastructure/services/plan-veri
     ListUserMindMapsUseCase,
     UpdateVideoDurationUseCase,
     UpdateAllVideoDurationsUseCase,
+    GetSubCourseIdByNameUseCase,
+    DeleteSubCourseUseCase,
   ],
 })
 export class CoursesModule { }
