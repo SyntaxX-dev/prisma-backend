@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 export interface VideoData {
   videoId: string;
@@ -59,6 +60,42 @@ export class GeminiService {
     // Absorve erros para não bloquear a fila em caso de falha
     this.geminiQueue = result.catch(() => {});
     return result;
+  }
+
+  private extractVideoId(videoUrl: string): string | null {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = videoUrl.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  }
+
+  private async fetchTranscript(videoUrl: string): Promise<string | null> {
+    const videoId = this.extractVideoId(videoUrl);
+    if (!videoId) return null;
+
+    try {
+      const segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'pt' })
+        .catch(() => YoutubeTranscript.fetchTranscript(videoId)); // fallback para qualquer idioma
+
+      if (!segments || segments.length === 0) return null;
+
+      const fullText = segments.map((s) => s.text).join(' ');
+
+      // Limita a ~6000 palavras (~30min de conteúdo) para controlar tokens
+      const words = fullText.split(' ');
+      const truncated = words.slice(0, 6000).join(' ');
+      const wasTruncated = words.length > 6000;
+
+      console.log(`[Transcript] Obtida: ${words.length} palavras${wasTruncated ? ' (truncada em 6000)' : ''}`);
+      return truncated;
+    } catch (err) {
+      console.warn(`[Transcript] Não disponível para ${videoId}:`, err?.message);
+      return null;
+    }
   }
 
   /**
@@ -159,15 +196,7 @@ Responda APENAS com um JSON no seguinte formato:
     return defaultPrompt;
   }
 
-  private async callGeminiAPI(prompt: string, videoUrl?: string): Promise<string> {
-    const parts: any[] = [];
-
-    if (videoUrl) {
-      parts.push({ fileData: { mimeType: 'video/mp4', fileUri: videoUrl } });
-    }
-
-    parts.push({ text: prompt });
-
+  private async callGeminiAPI(prompt: string): Promise<string> {
     const response = await fetch(
       `${this.baseUrl}/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`,
       {
@@ -176,7 +205,7 @@ Responda APENAS com um JSON no seguinte formato:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{ parts }],
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.3,
             topK: 40,
@@ -510,6 +539,14 @@ Responda APENAS com um JSON no seguinte formato:
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
+    // Busca transcrição uma vez antes de entrar no loop de retry
+    const transcript = await this.fetchTranscript(videoUrl);
+    if (transcript) {
+      console.log(`[MindMap] ✅ Transcrição obtida — usando conteúdo real do vídeo`);
+    } else {
+      console.log(`[MindMap] ⚠️ Transcrição não disponível — usando título e descrição`);
+    }
+
     const maxRetries = 5;
     let lastError: any;
 
@@ -521,9 +558,9 @@ Responda APENAS com um JSON no seguinte formato:
           `[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando ${typeLabel}`,
         );
         const prompt = generationType === 'mindmap'
-          ? this.buildMindMapPrompt(videoTitle, videoDescription)
-          : this.buildTextSummaryPrompt(videoTitle, videoDescription);
-        const response = await this.enqueueGeminiRequest(() => this.callGeminiAPI(prompt, videoUrl));
+          ? this.buildMindMapPrompt(videoTitle, videoDescription, transcript)
+          : this.buildTextSummaryPrompt(videoTitle, videoDescription, transcript);
+        const response = await this.enqueueGeminiRequest(() => this.callGeminiAPI(prompt));
         console.log(`[MindMap] ✅ ${typeLabel} gerado com sucesso`);
         return response;
       } catch (error: any) {
@@ -550,12 +587,16 @@ Responda APENAS com um JSON no seguinte formato:
   private buildMindMapPrompt(
     videoTitle: string,
     videoDescription: string,
+    transcript: string | null,
   ): string {
-    return `
-Crie um mapa mental ESTRUTURADO sobre o vídeo educacional acima.
+    const contentSection = transcript
+      ? `Título: ${videoTitle}\nTranscrição do vídeo:\n${transcript}`
+      : `Título: ${videoTitle}\nDescrição: ${videoDescription}`;
 
-Título: ${videoTitle}
-Descrição: ${videoDescription}
+    return `
+Crie um mapa mental ESTRUTURADO sobre o seguinte conteúdo educacional:
+
+${contentSection}
 
 CONTEXTO:
 Este mapa mental será usado por estudantes preparando-se para provas e concursos.
@@ -629,12 +670,16 @@ Gere o mapa mental:
   private buildTextSummaryPrompt(
     videoTitle: string,
     videoDescription: string,
+    transcript: string | null,
   ): string {
-    return `
-Crie um RESUMO DETALHADO em texto corrido sobre o vídeo educacional acima.
+    const contentSection = transcript
+      ? `Título: ${videoTitle}\nTranscrição do vídeo:\n${transcript}`
+      : `Título: ${videoTitle}\nDescrição: ${videoDescription}`;
 
-Título: ${videoTitle}
-Descrição: ${videoDescription}
+    return `
+Crie um RESUMO DETALHADO em texto corrido sobre o seguinte conteúdo educacional:
+
+${contentSection}
 
 CONTEXTO:
 Este resumo será usado por estudantes preparando-se para provas e concursos.
