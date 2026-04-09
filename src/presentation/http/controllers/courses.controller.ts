@@ -37,6 +37,7 @@ import { UpdateAllVideoDurationsUseCase } from '../../../application/courses/use
 import { ListProducerCoursesUseCase } from '../../../application/courses/use-cases/list-producer-courses.use-case';
 import { GetSubCourseIdByNameUseCase } from '../../../application/courses/use-cases/get-sub-course-id-by-name.use-case';
 import { DeleteSubCourseUseCase } from '../../../application/courses/use-cases/delete-sub-course.use-case';
+import { GeminiService } from '../../../infrastructure/services/gemini.service';
 import { CreateCourseDto } from '../dtos/create-course.dto';
 import { CreateSubCourseDto } from '../dtos/create-sub-course.dto';
 import { CreateVideosDto } from '../dtos/create-videos.dto';
@@ -84,6 +85,7 @@ export class CoursesController {
     private readonly listProducerCoursesUseCase: ListProducerCoursesUseCase,
     private readonly getSubCourseIdByNameUseCase: GetSubCourseIdByNameUseCase,
     private readonly deleteSubCourseUseCase: DeleteSubCourseUseCase,
+    private readonly geminiService: GeminiService,
   ) { }
 
   @Post()
@@ -1390,6 +1392,43 @@ export class CoursesController {
             error instanceof Error
               ? error.message
               : 'Erro ao listar mapas mentais',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('gemini-ping')
+  @ApiOperation({ summary: 'Testa conexão com o Gemini enviando um prompt livre' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', example: 'responda apenas: oi' },
+      },
+      required: ['prompt'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Resposta do Gemini',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        response: { type: 'string', example: 'oi' },
+      },
+    },
+  })
+  async geminiPing(@Body() body: { prompt: string }) {
+    try {
+      const response = await this.geminiService.pingTest(body.prompt);
+      return { success: true, response };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error instanceof Error ? error.message : 'Erro ao chamar Gemini',
         },
         HttpStatus.BAD_REQUEST,
       );

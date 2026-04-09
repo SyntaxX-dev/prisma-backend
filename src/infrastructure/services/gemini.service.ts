@@ -573,6 +573,11 @@ Responda APENAS com um JSON no seguinte formato:
     return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
   }
 
+  async pingTest(prompt: string): Promise<string> {
+    if (!this.apiKey) throw new Error('GEMINI_API_KEY não configurada');
+    return this.enqueueGeminiRequest(() => this.callGeminiAPI(prompt));
+  }
+
   /**
    * Gera um mapa mental ou resumo em texto sobre um vídeo usando Gemini AI
    * @param generationType 'mindmap' para mapa mental visual, 'text' para resumo em texto
