@@ -52,24 +52,35 @@ export class GeminiService {
 
   private enqueueGeminiRequest<T>(fn: () => Promise<T>): Promise<T> {
     const result = this.geminiQueue.then(async () => {
-      const value = await fn();
-      await new Promise((resolve) => setTimeout(resolve, this.delayBetweenRequests));
-      return value;
+      try {
+        const value = await fn();
+        await new Promise((resolve) => setTimeout(resolve, this.delayBetweenRequests));
+        return value;
+      } catch (error: any) {
+        // Bloqueia a fila mesmo em erro para não liberar requests simultâneos
+        const isRateLimit = error?.message?.includes('429');
+        await new Promise((resolve) => setTimeout(resolve, isRateLimit ? 10000 : 1000));
+        throw error;
+      }
     });
-    // Absorve erros para não bloquear a fila em caso de falha
     this.geminiQueue = result.catch(() => {});
     return result;
   }
 
   private extractVideoId(videoUrl: string): string | null {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    ];
-    for (const pattern of patterns) {
-      const match = videoUrl.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
+    const match = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+    return match ? match[1] : null;
+  }
+
+  private decodeHtmlEntities(text: string): string {
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+      .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)));
   }
 
   private async fetchTranscript(videoUrl: string): Promise<string | null> {
@@ -77,22 +88,59 @@ export class GeminiService {
     if (!videoId) return null;
 
     try {
-      const { YoutubeTranscript } = await import('youtube-transcript');
-      const segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'pt' })
-        .catch(() => YoutubeTranscript.fetchTranscript(videoId)); // fallback para qualquer idioma
+      // Usa InnerTube API para buscar as faixas de legenda
+      const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 14)',
+        },
+        body: JSON.stringify({
+          context: { client: { clientName: 'ANDROID', clientVersion: '20.10.38' } },
+          videoId,
+        }),
+      });
 
-      if (!segments || segments.length === 0) return null;
+      if (!playerRes.ok) return null;
 
-      const fullText = segments.map((s) => s.text).join(' ');
+      const playerData = await playerRes.json();
+      const tracks: any[] = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      if (!Array.isArray(tracks) || tracks.length === 0) return null;
 
-      // Limita a ~6000 palavras (~30min de conteúdo) para controlar tokens
+      // Prefere português, depois qualquer idioma
+      const track = tracks.find((t) => t.languageCode === 'pt') ||
+                    tracks.find((t) => t.languageCode?.startsWith('pt')) ||
+                    tracks[0];
+      if (!track?.baseUrl) return null;
+
+      const xmlRes = await fetch(track.baseUrl);
+      if (!xmlRes.ok) return null;
+      const xml = await xmlRes.text();
+
+      // Parseia XML de transcrição (novo formato <p> ou antigo <text>)
+      const texts: string[] = [];
+      const newMatches = [...xml.matchAll(/<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g)];
+      if (newMatches.length > 0) {
+        for (const m of newMatches) {
+          const words = [...m[3].matchAll(/<s[^>]*>([^<]*)<\/s>/g)].map((s) => s[1]).join('');
+          const text = (words || m[3].replace(/<[^>]+>/g, '')).trim();
+          if (text) texts.push(text);
+        }
+      } else {
+        for (const m of xml.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) {
+          const text = m[1].trim();
+          if (text) texts.push(text);
+        }
+      }
+
+      if (texts.length === 0) return null;
+
+      const fullText = this.decodeHtmlEntities(texts.join(' '));
       const words = fullText.split(' ');
       const truncated = words.slice(0, 6000).join(' ');
-      const wasTruncated = words.length > 6000;
-
-      console.log(`[Transcript] Obtida: ${words.length} palavras${wasTruncated ? ' (truncada em 6000)' : ''}`);
+      console.log(`[Transcript] Obtida: ${words.length} palavras${words.length > 6000 ? ' (truncada em 6000)' : ''}`);
       return truncated;
-    } catch (err) {
+    } catch (err: any) {
       console.warn(`[Transcript] Não disponível para ${videoId}:`, err?.message);
       return null;
     }
@@ -569,7 +617,7 @@ Responda APENAS com um JSON no seguinte formato:
 
         if (attempt < maxRetries) {
           const isRateLimit = error?.message?.includes('429');
-          const waitTime = isRateLimit ? attempt * 30000 : attempt * 5000; // 429: 30s/60s/90s/120s | outros: 5s/10s/15s/20s
+          const waitTime = isRateLimit ? attempt * 10000 : attempt * 3000; // 429: 10s/20s/30s/40s | outros: 3s/6s/9s/12s
           console.log(
             `[MindMap] ⏳ ${isRateLimit ? 'Rate limit detectado.' : ''} Aguardando ${waitTime / 1000}s antes de tentar novamente...`,
           );
@@ -771,7 +819,7 @@ Gere o resumo:
 
         if (attempt < maxRetries) {
           const isRateLimit = error?.message?.includes('429');
-          const waitTime = isRateLimit ? attempt * 30000 : attempt * 5000;
+          const waitTime = isRateLimit ? attempt * 10000 : attempt * 3000;
           console.log(
             `[Quiz] ⏳ ${isRateLimit ? 'Rate limit detectado.' : ''} Aguardando ${waitTime / 1000}s antes de tentar novamente...`,
           );
