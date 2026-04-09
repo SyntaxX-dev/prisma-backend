@@ -38,6 +38,8 @@ export interface SubCourseSuggestion {
 export class GeminiService {
   private readonly apiKey: string;
   private readonly baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  private geminiQueue: Promise<any> = Promise.resolve();
+  private readonly delayBetweenRequests = 1000; // 1s entre requests para evitar 429
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || '';
@@ -46,6 +48,17 @@ export class GeminiService {
         'GEMINI_API_KEY não configurada. Usando algoritmo local como fallback.',
       );
     }
+  }
+
+  private enqueueGeminiRequest<T>(fn: () => Promise<T>): Promise<T> {
+    const result = this.geminiQueue.then(async () => {
+      const value = await fn();
+      await new Promise((resolve) => setTimeout(resolve, this.delayBetweenRequests));
+      return value;
+    });
+    // Absorve erros para não bloquear a fila em caso de falha
+    this.geminiQueue = result.catch(() => {});
+    return result;
   }
 
   /**
@@ -83,7 +96,7 @@ Responda APENAS com um JSON contendo os IDs das playlists selecionadas no format
 `;
 
     try {
-      const response = await this.callGeminiAPI(prompt);
+      const response = await this.enqueueGeminiRequest(() => this.callGeminiAPI(prompt));
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) return playlists.slice(0, limit).map((p) => p.playlistId);
       
@@ -106,7 +119,7 @@ Responda APENAS com um JSON contendo os IDs das playlists selecionadas no format
 
     try {
       const prompt = this.buildPrompt(videos, customPrompt);
-      const response = await this.callGeminiAPI(prompt);
+      const response = await this.enqueueGeminiRequest(() => this.callGeminiAPI(prompt));
       return this.parseGeminiResponse(response);
     } catch (error) {
       console.error('Erro ao chamar Gemini API:', error);
@@ -146,29 +159,29 @@ Responda APENAS com um JSON no seguinte formato:
     return defaultPrompt;
   }
 
-  private async callGeminiAPI(prompt: string): Promise<string> {
+  private async callGeminiAPI(prompt: string, videoUrl?: string): Promise<string> {
+    const parts: any[] = [];
+
+    if (videoUrl) {
+      parts.push({ fileData: { mimeType: 'video/mp4', fileUri: videoUrl } });
+    }
+
+    parts.push({ text: prompt });
+
     const response = await fetch(
-      `${this.baseUrl}/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
+      `${this.baseUrl}/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
+          contents: [{ parts }],
           generationConfig: {
             temperature: 0.3,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 3000,
           },
         }),
       },
@@ -261,7 +274,7 @@ Responda APENAS com um JSON no seguinte formato:
         existingCourseNames,
         customPrompt,
       );
-      const response = await this.callGeminiAPI(prompt);
+      const response = await this.enqueueGeminiRequest(() => this.callGeminiAPI(prompt));
       return this.parseCourseSuggestionResponse(response, playlists);
     } catch (error) {
       console.error('Erro ao analisar playlists para cursos:', error);
@@ -508,9 +521,9 @@ Responda APENAS com um JSON no seguinte formato:
           `[MindMap] Tentativa ${attempt}/${maxRetries} - Gerando ${typeLabel}`,
         );
         const prompt = generationType === 'mindmap'
-          ? this.buildMindMapPrompt(videoTitle, videoDescription, videoUrl)
-          : this.buildTextSummaryPrompt(videoTitle, videoDescription, videoUrl);
-        const response = await this.callGeminiAPI(prompt);
+          ? this.buildMindMapPrompt(videoTitle, videoDescription)
+          : this.buildTextSummaryPrompt(videoTitle, videoDescription);
+        const response = await this.enqueueGeminiRequest(() => this.callGeminiAPI(prompt, videoUrl));
         console.log(`[MindMap] ✅ ${typeLabel} gerado com sucesso`);
         return response;
       } catch (error: any) {
@@ -537,14 +550,12 @@ Responda APENAS com um JSON no seguinte formato:
   private buildMindMapPrompt(
     videoTitle: string,
     videoDescription: string,
-    videoUrl: string,
   ): string {
     return `
-Crie um mapa mental ESTRUTURADO sobre o seguinte vídeo educacional:
+Crie um mapa mental ESTRUTURADO sobre o vídeo educacional acima.
 
-Título do Vídeo: ${videoTitle}
+Título: ${videoTitle}
 Descrição: ${videoDescription}
-URL: ${videoUrl}
 
 CONTEXTO:
 Este mapa mental será usado por estudantes preparando-se para provas e concursos.
@@ -618,14 +629,12 @@ Gere o mapa mental:
   private buildTextSummaryPrompt(
     videoTitle: string,
     videoDescription: string,
-    videoUrl: string,
   ): string {
     return `
-Crie um RESUMO DETALHADO em texto corrido sobre o seguinte vídeo educacional:
+Crie um RESUMO DETALHADO em texto corrido sobre o vídeo educacional acima.
 
-Título do Vídeo: ${videoTitle}
+Título: ${videoTitle}
 Descrição: ${videoDescription}
-URL: ${videoUrl}
 
 CONTEXTO:
 Este resumo será usado por estudantes preparando-se para provas e concursos.
@@ -705,7 +714,7 @@ Gere o resumo:
           `[Quiz] Tentativa ${attempt}/${maxRetries} - Gerando questões sobre: ${topic}`,
         );
         const prompt = this.buildQuizPrompt(topic);
-        const response = await this.callGeminiAPI(prompt);
+        const response = await this.enqueueGeminiRequest(() => this.callGeminiAPI(prompt));
         const parsed = this.parseQuizResponse(response);
         console.log(
           `[Quiz] ✅ ${parsed.questions.length} questões geradas com sucesso`,
