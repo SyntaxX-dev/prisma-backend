@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { YoutubeTranscript } from 'youtube-transcript';
 
 export interface VideoData {
   videoId: string;
@@ -78,6 +77,7 @@ export class GeminiService {
     if (!videoId) return null;
 
     try {
+      const { YoutubeTranscript } = await import('youtube-transcript');
       const segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'pt' })
         .catch(() => YoutubeTranscript.fetchTranscript(videoId)); // fallback para qualquer idioma
 
