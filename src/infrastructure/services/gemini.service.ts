@@ -497,7 +497,7 @@ Responda APENAS com um JSON no seguinte formato:
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    const maxRetries = 3;
+    const maxRetries = 5;
     let lastError: any;
 
     const typeLabel = generationType === 'mindmap' ? 'mapa mental' : 'resumo em texto';
@@ -513,22 +513,22 @@ Responda APENAS com um JSON no seguinte formato:
         const response = await this.callGeminiAPI(prompt);
         console.log(`[MindMap] ✅ ${typeLabel} gerado com sucesso`);
         return response;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
         console.error(`[MindMap] ❌ Erro na tentativa ${attempt}:`, error);
 
-        // Se não for a última tentativa, aguardar antes de retry
         if (attempt < maxRetries) {
-          const waitTime = attempt * 2000; // 2s, 4s, 6s
+          const isRateLimit = error?.message?.includes('429');
+          const waitTime = isRateLimit ? attempt * 30000 : attempt * 5000; // 429: 30s/60s/90s/120s | outros: 5s/10s/15s/20s
           console.log(
-            `[MindMap] ⏳ Aguardando ${waitTime}ms antes de tentar novamente...`,
+            `[MindMap] ⏳ ${isRateLimit ? 'Rate limit detectado.' : ''} Aguardando ${waitTime / 1000}s antes de tentar novamente...`,
           );
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
       }
     }
 
-    console.error('[MindMap] ❌ Todas as tentativas falhar');
+    console.error('[MindMap] ❌ Todas as tentativas falharam');
     throw new Error(
       `Erro ao gerar mapa mental após ${maxRetries} tentativas: ${lastError?.message || 'Erro desconhecido'}`,
     );
@@ -696,7 +696,7 @@ Gere o resumo:
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    const maxRetries = 3;
+    const maxRetries = 5;
     let lastError: any;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -711,14 +711,15 @@ Gere o resumo:
           `[Quiz] ✅ ${parsed.questions.length} questões geradas com sucesso`,
         );
         return parsed;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
         console.error(`[Quiz] ❌ Erro na tentativa ${attempt}:`, error);
 
         if (attempt < maxRetries) {
-          const waitTime = attempt * 2000;
+          const isRateLimit = error?.message?.includes('429');
+          const waitTime = isRateLimit ? attempt * 30000 : attempt * 5000;
           console.log(
-            `[Quiz] ⏳ Aguardando ${waitTime}ms antes de tentar novamente...`,
+            `[Quiz] ⏳ ${isRateLimit ? 'Rate limit detectado.' : ''} Aguardando ${waitTime / 1000}s antes de tentar novamente...`,
           );
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
