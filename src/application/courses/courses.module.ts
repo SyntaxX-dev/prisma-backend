@@ -306,6 +306,7 @@ import { PlanVerificationService } from '../../infrastructure/services/plan-veri
     UpdateAllVideoDurationsUseCase,
     GetSubCourseIdByNameUseCase,
     DeleteSubCourseUseCase,
+    GeminiService,
   ],
 })
 export class CoursesModule { }
